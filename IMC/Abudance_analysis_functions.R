@@ -125,7 +125,7 @@ validate_spe_input <- function(spe, config) {
   coldata_cols <- colnames(meta_table)
   required_cols <- c(
     config$celltype, config$tissue,
-    config$patient, config$roi,
+    config$patient, config$roi, config$treatment,
     config$discrete_clinical, config$continuous_clinical,
     unlist(config$survival)
   )
@@ -194,7 +194,7 @@ process_spe_data <- function(spe, config, aggregate_level = "roi") {
   if (config$output$verbose) {
     cat("✓ Data processing completed\n")
     cat("  - ROIs/Patients:", nrow(analysis_df), "\n")
-    cat("  - Cell types:", sum(grepl("^[A-Z]", colnames(analysis_df))), "\n")
+    cat("  - Cell types and Clinical features:", sum(grepl("^[A-Z]", colnames(analysis_df))), "\n")
   }
   
   return(analysis_df)
@@ -246,7 +246,7 @@ calculate_patient_fractions <- function(meta, config) {
 extract_clinical_data <- function(meta, config) {
   
   clinical_cols <- c(
-    config$columns$patient, config$columns$roi, config$columns$tissue,
+    config$columns$patient, config$columns$roi, config$columns$tissue, config$columns$treatment,
     config$columns$discrete_clinical, config$columns$continuous_clinical,
     unname(unlist(config$columns$survival)) 
   )
@@ -870,6 +870,194 @@ plot_abundance_boxplots <- function(fractions_df, clinical_var, config,
   return(NULL)
 }
 
+plot_abundance_boxplots_with_split <- function(fractions_df, clinical_var, split_var, config, 
+                                    save_path = NULL, test_method = "t.test",
+                                    show_significance = TRUE, width = 6, 
+                                    height = 10, show_points = TRUE,
+                                    point_alpha = 0.6, box_alpha = 0.7) {
+  
+  # Validate inputs
+  if (!clinical_var %in% colnames(fractions_df)) {
+    stop("Clinical variable '", clinical_var, "' not found in data")
+  }
+  
+  # Get cell type columns
+  celltype_cols <- get_celltype_columns(fractions_df, config)
+  
+  if (length(celltype_cols) == 0) {
+    stop("No cell type columns found in data")
+  }
+  
+  # Get tissue column name
+  tissue_col <- config$columns$tissue
+  if (!"Tissue" %in% colnames(fractions_df) && tissue_col %in% colnames(fractions_df)) {
+    # Rename for consistency with reference code
+    fractions_df$Tissue <- fractions_df[[tissue_col]]
+  }
+  
+  # Check if we have Tissue column
+  if (!"Tissue" %in% colnames(fractions_df)) {
+    stop("Tissue column not found in data")
+  }
+  
+  # Clean clinical variable values and convert to factor
+  fractions_df[[clinical_var]] <- as.factor(fractions_df[[clinical_var]])
+  
+  # Remove rows with missing clinical variable
+  fractions_df <- fractions_df[!is.na(fractions_df[[clinical_var]]), ]
+  
+  if (nrow(fractions_df) == 0) {
+    stop("No data remaining after removing missing values for ", clinical_var)
+  }
+  
+  # Check number of groups
+  n_groups <- length(unique(fractions_df[[clinical_var]]))
+  if (n_groups < 2) {
+    warning("Less than 2 groups found for ", clinical_var, ". Skipping.")
+    return(NULL)
+  }
+  
+  # Set up output directory if save_path provided
+  if (!is.null(save_path)) {
+    output_dir <- dirname(save_path)
+    if (!dir.exists(output_dir)) {
+      dir.create(output_dir, recursive = TRUE)
+    }
+    
+    # Create subdirectory for boxplots
+    boxplot_dir <- file.path(output_dir, "individual_boxplots")
+    if (!dir.exists(boxplot_dir)) {
+      dir.create(boxplot_dir, recursive = TRUE)
+    }
+  }
+  
+  # Create clean variable name for titles
+  clean_var_name <- clean_variable_names(clinical_var)
+  
+  # Get appropriate colors
+  if (n_groups == 2) {
+    fill_colors <- pal_jco("default")(2)
+  } else {
+    fill_colors <- pal_jco("default")(min(n_groups, 10))
+  }
+  
+  # Store plots for return
+  plot_list <- list()
+  
+  # Loop through each cell type
+  for (celltype in celltype_cols) {
+    
+    if (config$output$verbose) {
+      cat("  - Creating boxplot for", celltype, "...\n")
+    }
+    
+    # Prepare data for this cell type
+    plot_data <- fractions_df[, c(celltype, "Tissue", clinical_var, split_var)]
+    colnames(plot_data) <- c("Fraction", "Tissue", "Clinical_Group", "Treatment_Group")
+    
+    # Convert to appropriate types
+    plot_data$Fraction <- as.numeric(plot_data$Fraction)
+    plot_data$Clinical_Group <- as.factor(plot_data$Clinical_Group)
+    plot_data$Treatment_Group <- as.factor(plot_data$Treatment_Group)
+    plot_data$Tissue <- as.factor(plot_data$Tissue)
+    
+    # Remove rows with missing fractions
+    plot_data <- plot_data[!is.na(plot_data$Fraction), ]
+    
+    if (nrow(plot_data) == 0) {
+      warning("No data for cell type ", celltype, ". Skipping.")
+      next
+    }
+    
+    # Create the base plot
+    p <- ggplot(plot_data, aes(x = Treatment_Group, y = Fraction, fill = Clinical_Group)) +
+      geom_boxplot(alpha = box_alpha, color = "black", outlier.shape = NA) +
+      scale_fill_manual(values = fill_colors) +
+      theme_bw() +
+      labs(
+        x = clean_var_name,
+        y = "Cell Fraction", 
+        title = paste0("Abundance of ", celltype, " by ", clean_var_name)
+      ) +
+      theme(
+        plot.title = element_text(size = config$plots$title_size, face = "bold", hjust = 0.5),
+        text = element_text(size = config$plots$text_size),
+        axis.title = element_text(face = "bold", size = config$plots$text_size + 2),
+        axis.text.x = element_text(size = config$plots$text_size - 1, vjust = 0.5),
+        axis.text.y = element_text(size = config$plots$text_size - 1),
+        strip.background = element_blank(),
+        strip.text = element_text(size = config$plots$text_size, face = "bold"),
+        legend.position = "top"
+      )
+    
+    # Add individual points if requested
+    if (show_points) {
+      p <- p + geom_jitter(
+        color = "darkgrey", 
+        position = position_jitter(width = 0.2), 
+        size = 1, 
+        alpha = point_alpha
+      )
+    }
+    
+    # Add statistical testing if requested
+    if (show_significance && n_groups == 2) {
+      p <- p + stat_compare_means(
+        aes(group = Clinical_Group),
+        method = test_method,
+        hide.ns = FALSE,
+        label = "p",
+        label.y.npc = 0.75,
+        size = 6
+      )
+    } else if (show_significance && n_groups > 2) {
+      # For more than 2 groups, use ANOVA or Kruskal-Wallis
+      if (test_method == "t.test") {
+        p <- p + stat_compare_means(method = "anova", label.y.npc = "0.75")
+      } else {
+        p <- p + stat_compare_means(method = "kruskal.test", label.y.npc = "0.75")
+      }
+    }
+    
+    # Add faceting by tissue
+    p <- p + facet_grid(Tissue ~ ., scales = "free_y")
+    
+    # Adjust plot margins
+    p <- p + theme(plot.margin = margin(10, 10, 10, 10))
+    
+    # Store plot
+    plot_list[[celltype]] <- p
+    
+    # Save individual plot if path provided
+    if (!is.null(save_path)) {
+      
+      # Create filename
+      safe_celltype <- gsub("[^A-Za-z0-9_]", "_", celltype)  # Make filename safe
+      filename <- paste0("boxplot_", safe_celltype, "_by_", clinical_var,"_in_",split_var, ".pdf")
+      full_path <- file.path(boxplot_dir, filename)
+      
+      # Save plot
+      ggsave(
+        filename = full_path,
+        plot = p,
+        width = width,
+        height = height,
+        dpi = config$plots$dpi
+      )
+      
+      if (config$output$verbose) {
+        cat("    ✓ Saved:", filename, "\n")
+      }
+    }
+  }
+  
+  if (config$output$verbose) {
+    cat("✓ Generated", length(plot_list), "boxplots for", clinical_var, "\n")
+  }
+  
+  return(NULL)
+}
+
 # =============================================================================
 # 4. DISCRETE CLINICAL ANALYSIS FUNCTIONS
 # =============================================================================
@@ -1194,6 +1382,7 @@ clean_variable_names <- function(variable_names) {
   # Define cleaning mappings
   name_mappings <- c(
     "RFS_status" = "Relapse vs Non-relapse",
+    "Treatment" = "Combo vs Chemo", 
     "Gender" = "Female vs Male", 
     "KRAS_mutation" = "KRAS Mut vs WT",
     "BRAF_mutation" = "BRAF Mut vs WT",
@@ -1450,7 +1639,7 @@ perform_cox_regression <- function(survival_df, config, analysis_type = "both",
 get_celltype_columns <- function(data, config) {
   # Identify cell type columns (typically start with capital letters or specific patterns)
   excluded_cols <- c(
-    config$columns$roi, config$columns$tissue, config$columns$patient,
+    config$columns$roi, config$columns$tissue, config$columns$patient, config$columns$treatment,
     config$columns$discrete_clinical, config$columns$continuous_clinical,
     unlist(config$columns$survival), "p_adjusted", "significance", 
     "is_significant", "fold_change", "p_value", "time", "event"
@@ -1591,7 +1780,7 @@ plot_clinical_heatmap <- function(fractions_df, config, save_path = NULL,
     available_clinical_cols <- intersect(clinical_cols, colnames(fractions_df))[-1]
     
     # Add common alternative names
-    alt_names <- c("event", "time", "Gender", "Age", "TBS", "CRLM_number", "CRLM_size", "CEA", "CA199")
+    alt_names <- c("event", "time", "Treatment", "Gender", "Age", "TBS", "CRLM_number", "CRLM_size", "CEA", "CA199")
     available_clinical_cols <- unique(c(available_clinical_cols, intersect(alt_names, colnames(fractions_df))))
     
     patient_fractions <- fractions_df %>%
@@ -1657,6 +1846,8 @@ plot_clinical_heatmap <- function(fractions_df, config, save_path = NULL,
     
     if (var %in% c("event", "RFS_status")) {
       discrete_colors[[var]] <- c("0" = "#bc3c29ff", "1" = "#0072b5ff")
+    } else if (var == "Treatment") {
+      discrete_colors[[var]] <- c("Chemo" = "#f39b7fff", "Combo" = "#8491b4ff", "NA" = "grey70")
     } else if (var == "Gender") {
       discrete_colors[[var]] <- c("0" = "#7876b1ff", "1" = "#ee4c97ff")
     } else if (var %in% c("KRAS_mutation", "BRAF_mutation")) {
@@ -1789,6 +1980,13 @@ plot_clinical_heatmap <- function(fractions_df, config, save_path = NULL,
   return(final_plot)
 }
 
+
+draw_km_for_treatment <- function(fractions_df, config){
+  
+
+
+  return(list(fit, plotdf))
+}
 
 #' Calculate Cellular Diversity Metrics (Entropy and Simpson Index)
 #' @param analysis_data Data frame with cell fractions per ROI

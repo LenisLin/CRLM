@@ -1,0 +1,90 @@
+I'll help you find relevant bulk RNA-seq datasets for your colorectal cancer recurrence project. Let me search for current options in TCGA and GEO databases.Based on my search, here are the most relevant bulk RNA-seq datasets from TCGA and GEO that would be excellent for your colorectal cancer recurrence prediction project:
+
+## **TCGA Datasets**
+
+### **Primary TCGA Collections**
+1. **TCGA-COAD (Colon Adenocarcinoma)**
+   - Over 456 tumor samples and 41 normal samples with matched clinical data
+   - Comprehensive multi-omics: RNA-seq, DNA methylation, copy number, mutation data
+   - Available through GDC Data Portal and cBioPortal
+
+2. **TCGA-READ (Rectum Adenocarcinoma)** 
+   - Additional rectal cancer samples that can be combined with COAD
+   - Part of the landmark 276-sample comprehensive molecular characterization study
+
+3. **TCGA-COADREAD (Combined Dataset)**
+   - Combined colorectal adenocarcinoma dataset available through LinkedOmics
+   - Ideal for larger sample sizes and validation
+
+## **GEO Datasets - Liver Metastases Focus**
+
+### **Gold Standard Matched Primary-Metastasis Datasets**
+4. **GSE6988** ⭐ *Highly Recommended*
+   - 123 samples: 27 primary CRCs, 27 liver metastases, 25 normal colon, 13 normal liver, plus 20 primary CRC without metastases
+   - Platform: GPL4811
+   - Perfect for your three-region analysis
+
+5. **GSE14297** ⭐ *Highly Recommended*
+   - 48 samples: 18 primary CRC, 18 liver metastases, 7 normal colon, 5 normal liver
+   - Platform: Illumina Human-6 v2.0
+   - 18 pairs of matched primary and metastatic samples
+
+6. **GSE81558** ⭐ *Highly Recommended*
+   - 23 primary tumor tissues, 19 metastasis tumor tissues, 9 normal tissues
+   - Part of the robust 63 matched pairs analysis
+
+### **Validation Datasets**
+7. **GSE49355**
+   - 20 primary tumor tissues, 19 metastasis tumor tissues, 18 normal tissues
+   - 13 pairs of matched primary colorectal cancer and liver metastasis samples
+   - Excellent for validation
+
+8. **GSE41258** ⭐ *Large Scale*
+   - 186 primary tumor tissues, 47 metastasis tumor tissues, 54 normal tissues
+   - Used for machine learning model development and validation
+
+9. **GSE68468**
+   - Used as external validation in multiple recent studies
+   - Contains matched primary and metastatic samples
+
+## **Single-Cell RNA-seq Datasets** (Complementary)
+
+### **For Spatial Context Understanding**
+10. **GSE225857** ⭐ *Most Recent & Comprehensive*
+    - 41,892 CD45- non-immune cells and 196,473 CD45+ immune cells from 27 samples of 6 CRC patients
+    - Combined single-cell and spatial transcriptome analysis
+    - Perfect for understanding microenvironment differences
+
+11. **GSE178318**
+    - 6 primary CRC, 6 liver metastases, 3 PBMCs with 25,120 genes and 55,042 cells
+    - Used for 10-gene prognostic model development
+
+12. **GSE158692, GSE164522** 
+    - Part of comprehensive primary vs metastatic comparison study
+    - Useful for cell type-specific analysis
+
+13. **GSE231559**
+    - Contains metastasis-specific macrophage analysis
+    - Relevant for microenvironment characterization
+
+## **Specialized Recent Datasets**
+
+14. **GSE50760**
+    - Validated TCGA findings in independent colorectal cancer cohort
+
+## **Key Advantages for Your Project**
+
+**Perfect for Three-Region Analysis:**
+- **GSE6988, GSE14297, GSE81558** provide the core matched primary-metastasis pairs
+- **TCGA-COAD/READ** offers large sample sizes for robust statistical analysis
+- **Single-cell datasets** (GSE225857, GSE178318) provide spatial context for your three-region framework
+
+**Recurrence Prediction Focus:**
+- Multiple studies have already identified key DEGs and prognostic signatures using these datasets
+- Machine learning approaches have achieved AUCs >0.87 for metastasis prediction
+
+**Clinical Translation Potential:**
+- Several recent studies have successfully developed prognostic models from these datasets
+- Rich clinical annotation available for survival analysis
+
+I'd recommend starting with **GSE6988, GSE14297, and GSE81558** as your core datasets, using **TCGA-COAD** for validation, and leveraging **GSE225857** for spatial context understanding. This combination would provide excellent coverage for your three-region analytical framework.
