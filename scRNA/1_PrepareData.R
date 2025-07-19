@@ -31,9 +31,10 @@ if (!dir.exists(figurePath)) {
 
 ## Che - Cell Discovery - 2021
 # =============================================================================
-cell_barcodes <- read.table(file.path(dataPath, "Che_2021_CellDiscovery", "GSE178318_barcodes.tsv.gz"))
-genes <- read.table(file.path(dataPath, "Che_2021_CellDiscovery", "GSE178318_genes.tsv.gz"))
-gene_matrix <- readMM(file.path(dataPath, "Che_2021_CellDiscovery", "GSE178318_matrix.mtx.gz"))
+Che_dataPath <- file.path(dataPath, "Che_2021_CellDiscovery")
+cell_barcodes <- read.table(file.path(Che_dataPath, "GSE178318_barcodes.tsv.gz"))
+genes <- read.table(file.path(Che_dataPath, "GSE178318_genes.tsv.gz"))
+gene_matrix <- readMM(file.path(Che_dataPath, "GSE178318_matrix.mtx.gz"))
 
 clean_gene_matrix <- resolve_duplicate_features(
     expression_matrix = gene_matrix,
@@ -101,6 +102,110 @@ Wu_seu$tissue <- tissue_
 
 saveRDS(Wu_seu, file.path(dataPath, "Wu_seurat.rds"))
 
+## Liu - Cancer Cell - 2022
+# =============================================================================
+liu_dataPath <- file.path(dataPath, "GSE164522_Liu_CancerCell_2022")
+
+meta_data <- read.csv(file.path(liu_dataPath, "GSE164522_CRLM_metadata.csv.gz"), row.names = 1)
+MN_matrix <- read.table(file.path(liu_dataPath, "GSE164522_CRLM_MN_expression.csv.gz"),row.names = 1, sep = ",", header = TRUE)
+MT_matrix <- read.table(file.path(liu_dataPath, "GSE164522_CRLM_MT_expression.csv.gz"),row.names = 1, sep = ",", header = TRUE)
+
+gene_matrix <- cbind(MN_matrix, MT_matrix)
+
+# Check for duplicate gene names
+print(table(duplicated(rownames(gene_matrix))))
+clean_gene_matrix <- gene_matrix
+
+# Check for cell barcodes
+colnames(clean_gene_matrix) <- gsub("\\.", "-", colnames(clean_gene_matrix))
+print(table(colnames(clean_gene_matrix)%in%rownames(meta_data)))
+
+Liu_seu <- CreateSeuratObject(counts = clean_gene_matrix, project = "Liu") ### Create Seurat object
+rm(gene_matrix, clean_gene_matrix, MN_matrix, MT_matrix)
+gc()
+
+### Process meta data
+PaitentID <- meta_data$patient
+Tissue <- meta_data$tissue
+
+## Add metadata to Seurat object
+cell_idx <- match(colnames(Liu_seu), rownames(meta_data))
+
+Liu_seu$patient <- PaitentID[cell_idx]
+Liu_seu$tissue <- Tissue[cell_idx]
+# Liu_seu$tissue <- ifelse(Liu_seu$tissue == "metastasis normal", "PT", "TC") ## rename tissue
+Liu_seu$patient_tissue <- paste0(Liu_seu$patient, "_", Liu_seu$tissue)
+Liu_seu$orig.ident <- Liu_seu$patient_tissue
+
+### QC
+Liu_seu <- perform_qc(
+    seurat_obj = Liu_seu,
+    nFeature_RNA_min = 800, nFeature_RNA_max = 6000, percent.mt = 15,
+    n_hvgs = 2000, use_sct = FALSE, pca_dims = 1:50, verbose = TRUE
+)
+Liu_seu_doublet <- perform_doublet_detect(seurat_obj = Liu_seu)
+Liu_seu$doublet <- Liu_seu_doublet@meta.data[, ncol(Liu_seu_doublet@meta.data)]
+
+saveRDS(Liu_seu, file.path(dataPath, "Liu_seurat.rds"))
+
+## Wang - ScienceAdvances - 2023
+# =============================================================================
+Wang_dataPath <- file.path(dataPath, "GSE225857_Wang_ScienceAdvances_2023")
+
+immune_meta <- read.table(file.path(Wang_dataPath, "GSM7058754_immune_meta.txt.gz"), row.names = 1, header = TRUE, sep = "\t", stringsAsFactors = FALSE)
+immune_exp <- read.table(file.path(Wang_dataPath, "GSM7058754_immune_counts.txt.gz"), row.names = 1, header = TRUE, sep = "\t", stringsAsFactors = FALSE)
+nonimmune_meta <- read.table(file.path(Wang_dataPath, "GSM7058755_non_immune_meta.txt.gz"), row.names = 1, header = TRUE, sep = "\t", stringsAsFactors = FALSE)
+nonimmune_exp <- read.table(file.path(Wang_dataPath, "GSM7058755_non_immune_counts.txt.gz"), row.names = 1, header = TRUE, sep = "\t", stringsAsFactors = FALSE)
+
+# Intersect genes
+common_genes <- intersect(rownames(immune_exp), rownames(nonimmune_exp))
+immune_exp <- immune_exp[common_genes, ]
+nonimmune_exp <- nonimmune_exp[common_genes, ]
+
+all_exp <- cbind(immune_exp, nonimmune_exp)
+
+# Intersect meta data
+common_colnames <- intersect(colnames(immune_meta), colnames(nonimmune_meta))
+immune_meta <- immune_meta[, common_colnames]
+nonimmune_meta <- nonimmune_meta[, common_colnames]
+
+all_meta <- rbind(immune_meta, nonimmune_meta)
+
+# Check for duplicate gene names
+print(table(duplicated(rownames(all_exp))))
+clean_gene_matrix <- all_exp
+Wang_seu <- CreateSeuratObject(counts = clean_gene_matrix, project = "Wang") ### Create Seurat object
+
+rm(all_exp, clean_gene_matrix, immune_exp, nonimmune_exp, immune_meta, nonimmune_meta)
+gc()
+
+### Process meta data
+PaitentID <- all_meta$patients
+Tissue <- all_meta$organs
+
+# Rename tissue
+Tissue <- ifelse(startsWith(Tissue, prefix = "L"), Tissue, "Other")
+Tissue <- ifelse(startsWith(Tissue, prefix = "LC"), "TC", Tissue)
+Tissue <- ifelse(startsWith(Tissue, prefix = "LN"), "PT", Tissue)
+
+Wang_seu$patient <- PaitentID
+Wang_seu$tissue <- Tissue
+Wang_seu$patient_tissue <- paste0(PaitentID, "_", Tissue)
+Wang_seu$doublet <- all_meta$doublet
+
+Wang_seu$orig.ident <- Wang_seu$patient_tissue
+
+### Sample Filter
+Wang_seu <- Wang_seu[, Wang_seu$tissue != "Other"] ## Subset to Liver Metastasis (LM) samples
+
+### QC
+Wang_seu <- perform_qc(
+    seurat_obj = Wang_seu,
+    nFeature_RNA_min = 200, nFeature_RNA_max = 6000, percent.mt = 40,
+    n_hvgs = 2500, use_sct = FALSE, pca_dims = 1:20, verbose = TRUE
+)
+
+saveRDS(Wang_seu, file.path(dataPath, "Wang_seu.rds"))
 
 ## FDZH - 6 Samples from invasive margin (IM)
 # =============================================================================

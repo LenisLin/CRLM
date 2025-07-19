@@ -361,22 +361,22 @@ perform_qc <- function(seurat_obj,
                         npcs = max(pca_dims),
                         verbose = FALSE)
     
-    # Step 7: UMAP embedding
-    if (verbose) cat("\n7. Computing UMAP embedding...\n")
+    # # Step 7: UMAP embedding
+    # if (verbose) cat("\n7. Computing UMAP embedding...\n")
     
-    seurat_obj <- RunUMAP(seurat_obj, 
-                         dims = umap_dims,
-                         verbose = FALSE)
+    # seurat_obj <- RunUMAP(seurat_obj, 
+    #                      dims = umap_dims,
+    #                      verbose = FALSE)
     
-    # Step 8: Graph-based clustering
-    if (verbose) cat("\n8. Performing graph-based clustering...\n")
+    # # Step 8: Graph-based clustering
+    # if (verbose) cat("\n8. Performing graph-based clustering...\n")
     
-    seurat_obj <- FindNeighbors(seurat_obj, 
-                               dims = umap_dims,
-                               verbose = FALSE)
-    seurat_obj <- FindClusters(seurat_obj, 
-                              resolution = cluster_resolution,
-                              verbose = FALSE)
+    # seurat_obj <- FindNeighbors(seurat_obj, 
+    #                            dims = umap_dims,
+    #                            verbose = FALSE)
+    # seurat_obj <- FindClusters(seurat_obj, 
+    #                           resolution = cluster_resolution,
+    #                           verbose = FALSE)
     
     # Step 9: Final summary
     if (verbose) {
