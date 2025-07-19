@@ -25,6 +25,23 @@ if(!dir.exists(figureDir)){
 # Load your SpatialExperiment object
 spe <- readRDS(file.path(saveDir,"subanno_spe_0714.rds"))
 
+# Combine new clinical column
+if(F){
+  clinical_df <- read.csv("/home/lenislin/Experiment/projects/CRLM_2025/IMC/clinical.csv",row.names = 1)
+    
+  ## Add Treatment strategy
+  spe$Treatment <- NA
+  spe$Treatment <- clinical_df$Treatment[match(spe$patient_id,rownames(clinical_df))]
+  
+  ## Modify the Tissue column
+  tissue_ <- as.character(spe$Tissue)
+  tissue_ <- ifelse(tissue_ == "CT", "TC", tissue_)
+  tissue_ <- ifelse(tissue_ == "TAT", "PT", tissue_)
+  spe$Tissue <- tissue_
+  
+  saveRDS(spe, file.path(saveDir,"subanno_spe_0714.rds"))
+}
+
 # =============================================================================
 # CONFIGURATION SECTION - MODIFY THESE PARAMETERS AS NEEDED
 # =============================================================================
@@ -35,10 +52,12 @@ majortype_col <- "major_celltype"        # Cell type/subtype column
 tissue_col <- "Tissue"                   # Tissue type column  
 patient_col <- "patient_id"              # Patient ID column
 roi_col <- "sample_id"                   # ROI/sample ID column
+treat_col <- "Treatment"                 # Treatment Stratagy column
 
 # Clinical variables configuration
 discrete_clinical_vars <- c(
   "RFS_status",                          # Relapse-free survival status
+  "Treatment",
   "Gender",                              # Patient gender
   "KRAS_mutation",                       # KRAS mutation status
   "BRAF_mutation",                       # BRAF mutation status
@@ -62,7 +81,7 @@ survival_time_col <- "RFS_time"          # Time to event
 survival_event_col <- "RFS_status"       # Event indicator (0/1)
 
 # Analysis scope settings
-tissues_to_analyze <- c("CT", "IM", "TAT")
+tissues_to_analyze <- c("TC", "IM", "PT")
 include_unknown_celltypes <- FALSE       # Include unknown/unclassified cell types
 min_fraction_threshold <- 0.00001          # Minimum fraction to consider (0.01%)
 aggregate_level <- "roi"                 # "roi" or "patient" level analysis
@@ -96,6 +115,7 @@ validate_spe_input(spe, config = list(
   tissue = tissue_col,
   patient = patient_col,
   roi = roi_col,
+  treatment = treat_col,
   verbose = verbose_output,
   discrete_clinical = discrete_clinical_vars,
   continuous_clinical = continuous_clinical_vars,
@@ -145,6 +165,7 @@ config <- list(
     tissue = tissue_col,
     patient = patient_col,
     roi = roi_col,
+    treatment = treat_col,
     discrete_clinical = discrete_clinical_vars,
     continuous_clinical = continuous_clinical_vars,
     survival = list(time = survival_time_col, event = survival_event_col)
@@ -232,23 +253,23 @@ bar_plot <- plot_stacked_abundance_bars(
 if (verbose_output) cat("Calculating cellular diversity metrics...\n")
 
 # Calculate entropy and Simpson index
-fractions_df <- calculate_cellular_diversity(
-  analysis_data = fractions_df,
+analysis_data <- calculate_cellular_diversity(
+  analysis_data = analysis_data,
   config = config,
   add_scaled = TRUE,
   verbose = verbose_output
 )
 
 # Analyze diversity by clinical variables
-clinical_var = "RFS_status"
+for(clinical_var in c("RFS_status","Treatment")){
 plot_cellular_diversity(
-  analysis_data = fractions_df,
+  analysis_data = analysis_data,
   clinical_var = clinical_var,
   config = config,
   save_path = file.path(desc_output_dir, paste0("diversity_", clinical_var, ".pdf")),
   use_scaled = TRUE
 )
-
+}
 # Save enhanced data with diversity metrics
 if (save_intermediate_results) {
   write.csv(analysis_data, 
@@ -268,9 +289,43 @@ heatmap_plot <- plot_clinical_heatmap(
   cluster_columns = FALSE,          # Cluster cell types
   show_row_names = TRUE,           # Show patient IDs
   show_column_names = TRUE,        # Show cell type names
-  width = 12, height = 9
+  width = 15, height = 9
 )
 
+# 1.5 KM plot for patients with different treatment
+if (verbose_output) cat("Generating KM curve for different treatment...\n")
+
+# Get information for plot
+plotdf <- analysis_data[match(unique(analysis_data$patient_id),analysis_data$patient_id),]
+plotdf <- plotdf[,c(config$columns$treatment, unname(unlist(config$columns$survival)))]
+colnames(plotdf) <- c("treatment", names(unlist(config$columns$survival)))
+plotdf <- na.omit(plotdf)
+
+# Fit survival model with error checking
+surv_object <- Surv(time = plotdf$time, event = plotdf$event)
+fit <- survfit(surv_object ~ treatment, data = plotdf)
+
+# Generate Kaplan-Meier plot
+km_plot <- ggsurvplot(
+  fit = fit,
+  data = plotdf,
+  pval = TRUE,                    # Add p-value
+  conf.int = FALSE,                # Add confidence intervals
+  risk.table = TRUE,              # Add risk table
+  risk.table.col = "strata",      # Color risk table by groups
+  linetype = "strata",            # Different line types for groups
+  surv.median.line = "hv",        # Add median survival lines
+  ggtheme = theme_bw(),           # Clean theme
+  palette = c("#f39b7fff", "#8491b4ff"), # Custom colors
+  title = "Recurrence-Free Survival by Cellular compostion Group",
+  xlab = "Time (months)",
+  ylab = "Survival probability",
+  legend.title = "Treatment strategy",
+  legend.labs = c("Chemo", "Combo")
+)
+pdf(file = file.path(desc_output_dir, "km_curve_for_treatment.pdf"), height = 6,width = 8)
+print(km_plot)
+dev.off()
 
 # =============================================================================
 # PART 2: DISCRETE CLINICAL ANALYSIS
@@ -313,7 +368,7 @@ if (!is.null(group_comparisons)) {
     config = config,
     save_path = file.path(discrete_output_dir, "abundance_bubble_plot.pdf"),
     fc_limits = c(0.5, 2), show_ns = TRUE,
-    width = 15, height = 5
+    width = 18, height = 5
   )
 }
 
@@ -335,6 +390,18 @@ for (clinical_var in discrete_clinical_vars) {
     height = 8, width = 5
   )
 }
+
+# Add treatment information for compare
+plot_abundance_boxplots_with_split(
+  fractions_df = analysis_data,
+  clinical_var = "RFS_status",
+  split_var = "Treatment",
+  config = config,
+  save_path = file.path(discrete_output_dir, paste0("boxplots compare RFS_status with different Treatment.pdf")),
+  test_method = test_method,
+  show_significance = TRUE, show_points = TRUE,
+  height = 8, width = 6
+)
 
 # =============================================================================
 # PART 3: CONTINUOUS CLINICAL ANALYSIS
