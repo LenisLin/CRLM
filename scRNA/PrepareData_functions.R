@@ -17,7 +17,6 @@ library(patchwork)
 library(viridis)
 library(dittoSeq)
 
-
 ## Function to handle duplicate feature names in expression matrices
 ## =============================================================================
 
@@ -419,4 +418,94 @@ perform_doublet_detect <- function(seurat_obj) {
     seurat_obj <- doubletFinder(seurat_obj, PCs = 1:15, pN = 0.25, pK = pk_best, nExp = nExp_poi, reuse.pANN = NULL, sct = FALSE)
 
     return(seurat_obj)
+}
+
+# Function to export Seurat object to files compatible with scanpy
+export_seurat_to_scanpy <- function(seurat_obj, output_dir, prefix = "seurat_data", compress = TRUE) {
+  # Create output directory if it doesn't exist
+  if (!dir.exists(output_dir)) {
+    dir.create(output_dir, recursive = TRUE)
+  }
+  
+  # Extract count matrix (use counts layer for raw data)
+  if ("counts" %in% Layers(seurat_obj)) {
+    count_matrix <- LayerData(seurat_obj, layer = "counts")
+  } else {
+    # Fallback to GetAssayData if no layers
+    count_matrix <- GetAssayData(seurat_obj, slot = "counts")
+  }
+  
+  # Ensure matrix is sparse
+  if (!inherits(count_matrix, "sparseMatrix")) {
+    count_matrix <- as(count_matrix, "sparseMatrix")
+  }
+  
+  # File paths
+  mtx_extension <- if (compress) ".mtx.gz" else ".mtx"
+  features_extension <- if (compress) ".tsv.gz" else ".tsv"
+  barcodes_extension <- if (compress) ".tsv.gz" else ".tsv"
+  
+  mtx_file <- file.path(output_dir, paste0(prefix, "_matrix", mtx_extension))
+  features_file <- file.path(output_dir, paste0(prefix, "_features", features_extension))
+  barcodes_file <- file.path(output_dir, paste0(prefix, "_barcodes", barcodes_extension))
+  metadata_file <- file.path(output_dir, paste0(prefix, "_metadata.csv"))
+  
+  # 1. Save count matrix as .mtx file (with optional compression)
+  if (compress) {
+    # Write to temporary file first, then compress
+    temp_mtx <- tempfile(fileext = ".mtx")
+    Matrix::writeMM(count_matrix, temp_mtx)
+    
+    # Compress the file
+    R.utils::gzip(temp_mtx, destname = mtx_file, remove = TRUE)
+  } else {
+    Matrix::writeMM(count_matrix, mtx_file)
+  }
+  
+  # 2. Save gene names (features)
+  features_df <- data.frame(
+    gene_id = rownames(count_matrix),
+    gene_symbol = rownames(count_matrix),
+    gene_type = "Gene Expression"
+  )
+  
+  if (compress) {
+    write.table(features_df, gzfile(features_file), 
+                sep = "\t", quote = FALSE, 
+                row.names = FALSE, col.names = FALSE)
+  } else {
+    write.table(features_df, features_file, 
+                sep = "\t", quote = FALSE, 
+                row.names = FALSE, col.names = FALSE)
+  }
+  
+  # 3. Save cell barcodes
+  barcodes_df <- data.frame(barcode = colnames(count_matrix))
+  
+  if (compress) {
+    write.table(barcodes_df, gzfile(barcodes_file), 
+                sep = "\t", quote = FALSE, 
+                row.names = FALSE, col.names = FALSE)
+  } else {
+    write.table(barcodes_df, barcodes_file, 
+                sep = "\t", quote = FALSE, 
+                row.names = FALSE, col.names = FALSE)
+  }
+  
+  # 4. Save metadata as CSV (usually not compressed for readability)
+  metadata <- seurat_obj@meta.data
+  metadata$cell_barcode <- rownames(metadata)
+  write.csv(metadata, metadata_file, row.names = FALSE)
+  
+  # Print summary
+  compression_status <- if (compress) " (compressed)" else ""
+  cat("Files saved to:", output_dir, "\n")
+  cat("- Count matrix:", basename(mtx_file), compression_status, "\n")
+  cat("- Features:", basename(features_file), compression_status, "\n") 
+  cat("- Barcodes:", basename(barcodes_file), compression_status, "\n")
+  cat("- Metadata:", basename(metadata_file), "\n")
+  cat("Matrix dimensions:", nrow(count_matrix), "genes x", ncol(count_matrix), "cells\n")
+  
+  # Return file paths for convenience
+  return(NULL)
 }
