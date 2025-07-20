@@ -5,6 +5,7 @@ library(DoubletFinder)
 library(harmony)
 library(Matrix)
 library(glmGamPoi)
+library(R.utils)
 
 library(dplyr)
 library(tidyr)
@@ -319,12 +320,14 @@ perform_qc <- function(seurat_obj,
     filtered_metadata <- metadata[keep_cells, , drop = FALSE]
     
     # Create new Seurat object with filtered data
-    seurat_obj <- CreateSeuratObject(
+    seurat_obj_filter <- CreateSeuratObject(
         counts = counts_data,
         meta.data = filtered_metadata,
         project = seurat_obj@project.name
     )
-    
+    rownames(seurat_obj_filter) <- rownames(seurat_obj)  # Ensure gene names are preserved
+    colnames(seurat_obj_filter) <- rownames(filtered_metadata)  # Ensure cell barcodes are preserved
+
     if (verbose) cat("  New object created successfully!\n")
     
     # Step 5: Normalization and feature selection
@@ -334,55 +337,55 @@ perform_qc <- function(seurat_obj,
         if (verbose) cat("  Using SCTransform workflow...\n")
         
         # SCTransform approach (recommended for V5)
-        seurat_obj <- SCTransform(seurat_obj, 
+        seurat_obj_filter <- SCTransform(seurat_obj_filter, 
                                  variable.features.n = n_hvgs,
                                  verbose = FALSE)
         
         # Set default assay to SCT
-        DefaultAssay(seurat_obj) <- "SCT"
+        DefaultAssay(seurat_obj_filter) <- "SCT"
         
     } else {
         if (verbose) cat("  Using traditional normalization workflow...\n")
         
         # Traditional approach
-        seurat_obj <- NormalizeData(seurat_obj, verbose = FALSE)
-        seurat_obj <- FindVariableFeatures(seurat_obj, 
+        seurat_obj_filter <- NormalizeData(seurat_obj_filter, verbose = FALSE)
+        seurat_obj_filter <- FindVariableFeatures(seurat_obj_filter, 
                                           selection.method = "vst", 
                                           nfeatures = n_hvgs,
                                           verbose = FALSE)
-        seurat_obj <- ScaleData(seurat_obj, verbose = FALSE)
+        seurat_obj_filter <- ScaleData(seurat_obj_filter, verbose = FALSE)
     }
     
     # Step 6: Principal Component Analysis
     if (verbose) cat("\n6. Running Principal Component Analysis...\n")
     
-    seurat_obj <- RunPCA(seurat_obj, 
+    seurat_obj_filter <- RunPCA(seurat_obj_filter, 
                         npcs = max(pca_dims),
                         verbose = FALSE)
     
     # # Step 7: UMAP embedding
     # if (verbose) cat("\n7. Computing UMAP embedding...\n")
     
-    # seurat_obj <- RunUMAP(seurat_obj, 
+    # seurat_obj_filter <- RunUMAP(seurat_obj_filter, 
     #                      dims = umap_dims,
     #                      verbose = FALSE)
     
     # # Step 8: Graph-based clustering
     # if (verbose) cat("\n8. Performing graph-based clustering...\n")
     
-    # seurat_obj <- FindNeighbors(seurat_obj, 
+    # seurat_obj_filter <- FindNeighbors(seurat_obj_filter, 
     #                            dims = umap_dims,
     #                            verbose = FALSE)
-    # seurat_obj <- FindClusters(seurat_obj, 
+    # seurat_obj_filter <- FindClusters(seurat_obj_filter, 
     #                           resolution = cluster_resolution,
     #                           verbose = FALSE)
     
     # Step 9: Final summary
     if (verbose) {
         cat("\n=== QC Analysis Complete ===\n")
-        cat("Final object dimensions:", nrow(seurat_obj), "features x", ncol(seurat_obj), "cells\n")
-        cat("Number of clusters:", length(unique(Idents(seurat_obj))), "\n")
-        cat("Default assay:", DefaultAssay(seurat_obj), "\n")
+        cat("Final object dimensions:", nrow(seurat_obj_filter), "features x", ncol(seurat_obj_filter), "cells\n")
+        cat("Number of clusters:", length(unique(Idents(seurat_obj_filter))), "\n")
+        cat("Default assay:", DefaultAssay(seurat_obj_filter), "\n")
         
         if (use_sct) {
             cat("Workflow: SCTransform\n")
@@ -391,7 +394,7 @@ perform_qc <- function(seurat_obj,
         }
     }
     
-    return(seurat_obj)
+    return(seurat_obj_filter)
 }
 
 # =============================================================================
@@ -418,6 +421,25 @@ perform_doublet_detect <- function(seurat_obj) {
     seurat_obj <- doubletFinder(seurat_obj, PCs = 1:15, pN = 0.25, pK = pk_best, nExp = nExp_poi, reuse.pANN = NULL, sct = FALSE)
 
     return(seurat_obj)
+}
+
+# Function to align matrix to common gene set
+align_matrix_to_genes <- function(matrix, target_genes) {
+    current_genes <- rownames(matrix)
+    
+    # Create empty matrix with all genes
+    aligned_matrix <- Matrix(0, 
+                           nrow = length(target_genes), 
+                           ncol = ncol(matrix),
+                           sparse = TRUE)
+    rownames(aligned_matrix) <- target_genes
+    colnames(aligned_matrix) <- colnames(matrix)
+    
+    # Fill in values for genes present in current matrix
+    common_genes <- intersect(current_genes, target_genes)
+    aligned_matrix[common_genes, ] <- matrix[common_genes, ]
+    
+    return(aligned_matrix)
 }
 
 # Function to export Seurat object to files compatible with scanpy
@@ -457,7 +479,7 @@ export_seurat_to_scanpy <- function(seurat_obj, output_dir, prefix = "seurat_dat
     Matrix::writeMM(count_matrix, temp_mtx)
     
     # Compress the file
-    R.utils::gzip(temp_mtx, destname = mtx_file, remove = TRUE)
+    gzip(temp_mtx, destname = mtx_file, remove = TRUE)
   } else {
     Matrix::writeMM(count_matrix, mtx_file)
   }
@@ -465,7 +487,7 @@ export_seurat_to_scanpy <- function(seurat_obj, output_dir, prefix = "seurat_dat
   # 2. Save gene names (features)
   features_df <- data.frame(
     gene_id = rownames(count_matrix),
-    gene_symbol = rownames(count_matrix),
+    gene_symbol = rownames(seurat_obj),
     gene_type = "Gene Expression"
   )
   

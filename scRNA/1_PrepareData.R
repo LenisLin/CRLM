@@ -17,7 +17,7 @@ library(viridis)
 library(dittoSeq)
 
 dataPath <- "/mnt/NAS_21T/ProjectData/IMC_CRLM/scRNA"
-figurePath <- "/mnt/NAS_21T/ProjectResult/IMC-CRLM/scRNA"
+figurePath <- "/mnt/data/lyx/CRLM/scRNA/figures"
 
 source("./PrepareData_functions.R")
 
@@ -31,7 +31,7 @@ if (!dir.exists(figurePath)) {
 
 ## Che - Cell Discovery - 2021
 # =============================================================================
-Che_dataPath <- file.path(dataPath, "Che_2021_CellDiscovery")
+Che_dataPath <- file.path(dataPath, "GSE178318_Che_CellDiscovery_2021")
 cell_barcodes <- read.table(file.path(Che_dataPath, "GSE178318_barcodes.tsv.gz"))
 genes <- read.table(file.path(Che_dataPath, "GSE178318_genes.tsv.gz"))
 gene_matrix <- readMM(file.path(Che_dataPath, "GSE178318_matrix.mtx.gz"))
@@ -58,7 +58,7 @@ Che_seu$patient <- PaitentID
 Che_seu$tissue <- Tissue
 Che_seu$patient_tissue <- paste0(PaitentID, "_", Tissue)
 
-clinical_info <- read.csv(file.path(dataPath, "Che_2021_CellDiscovery", "clinical_info.csv"))
+clinical_info <- read.csv(file.path(Che_dataPath, "clinical_info.csv"))
 Che_seu@meta.data <- left_join(Che_seu@meta.data, clinical_info, by = "patient")
 rownames(Che_seu@meta.data) <- cell_barcodes$V1
 Che_seu$orig.ident <- Che_seu$patient_tissue
@@ -91,9 +91,12 @@ export_seurat_to_scanpy(
   prefix = "processed"
 )
 
+rm(Che_seu, Che_dataPath, cell_barcodes, genes, gene_matrix, clean_gene_matrix)
+gc()
+
 ## Wu - Cancer Discovery - 2022
 # =============================================================================
-Wu_dataPath <- file.path(dataPath, "Wu_2022_CancerDiscovery")
+Wu_dataPath <- file.path(dataPath, "OEP001756_Wu_CancerDiscovery_2022")
 
 load(file.path(Wu_dataPath, "exprmatrix.rda"))
 load(file.path(Wu_dataPath, "metadata.rda"))
@@ -116,6 +119,9 @@ export_seurat_to_scanpy(
   output_dir = Wu_dataPath,
   prefix = "processed"
 )
+
+rm(Wu_seu, Wu_dataPath, exprmatrix, metadata)
+gc()
 
 ## Liu - Cancer Cell - 2022
 # =============================================================================
@@ -148,7 +154,7 @@ cell_idx <- match(colnames(Liu_seu), rownames(meta_data))
 
 Liu_seu$patient <- PaitentID[cell_idx]
 Liu_seu$tissue <- Tissue[cell_idx]
-# Liu_seu$tissue <- ifelse(Liu_seu$tissue == "metastasis normal", "PT", "TC") ## rename tissue
+Liu_seu$tissue <- ifelse(Liu_seu$tissue == "metastasis normal", "PT", "TC") ## rename tissue
 Liu_seu$patient_tissue <- paste0(Liu_seu$patient, "_", Liu_seu$tissue)
 Liu_seu$orig.ident <- Liu_seu$patient_tissue
 
@@ -169,6 +175,9 @@ export_seurat_to_scanpy(
   output_dir = liu_dataPath,
   prefix = "processed"
 )
+
+rm(Liu_seu, liu_dataPath, meta_data, PaitentID, Tissue, cell_idx)
+gc()
 
 ## Wang - ScienceAdvances - 2023
 # =============================================================================
@@ -362,7 +371,7 @@ export_seurat_to_scanpy(
   seurat_obj = FDZS_combined_seurat,
   output_dir = FDZS_dataPath,
   prefix = "processed",
-  compress = TRUE
+  compress = FALSE
 )
 
 ### Simply Visualization
@@ -398,225 +407,3 @@ if (F) {
     print(p_combined)
     dev.off()
 }
-
-# =============================================================================
-## 2. Data integrate
-# =============================================================================
-# Step 0: Load objects first
-Che_seu <- readRDS(file.path(dataPath, "Che_seurat.rds"))
-Wu_seu <- readRDS(file.path(dataPath, "Wu_seurat.rds"))
-FDZS_seu <- readRDS(file.path(dataPath, "FDZS_seurat.rds"))
-Wang_seu <- readRDS(file.path(dataPath, "Wang_seurat.rds"))
-Liu_seu <- readRDS(file.path(dataPath, "Liu_seurat.rds"))
-
-# Step 1: Merge the objects
-list_to_merge <- list(
-    #"Che" = Che_seu,
-    "Wu" = Wu_seu,
-    "FDZS" = FDZS_seu,
-    "Wang" = Wang_seu#,
-    #"Liu" = Liu_seu
-)
-merged <- merge(
-    x = list_to_merge[[1]],
-    y = list_to_merge[2:length(list_to_merge)],
-    add.cell.ids = names(list_to_merge),
-    project = "CRLM"
-)
-
-# Clean other layer
-counts_layers <- grep("^counts", Layers(merged), value = TRUE)
-merged <- JoinLayers(merged, layers = counts_layers)
-
-# Now remove non-counts layers
-all_layers <- Layers(merged)
-layers_to_remove <- all_layers[!startsWith(all_layers,"counts")]
-
-# Remove layers properly in Seurat v5
-for (layer in layers_to_remove) {
-    merged@assays$RNA@layers[[layer]] <- NULL
-}
-
-table(merged$orig.ident)
-
-# Remove doublets
-remain_idx <- merged$doublet != "Doublet"
-cells.Data <- subset(merged@assays$RNA@cells@.Data, subset = remain_idx) ## subset cells slot
-merged <- merged[, remain_idx] ## subset main data
-merged@assays$RNA@cells@.Data <- cells.Data ## update cells slot
-
-rm(list_to_merge, Che_seu, Wu_seu, FDZS_seu, Liu_seu, Wang_seu,counts_layers, all_layers, layers_to_remove, cells.Data, remain_idx)
-gc()
-
-# Step 2: Standard preprocessing
-merged <- NormalizeData(merged)
-merged <- FindVariableFeatures(merged, selection.method = "vst", nfeatures = 2000)
-merged <- ScaleData(merged)
-merged <- RunPCA(merged, features = VariableFeatures(object = merged))
-
-# Step 3: Run Harmony integration
-merged <- RunHarmony(merged, "orig.ident")
-
-# Step 4: Use harmony reduction for downstream analysis
-merged <- RunUMAP(merged, reduction = "pca", dims = 1:15)
-merged <- FindNeighbors(merged, reduction = "pca", dims = 1:15)
-merged <- FindClusters(merged, resolution = 0.5)
-p1 <- DimPlot(merged, reduction = "umap", group.by = "orig.ident", pt.size = .5)
-p2 <- DimPlot(merged, reduction = "umap", label = TRUE, pt.size = .5)
-p_pca <- plot_grid(p1, p2)
-
-merged <- RunUMAP(merged, reduction = "harmony", dims = 1:15)
-merged <- FindNeighbors(merged, reduction = "harmony", dims = 1:15)
-merged <- FindClusters(merged, resolution = 0.5)
-p1 <- DimPlot(merged, reduction = "umap", group.by = "orig.ident", pt.size = .5)
-p2 <- DimPlot(merged, reduction = "umap", label = TRUE, pt.size = .5)
-p_harmony <- plot_grid(p1, p2)
-
-pdf(file.path(figurePath, paste0("UMAP of pre-harmony.pdf")), width = 18, height = 6)
-print(p_pca)
-dev.off()
-
-pdf(file.path(figurePath, paste0("UMAP of post-harmony.pdf")), width = 18, height = 6)
-print(p_harmony)
-dev.off()
-
-saveRDS(merged, file.path(dataPath, "merge_seurat.rds"))
-
-## 3. Merge Data analysis
-# =============================================================================
-# merged <- RunUMAP(merged, reduction = "harmony", dims = 1:15)
-# merged <- FindNeighbors(merged, reduction = "harmony", dims = 1:15)
-# merged <- FindClusters(merged, resolution = 0.5)
-
-### Major annoatation
-merged.markers <- FindAllMarkers(merged, only.pos = TRUE, logfc.threshold = 0.5, min.pct = 0.1)
-
-features <- c("CD3D", "KLRF1", "CD79A", "COL1A1", "CLDN5", "LILRA4", "LYZ", "FCGR3B", "EPCAM")
-
-### Features plot of markers
-set.seed(619)
-idx <- sample(1:ncol(merged), size = 10000)
-merged_subset <- merged[, idx] ## Downsample
-
-p1 <- DimPlot(merged_subset,
-    reduction = "umap",
-    label = TRUE,
-    label.size = 4,
-    label.color = "white",
-    label.box = TRUE,
-    pt.size = 0.8,
-    raster = FALSE,
-    shuffle = TRUE
-) +
-    theme_bw() +
-    theme(
-        plot.title = element_text(size = 16, face = "bold", hjust = 0.5),
-        legend.text = element_text(size = 12),
-        legend.title = element_text(size = 14, face = "bold"),
-        panel.border = element_rect(color = "black", fill = NA, size = 1),
-        plot.margin = margin(10, 10, 10, 10)
-    ) +
-    labs(title = "UMAP Clustering") +
-    guides(color = guide_legend(override.aes = list(size = 4), ncol = 1))
-
-pdf(file.path(figurePath, paste0("UMAP of seurat cluster.pdf")), width = 8, height = 6)
-print(p1)
-dev.off()
-
-p <- FeaturePlot(merged_subset,
-    features = features,
-    pt.size = 0.5,
-    raster = FALSE,
-    ncol = 3,
-    cols = c("lightgrey", "red")
-) +
-    theme_classic() +
-    theme(
-        plot.title = element_text(size = 14, face = "bold", hjust = 0.5),
-        legend.text = element_text(size = 10),
-        legend.title = element_text(size = 12, face = "bold")
-    )
-
-pdf(file.path(figurePath, paste0("UMAP of major features.pdf")), width = 12, height = 10)
-print(p)
-dev.off()
-
-### Assign major clusters
-new.cluster.ids <- c(
-    "T", "T", "T", "T", "NK",
-    "Myeloid", "Myeloid", "Neutrophils", "Epithelial", "B",
-    "B", "T", "Epithelial", "Stromal", "pDC"
-)
-names(new.cluster.ids) <- levels(merged_subset)
-merged_subset <- RenameIdents(merged_subset, new.cluster.ids)
-merged <- RenameIdents(merged, new.cluster.ids)
-merged$major_type <- as.character(Idents(merged))
-
-## Self defined color
-celltypes <- unique(new.cluster.ids)
-majortype_colors <- setNames(ggsci::pal_nejm("default")(length(celltypes)), celltypes)
-
-p1 <- DimPlot(merged_subset,
-    reduction = "umap", label = FALSE, pt.size = 0.5,
-    cols = merged@misc$colors$majorcell_types
-) +
-    theme_bw() +
-    theme(
-        plot.title = element_text(size = 16, face = "bold", hjust = 0.5),
-        legend.text = element_text(size = 12),
-        legend.title = element_text(size = 14, face = "bold"),
-        panel.border = element_rect(color = "black", fill = NA, size = 1),
-        plot.margin = margin(10, 10, 10, 10)
-    ) +
-    labs(title = "UMAP Clustering") +
-    guides(color = guide_legend(override.aes = list(size = 4), ncol = 1))
-
-pdf(file.path(figurePath, paste0("UMAP of major celltype.pdf")), width = 8, height = 6)
-print(p1)
-dev.off()
-
-### Save
-saveRDS(merged, file.path(dataPath, "merge_seurat.rds"))
-
-
-## 4. Only peritumor region Data analysis
-# =============================================================================
-Wu_seu <- readRDS(file.path(dataPath, "Wu_seurat.rds"))
-
-Wu_seu_LM_P <- subset(Wu_seu, tissue == "Liver_P")
-Wu_seu_LM_P <- perform_qc(Wu_seu_LM_P)
-Idents(Wu_seu_LM_P) <- Wu_seu_LM_P$sub_cell_type
-
-## Self defined color
-celltypes <- unique(Wu_seu_LM_P$sub_cell_type)
-colors <- setNames(dittoColors()[1:length(celltypes)], celltypes)
-
-set.seed(619)
-idx <- sample(1:ncol(Wu_seu_LM_P), size = 10000)
-Wu_seu_LM_P_subset <- Wu_seu_LM_P[, idx] ## Downsample
-
-p1 <- DimPlot(Wu_seu_LM_P_subset,
-    reduction = "umap",
-    cols = colors,
-    label = FALSE,
-    label.size = 4,
-    label.color = "white",
-    label.box = TRUE,
-    pt.size = 0.5,
-    raster = FALSE,
-    shuffle = TRUE
-) +
-    theme_bw() +
-    theme(
-        plot.title = element_text(size = 16, face = "bold", hjust = 0.5),
-        legend.text = element_text(size = 12),
-        legend.title = element_text(size = 14, face = "bold"),
-        panel.border = element_rect(color = "black", fill = NA, size = 1),
-        plot.margin = margin(10, 10, 10, 10)
-    ) +
-    labs(title = "UMAP Clustering") +
-    guides(color = guide_legend(override.aes = list(size = 4), ncol = 2))
-
-pdf(file.path(figurePath, paste0("UMAP of Wu data peritumor annotation.pdf")), width = 14, height = 8)
-print(p1)
-dev.off()
