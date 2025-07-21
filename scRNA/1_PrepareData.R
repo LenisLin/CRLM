@@ -17,7 +17,7 @@ library(viridis)
 library(dittoSeq)
 
 dataPath <- "/mnt/NAS_21T/ProjectData/IMC_CRLM/scRNA"
-figurePath <- "/mnt/NAS_21T/ProjectResult/IMC-CRLM/scRNA"
+figurePath <- "/mnt/data/lyx/CRLM/scRNA/figures"
 
 source("./PrepareData_functions.R")
 
@@ -31,7 +31,7 @@ if (!dir.exists(figurePath)) {
 
 ## Che - Cell Discovery - 2021
 # =============================================================================
-Che_dataPath <- file.path(dataPath, "Che_2021_CellDiscovery")
+Che_dataPath <- file.path(dataPath, "GSE178318_Che_CellDiscovery_2021")
 cell_barcodes <- read.table(file.path(Che_dataPath, "GSE178318_barcodes.tsv.gz"))
 genes <- read.table(file.path(Che_dataPath, "GSE178318_genes.tsv.gz"))
 gene_matrix <- readMM(file.path(Che_dataPath, "GSE178318_matrix.mtx.gz"))
@@ -58,7 +58,7 @@ Che_seu$patient <- PaitentID
 Che_seu$tissue <- Tissue
 Che_seu$patient_tissue <- paste0(PaitentID, "_", Tissue)
 
-clinical_info <- read.csv(file.path(dataPath, "Che_2021_CellDiscovery", "clinical_info.csv"))
+clinical_info <- read.csv(file.path(Che_dataPath, "clinical_info.csv"))
 Che_seu@meta.data <- left_join(Che_seu@meta.data, clinical_info, by = "patient")
 rownames(Che_seu@meta.data) <- cell_barcodes$V1
 Che_seu$orig.ident <- Che_seu$patient_tissue
@@ -84,11 +84,22 @@ Che_seu$tissue <- tissue_
 
 saveRDS(Che_seu, file.path(dataPath, "Che_seurat.rds"))
 
+# Export Seurat object to Scanpy format
+export_seurat_to_scanpy(
+  seurat_obj = Che_seu,
+  output_dir = Che_dataPath,
+  prefix = "processed"
+)
+
+rm(Che_seu, Che_dataPath, cell_barcodes, genes, gene_matrix, clean_gene_matrix)
+gc()
+
 ## Wu - Cancer Discovery - 2022
 # =============================================================================
+Wu_dataPath <- file.path(dataPath, "OEP001756_Wu_CancerDiscovery_2022")
 
-load(file.path(dataPath, "Wu_2022_CancerDiscovery", "exprmatrix.rda"))
-load(file.path(dataPath, "Wu_2022_CancerDiscovery", "metadata.rda"))
+load(file.path(Wu_dataPath, "exprmatrix.rda"))
+load(file.path(Wu_dataPath, "metadata.rda"))
 
 Wu_seu <- CreateSeuratObject(counts = exprmatrix, meta.data = metadata, project = "Wu") ## Creat seurat object
 
@@ -101,6 +112,16 @@ tissue_ <- ifelse(tissue_ == "Liver_P", "PT", "TC")
 Wu_seu$tissue <- tissue_
 
 saveRDS(Wu_seu, file.path(dataPath, "Wu_seurat.rds"))
+
+# Export Seurat object to Scanpy format
+export_seurat_to_scanpy(
+  seurat_obj = Wu_seu,
+  output_dir = Wu_dataPath,
+  prefix = "processed"
+)
+
+rm(Wu_seu, Wu_dataPath, exprmatrix, metadata)
+gc()
 
 ## Liu - Cancer Cell - 2022
 # =============================================================================
@@ -133,7 +154,7 @@ cell_idx <- match(colnames(Liu_seu), rownames(meta_data))
 
 Liu_seu$patient <- PaitentID[cell_idx]
 Liu_seu$tissue <- Tissue[cell_idx]
-# Liu_seu$tissue <- ifelse(Liu_seu$tissue == "metastasis normal", "PT", "TC") ## rename tissue
+Liu_seu$tissue <- ifelse(Liu_seu$tissue == "metastasis normal", "PT", "TC") ## rename tissue
 Liu_seu$patient_tissue <- paste0(Liu_seu$patient, "_", Liu_seu$tissue)
 Liu_seu$orig.ident <- Liu_seu$patient_tissue
 
@@ -147,6 +168,16 @@ Liu_seu_doublet <- perform_doublet_detect(seurat_obj = Liu_seu)
 Liu_seu$doublet <- Liu_seu_doublet@meta.data[, ncol(Liu_seu_doublet@meta.data)]
 
 saveRDS(Liu_seu, file.path(dataPath, "Liu_seurat.rds"))
+
+# Export Seurat object to Scanpy format
+export_seurat_to_scanpy(
+  seurat_obj = Liu_seu,
+  output_dir = liu_dataPath,
+  prefix = "processed"
+)
+
+rm(Liu_seu, liu_dataPath, meta_data, PaitentID, Tissue, cell_idx)
+gc()
 
 ## Wang - ScienceAdvances - 2023
 # =============================================================================
@@ -207,6 +238,13 @@ Wang_seu <- perform_qc(
 
 saveRDS(Wang_seu, file.path(dataPath, "Wang_seu.rds"))
 
+# Export Seurat object to Scanpy format
+export_seurat_to_scanpy(
+  seurat_obj = Wang_seu,
+  output_dir = Wang_dataPath,
+  prefix = "processed"
+)
+
 ## FDZH - 6 Samples from invasive margin (IM)
 # =============================================================================
 
@@ -219,88 +257,145 @@ sample_dirs <- list.dirs(FDZS_dataPath, recursive = FALSE, full.names = FALSE)
 cat("Found samples:", paste(sample_dirs, collapse = ", "), "\n")
 
 # Initialize list to store individual Seurat objects
-FDZS_seurat_list <- list()
+combined_matrix_list <- list()
+combined_metadata_list <- list()
+all_genes <- character()
 
-### Load each sample individually
+### Load each sample individually and prepare for combination
 for (i in seq_along(sample_dirs)) {
     sample_id <- sample_dirs[i]
     sample_path <- file.path(FDZS_dataPath, sample_id)
-
     cat("Processing sample:", sample_id, "\n")
-
-    # Load data
+    
+    # Load raw data
     cell_barcodes <- read.table(file.path(sample_path, "barcodes.tsv.gz"))
     genes <- read.table(file.path(sample_path, "features.tsv.gz"))
     gene_matrix <- readMM(file.path(sample_path, "matrix.mtx.gz"))
-
+    
+    # Clean gene matrix (resolve duplicates)
     clean_gene_matrix <- resolve_duplicate_features(
         expression_matrix = gene_matrix,
         feature_names = genes$V1,
         is_count_data = TRUE
     )
-    colnames(clean_gene_matrix) <- cell_barcodes$V1
-
-    # Create Seurat object
-    seurat_obj <- CreateSeuratObject(counts = clean_gene_matrix, project = "FDZS") ### Create Seurat object
-
-    # Add sample metadata
-    seurat_obj$patient <- sample_id
-    seurat_obj$tissue <- "IM"
-    seurat_obj$orig.ident <- paste0("FDZS_", sample_id)
-
-    # Apply QC to each sample separately
-    seurat_obj <- perform_qc(
-        seurat_obj = seurat_obj,
-        nFeature_RNA_min = 500,
-        nFeature_RNA_max = 6000,
-        percent.mt = 15,
-        n_hvgs = 2000,
-        use_sct = FALSE, # Start with traditional workflow
-        verbose = TRUE # Reduce verbosity for multiple samples
+    
+    # Set row and column names
+    rownames(clean_gene_matrix) <- rownames(clean_gene_matrix)  # Keep cleaned gene names
+    colnames(clean_gene_matrix) <- paste0(sample_id, "_", cell_barcodes$V1)  # Add sample prefix to barcodes
+    
+    # Store cleaned matrix
+    combined_matrix_list[[sample_id]] <- clean_gene_matrix
+    
+    # Create metadata for this sample
+    n_cells <- ncol(clean_gene_matrix)
+    sample_metadata <- data.frame(
+        cell_barcode = colnames(clean_gene_matrix),
+        patient = rep(sample_id, n_cells),
+        tissue = rep("IM", n_cells),
+        orig.ident = rep(paste0("FDZS_", sample_id), n_cells),
+        sample_id = rep(sample_id, n_cells),
+        stringsAsFactors = FALSE
     )
-
-    # Apply doublet detection
-    processed_obj <- perform_doublet_detect(seurat_obj = processed_obj)
-    seurat_obj$doublet <- processed_obj@meta.data[, ncol(processed_obj@meta.data)]
-
-    # Store in list
-    FDZS_seurat_list[[sample_id]] <- seurat_obj
-
-    cat("  Sample", sample_id, ":", nrow(seurat_obj), "features x", ncol(seurat_obj), "cells\n")
+    rownames(sample_metadata) <- colnames(clean_gene_matrix)
+    
+    # Store metadata
+    combined_metadata_list[[sample_id]] <- sample_metadata
+    
+    # Collect all unique genes for later alignment
+    all_genes <- union(all_genes, rownames(clean_gene_matrix))
+    
+    cat("  Sample", sample_id, ":", nrow(clean_gene_matrix), "features x", ncol(clean_gene_matrix), "cells\n")
 }
 
-### Merge data and Integrated analysis
-FDZS_merged <- merge(
-    x = FDZS_seurat_list[[1]],
-    y = FDZS_seurat_list[2:length(FDZS_seurat_list)],
-    add.cell.ids = names(FDZS_seurat_list),
+### Combine expression matrices
+cat("Combining expression matrices...\n")
+
+# Align all matrices to the same gene set
+common_genes <- Reduce(intersect, lapply(combined_matrix_list, rownames))
+common_genes <- common_genes[!startsWith(common_genes, "ENSG0")]  # Exclude non-human genes
+
+for (sample_id in names(combined_matrix_list)) {
+    combined_matrix_list[[sample_id]] <- combined_matrix_list[[sample_id]][common_genes, , drop = FALSE]  # Subset to common genes
+}
+
+# Combine all matrices horizontally (cbind)
+combined_expression_matrix <- do.call(cbind, combined_matrix_list)
+
+### Combine metadata
+cat("Combining metadata...\n")
+combined_metadata <- do.call(rbind, combined_metadata_list)
+rownames(combined_metadata) <- colnames(combined_expression_matrix)  # Ensure metadata matches matrix columns
+
+cat("Combined data dimensions:", nrow(combined_expression_matrix), "genes x", ncol(combined_expression_matrix), "cells\n")
+
+### Create single Seurat object from combined data
+cat("Creating combined Seurat object...\n")
+FDZS_combined_seurat <- CreateSeuratObject(
+    counts = combined_expression_matrix,
+    meta.data = combined_metadata,
     project = "FDZS"
 )
 
-saveRDS(FDZS_merged, file.path(dataPath, "FDZS_seurat.rds"))
+### Apply QC to the combined object
+cat("Applying QC to combined object...\n")
+FDZS_combined_seurat <- perform_qc(
+    seurat_obj = FDZS_combined_seurat,
+    nFeature_RNA_min = 200,
+    nFeature_RNA_max = 6000,
+    percent.mt = 20,
+    n_hvgs = 2000,
+    use_sct = FALSE,
+    verbose = TRUE
+)
+
+### Apply doublet detection to the combined object
+cat("Applying doublet detection to combined object...\n")
+FDZS_processed_combined <- perform_doublet_detect(seurat_obj = FDZS_combined_seurat)
+FDZS_combined_seurat$doublet <- FDZS_processed_combined@meta.data[, ncol(FDZS_processed_combined@meta.data)]
+
+### Summary statistics by sample
+cat("\nSummary by sample:\n")
+table(FDZS_combined_seurat$orig.ident)
+
+cat("\nDoublet detection results:\n")
+table(FDZS_combined_seurat$doublet, FDZS_combined_seurat$orig.ident)
+
+### Clean up intermediate objects to save memory
+rm(combined_matrix_list, combined_metadata_list, aligned_matrices, combined_expression_matrix, combined_metadata)
+gc()
+
+saveRDS(FDZS_combined_seurat, file.path(dataPath, "FDZS_seurat.rds"))
+
+# Export Seurat object to Scanpy format
+export_seurat_to_scanpy(
+  seurat_obj = FDZS_combined_seurat,
+  output_dir = FDZS_dataPath,
+  prefix = "processed",
+  compress = FALSE
+)
 
 ### Simply Visualization
 if (F) {
     # Re-process merged data
-    FDZS_merged <- NormalizeData(FDZS_merged, verbose = FALSE)
-    FDZS_merged <- FindVariableFeatures(FDZS_merged, selection.method = "vst", nfeatures = 2000, verbose = FALSE)
-    FDZS_merged <- ScaleData(FDZS_merged, verbose = FALSE)
-    FDZS_merged <- RunPCA(FDZS_merged, npcs = 50, verbose = FALSE)
+    FDZS_combined_seurat <- NormalizeData(FDZS_combined_seurat, verbose = FALSE)
+    FDZS_combined_seurat <- FindVariableFeatures(FDZS_combined_seurat, selection.method = "vst", nfeatures = 2000, verbose = FALSE)
+    FDZS_combined_seurat <- ScaleData(FDZS_combined_seurat, verbose = FALSE)
+    FDZS_combined_seurat <- RunPCA(FDZS_combined_seurat, npcs = 50, verbose = FALSE)
 
-    FDZS_merged <- RunUMAP(FDZS_merged, reduction = "pca", dims = 1:30, verbose = FALSE)
-    FDZS_merged <- FindNeighbors(FDZS_merged, reduction = "pca", dims = 1:30, verbose = FALSE)
-    FDZS_merged <- FindClusters(FDZS_merged, resolution = 0.5, verbose = FALSE)
+    FDZS_combined_seurat <- RunUMAP(FDZS_combined_seurat, reduction = "pca", dims = 1:30, verbose = FALSE)
+    FDZS_combined_seurat <- FindNeighbors(FDZS_combined_seurat, reduction = "pca", dims = 1:30, verbose = FALSE)
+    FDZS_combined_seurat <- FindClusters(FDZS_combined_seurat, resolution = 0.5, verbose = FALSE)
 
     ### Visualization
     cat("\n=== Creating visualizations ===\n")
 
     # Sample distribution plot
-    p1 <- DimPlot(FDZS_merged, group.by = "patient", pt.size = 0.5) +
+    p1 <- DimPlot(FDZS_combined_seurat, group.by = "patient", pt.size = 0.5) +
         ggtitle("FDZS Samples - UMAP") +
         theme_bw()
 
     # Clustering plot
-    p2 <- DimPlot(FDZS_merged, label = TRUE, pt.size = 0.5) +
+    p2 <- DimPlot(FDZS_combined_seurat, label = TRUE, pt.size = 0.5) +
         ggtitle("FDZS Clusters - UMAP") +
         theme_bw()
 
@@ -312,202 +407,3 @@ if (F) {
     print(p_combined)
     dev.off()
 }
-
-# =============================================================================
-## 2. Data integrate
-# =============================================================================
-# Step 0: Load objects first
-Che_seu <- readRDS(file.path(dataPath, "Che_seurat.rds"))
-Wu_seu <- readRDS(file.path(dataPath, "Wu_seurat.rds"))
-FDZS_seu <- readRDS(file.path(dataPath, "FDZS_seurat.rds"))
-
-# Step 1: Merge the objects
-list_to_merge <- list(
-    "Che" = Che_seu,
-    "Wu" = Wu_seu,
-    "FDZS" = FDZS_seu
-)
-merged <- merge(
-    x = list_to_merge[[1]],
-    y = list_to_merge[2:length(list_to_merge)],
-    add.cell.ids = names(list_to_merge),
-    project = "CRLM"
-)
-table(merged$orig.ident)
-merged <- merged[, merged$doublet == "Singlet"]
-
-rm(list_to_merge, Che_seu, Wu_seu, FDZS_seu)
-gc()
-
-# Step 2: Standard preprocessing
-merged <- NormalizeData(merged)
-merged <- FindVariableFeatures(merged, selection.method = "vst", nfeatures = 2000)
-merged <- ScaleData(merged)
-merged <- RunPCA(merged, npcs = 50)
-
-# Step 3: Run Harmony integration
-merged <- RunHarmony(merged, "orig.ident")
-
-# Step 4: Use harmony reduction for downstream analysis
-merged <- RunUMAP(merged, reduction = "pca", dims = 1:15)
-merged <- FindNeighbors(merged, reduction = "pca", dims = 1:15)
-merged <- FindClusters(merged, resolution = 0.5)
-p1 <- DimPlot(merged, reduction = "umap", group.by = "orig.ident", pt.size = .5)
-p2 <- DimPlot(merged, reduction = "umap", label = TRUE, pt.size = .5)
-p_pca <- plot_grid(p1, p2)
-
-merged <- RunUMAP(merged, reduction = "harmony", dims = 1:15)
-merged <- FindNeighbors(merged, reduction = "harmony", dims = 1:15)
-merged <- FindClusters(merged, resolution = 0.5)
-p1 <- DimPlot(merged, reduction = "umap", group.by = "orig.ident", pt.size = .5)
-p2 <- DimPlot(merged, reduction = "umap", label = TRUE, pt.size = .5)
-p_harmony <- plot_grid(p1, p2)
-
-pdf(file.path(figurePath, paste0("UMAP of pre-harmony.pdf")), width = 18, height = 6)
-print(p_pca)
-dev.off()
-
-pdf(file.path(figurePath, paste0("UMAP of post-harmony.pdf")), width = 18, height = 6)
-print(p_harmony)
-dev.off()
-
-saveRDS(merged, file.path(dataPath, "merge_seurat.rds"))
-
-## 3. Merge Data analysis
-# =============================================================================
-merged <- RunUMAP(merged, reduction = "harmony", dims = 1:15)
-merged <- FindNeighbors(merged, reduction = "harmony", dims = 1:15)
-merged <- FindClusters(merged, resolution = 0.5)
-
-### Major annoatation
-merged.markers <- FindAllMarkers(merged, only.pos = TRUE, logfc.threshold = 0.5, min.pct = 0.1)
-
-features <- c("CD3D", "KLRF1", "CD79A", "COL1A1", "CLDN5", "LILRA4", "LYZ", "FCGR3B", "EPCAM")
-
-### Features plot of markers
-set.seed(619)
-idx <- sample(1:ncol(merged), size = 10000)
-merged_subset <- merged[, idx] ## Downsample
-
-p1 <- DimPlot(merged_subset,
-    reduction = "umap",
-    label = TRUE,
-    label.size = 4,
-    label.color = "white",
-    label.box = TRUE,
-    pt.size = 0.8,
-    raster = FALSE,
-    shuffle = TRUE
-) +
-    theme_bw() +
-    theme(
-        plot.title = element_text(size = 16, face = "bold", hjust = 0.5),
-        legend.text = element_text(size = 12),
-        legend.title = element_text(size = 14, face = "bold"),
-        panel.border = element_rect(color = "black", fill = NA, size = 1),
-        plot.margin = margin(10, 10, 10, 10)
-    ) +
-    labs(title = "UMAP Clustering") +
-    guides(color = guide_legend(override.aes = list(size = 4), ncol = 1))
-
-pdf(file.path(figurePath, paste0("UMAP of seurat cluster.pdf")), width = 8, height = 6)
-print(p1)
-dev.off()
-
-p <- FeaturePlot(merged_subset,
-    features = features,
-    pt.size = 0.5,
-    raster = FALSE,
-    ncol = 3,
-    cols = c("lightgrey", "red")
-) +
-    theme_classic() +
-    theme(
-        plot.title = element_text(size = 14, face = "bold", hjust = 0.5),
-        legend.text = element_text(size = 10),
-        legend.title = element_text(size = 12, face = "bold")
-    )
-
-pdf(file.path(figurePath, paste0("UMAP of major features.pdf")), width = 12, height = 10)
-print(p)
-dev.off()
-
-### Assign major clusters
-new.cluster.ids <- c(
-    "T", "T", "T", "T", "NK",
-    "Myeloid", "Myeloid", "Neutrophils", "Epithelial", "B",
-    "B", "T", "Epithelial", "Stromal", "pDC"
-)
-names(new.cluster.ids) <- levels(merged_subset)
-merged_subset <- RenameIdents(merged_subset, new.cluster.ids)
-merged <- RenameIdents(merged, new.cluster.ids)
-merged$major_type <- as.character(Idents(merged))
-
-## Self defined color
-celltypes <- unique(new.cluster.ids)
-majortype_colors <- setNames(ggsci::pal_nejm("default")(length(celltypes)), celltypes)
-
-p1 <- DimPlot(merged_subset,
-    reduction = "umap", label = FALSE, pt.size = 0.5,
-    cols = merged@misc$colors$majorcell_types
-) +
-    theme_bw() +
-    theme(
-        plot.title = element_text(size = 16, face = "bold", hjust = 0.5),
-        legend.text = element_text(size = 12),
-        legend.title = element_text(size = 14, face = "bold"),
-        panel.border = element_rect(color = "black", fill = NA, size = 1),
-        plot.margin = margin(10, 10, 10, 10)
-    ) +
-    labs(title = "UMAP Clustering") +
-    guides(color = guide_legend(override.aes = list(size = 4), ncol = 1))
-
-pdf(file.path(figurePath, paste0("UMAP of major celltype.pdf")), width = 8, height = 6)
-print(p1)
-dev.off()
-
-### Save
-saveRDS(merged, file.path(dataPath, "merge_seurat.rds"))
-
-
-## 4. Only peritumor region Data analysis
-# =============================================================================
-Wu_seu <- readRDS(file.path(dataPath, "Wu_seurat.rds"))
-
-Wu_seu_LM_P <- subset(Wu_seu, tissue == "Liver_P")
-Wu_seu_LM_P <- perform_qc(Wu_seu_LM_P)
-Idents(Wu_seu_LM_P) <- Wu_seu_LM_P$sub_cell_type
-
-## Self defined color
-celltypes <- unique(Wu_seu_LM_P$sub_cell_type)
-colors <- setNames(dittoColors()[1:length(celltypes)], celltypes)
-
-set.seed(619)
-idx <- sample(1:ncol(Wu_seu_LM_P), size = 10000)
-Wu_seu_LM_P_subset <- Wu_seu_LM_P[, idx] ## Downsample
-
-p1 <- DimPlot(Wu_seu_LM_P_subset,
-    reduction = "umap",
-    cols = colors,
-    label = FALSE,
-    label.size = 4,
-    label.color = "white",
-    label.box = TRUE,
-    pt.size = 0.5,
-    raster = FALSE,
-    shuffle = TRUE
-) +
-    theme_bw() +
-    theme(
-        plot.title = element_text(size = 16, face = "bold", hjust = 0.5),
-        legend.text = element_text(size = 12),
-        legend.title = element_text(size = 14, face = "bold"),
-        panel.border = element_rect(color = "black", fill = NA, size = 1),
-        plot.margin = margin(10, 10, 10, 10)
-    ) +
-    labs(title = "UMAP Clustering") +
-    guides(color = guide_legend(override.aes = list(size = 4), ncol = 2))
-
-pdf(file.path(figurePath, paste0("UMAP of Wu data peritumor annotation.pdf")), width = 14, height = 8)
-print(p1)
-dev.off()

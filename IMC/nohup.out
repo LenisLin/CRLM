@@ -188,3 +188,34 @@ The returned object is ordered by the 'sample_id' entry.
 ✓ Construct graph through: knn_10 done 
 The returned object is ordered by the 'sample_id' entry.
 ✓ Construct graph through: knn_20 done 
+The returned object is ordered by the 'sample_id' entry.
+✓ Construct graph through: knn_30 done 
+The returned object is ordered by the 'sample_id' entry.
+✓ Construct graph through: knn_50 done 
+The returned object is ordered by the 'sample_id' entry.
+✓ Construct graph through: delaunay done 
+There were 26 warnings (use warnings() to see them)
+✓ Calculate CN and Spatial Context of CN_neighborhood_cluster_8 done 
+✓ Calculate CN and Spatial Context of CN_neighborhood_cluster_10 done 
+✓ Calculate CN and Spatial Context of CN_neighborhood_cluster_12 done 
+✓ Calculate CN and Spatial Context of CN_neighborhood_cluster_15 done 
+✓ Perform permutation test on neighborhood done 
+✓ Calculate CN and Spatial Context of CN_knn_10_cluster_8 done 
+✓ Calculate CN and Spatial Context of CN_knn_10_cluster_10 done 
+✓ Calculate CN and Spatial Context of CN_knn_10_cluster_12 done 
+✓ Calculate CN and Spatial Context of CN_knn_10_cluster_15 done 
+✓ Perform permutation test on knn_10 done 
+✓ Calculate CN and Spatial Context of CN_knn_20_cluster_8 done 
+✓ Calculate CN and Spatial Context of CN_knn_20_cluster_10 done 
+✓ Calculate CN and Spatial Context of CN_knn_20_cluster_12 done 
+✓ Calculate CN and Spatial Context of CN_knn_20_cluster_15 done 
+✓ Perform permutation test on knn_20 done 
+✓ Calculate CN and Spatial Context of CN_knn_30_cluster_8 done 
+✓ Calculate CN and Spatial Context of CN_knn_30_cluster_10 done 
+✓ Calculate CN and Spatial Context of CN_knn_30_cluster_12 done 
+✓ Calculate CN and Spatial Context of CN_knn_30_cluster_15 done 
+✓ Perform permutation test on knn_30 done 
+✓ Calculate CN and Spatial Context of CN_knn_50_cluster_8 done 
+✓ Calculate CN and Spatial Context of CN_knn_50_cluster_10 done 
+✓ Calculate CN and Spatial Context of CN_knn_50_cluster_12 done 
+✓ Calculate CN and Spatial Context of CN_knn_50_cluster_15 done 
