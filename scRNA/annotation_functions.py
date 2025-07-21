@@ -1,3 +1,4 @@
+from tarfile import NUL
 import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
@@ -171,13 +172,6 @@ def color_setting():
 
     return cancer_cell_colors
 
-# Helper function to safely handle categorical data
-def save_color_maps(adata, color_dict):
-    """Save color mappings to AnnData object"""
-    for category, colors in color_dict.items():
-        adata.uns[f'{category}_colors_map'] = colors
-    print("✅ Color mappings saved to AnnData object")
-
 # Figure 1: Overall cell type composition
 def plot_cell_type_composition(adata, figsize=(8, 6), save_path=None):
     """Plot cell type composition pie chart and bar plot"""
@@ -185,7 +179,7 @@ def plot_cell_type_composition(adata, figsize=(8, 6), save_path=None):
     
     # Data preparation
     cell_counts = adata.obs['Major_type'].value_counts()
-    colors = [cancer_cell_colors['major_types'][ct] for ct in cell_counts.index]
+    colors = [adata.uns['Major_type_colors'][ct] for ct in cell_counts.index]
     
     # Pie chart
     wedges, texts, autotexts = ax1.pie(cell_counts.values, 
@@ -230,107 +224,18 @@ def safe_fillna_categorical(series, fill_value='Unknown'):
     else:
         return series.fillna(fill_value)
 
-# Figure 2: Clinical characteristics overview
-def plot_clinical_overview(adata, figsize=(12, 8), save_path=None):
-    """Plot comprehensive clinical characteristics"""
-    fig, axes = plt.subplots(2, 4, figsize=figsize)
-    axes = axes.flatten()
-    
-    # Tissue Type
-    tissue_series = safe_fillna_categorical(adata.obs['Tissue_Type'], 'Unknown')
-    tissue_data = tissue_series.value_counts()
-    colors_tissue = [cancer_cell_colors['tissue_types'].get(t, '#CCCCCC') for t in tissue_data.index]
-    axes[0].bar(range(len(tissue_data)), tissue_data.values, color=colors_tissue)
-    axes[0].set_title('Tissue Type', fontweight='bold', fontsize=8)
-    axes[0].set_xticks(range(len(tissue_data)))
-    axes[0].set_xticklabels(tissue_data.index, rotation=45, ha='right', fontsize=6)
-    axes[0].yaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: f'{x/1000:.0f}K'))
-    
-    # Treatment Strategy
-    treat_series = safe_fillna_categorical(adata.obs['Treatment_Strategy'], 'Unknown')
-    treat_data = treat_series.value_counts()
-    colors_treat = [cancer_cell_colors['treatment'].get(t, '#CCCCCC') for t in treat_data.index]
-    axes[1].bar(range(len(treat_data)), treat_data.values, color=colors_treat)
-    axes[1].set_title('Treatment Strategy', fontweight='bold', fontsize=8)
-    axes[1].set_xticks(range(len(treat_data)))
-    axes[1].set_xticklabels(treat_data.index, rotation=45, ha='right', fontsize=6)
-    axes[1].yaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: f'{x/1000:.0f}K'))
-    
-    # Microsatellite Status
-    msi_series = safe_fillna_categorical(adata.obs['Microsatellite_Status'], 'Unknown')
-    msi_data = msi_series.value_counts()
-    colors_msi = [cancer_cell_colors['microsatellite'].get(m, '#CCCCCC') for m in msi_data.index]
-    axes[2].bar(range(len(msi_data)), msi_data.values, color=colors_msi)
-    axes[2].set_title('Microsatellite Status', fontweight='bold', fontsize=8)
-    axes[2].set_xticks(range(len(msi_data)))
-    axes[2].set_xticklabels(msi_data.index, rotation=45, ha='right', fontsize=6)
-    axes[2].yaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: f'{x/1000:.0f}K'))
-    
-    # Treatment Response
-    response_series = safe_fillna_categorical(adata.obs['Response'], 'Unknown')
-    response_data = response_series.value_counts()
-    colors_resp = [cancer_cell_colors['response'].get(r, '#CCCCCC') for r in response_data.index]
-    axes[3].bar(range(len(response_data)), response_data.values, color=colors_resp)
-    axes[3].set_title('Treatment Response', fontweight='bold', fontsize=8)
-    axes[3].set_xticks(range(len(response_data)))
-    axes[3].set_xticklabels(response_data.index, rotation=45, ha='right', fontsize=6)
-    axes[3].yaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: f'{x/1000:.0f}K'))
-    
-    # Treatment Stage
-    stage_series = safe_fillna_categorical(adata.obs['Treatment_Stage'], 'Unknown')
-    stage_data = stage_series.value_counts()
-    colors_stage = [cancer_cell_colors['treatment_stage'].get(s, '#CCCCCC') for s in stage_data.index]
-    axes[4].bar(range(len(stage_data)), stage_data.values, color=colors_stage)
-    axes[4].set_title('Treatment Stage', fontweight='bold', fontsize=8)
-    axes[4].set_xticks(range(len(stage_data)))
-    axes[4].set_xticklabels(stage_data.index, rotation=45, ha='right', fontsize=6)
-    axes[4].yaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: f'{x/1000:.0f}K'))
-    
-    # Gender Distribution
-    gender_series = safe_fillna_categorical(adata.obs['Gender'], 'Unknown')
-    gender_data = gender_series.value_counts()
-    colors_gender = [cancer_cell_colors['gender'].get(g, '#CCCCCC') for g in gender_data.index]
-    axes[5].bar(range(len(gender_data)), gender_data.values, color=colors_gender)
-    axes[5].set_title('Gender', fontweight='bold', fontsize=8)
-    axes[5].set_xticks(range(len(gender_data)))
-    axes[5].set_xticklabels(gender_data.index, fontsize=6)
-    axes[5].yaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: f'{x/1000:.0f}K'))
-    
-    # Tumor Stage (top categories)
-    tumor_stage_series = safe_fillna_categorical(adata.obs['Tumor_stage'], 'Unknown')
-    tumor_stage_data = tumor_stage_series.value_counts().head(6)
-    axes[6].bar(range(len(tumor_stage_data)), tumor_stage_data.values, 
-                color=plt.cm.Set3(np.linspace(0, 1, len(tumor_stage_data))))
-    axes[6].set_title('Tumor Stage (Top 6)', fontweight='bold', fontsize=8)
-    axes[6].set_xticks(range(len(tumor_stage_data)))
-    axes[6].set_xticklabels(tumor_stage_data.index, fontsize=6)
-    axes[6].yaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: f'{x/1000:.0f}K'))
-    
-    # Age Distribution
-    age_data = adata.obs['Age'].dropna()
-    axes[7].hist(age_data, bins=20, color='#1F77B4', alpha=0.7, edgecolor='black', linewidth=0.5)
-    axes[7].set_title('Age Distribution', fontweight='bold', fontsize=8)
-    axes[7].set_xlabel('Age (years)', fontsize=7)
-    axes[7].set_ylabel('Number of Cells', fontsize=7)
-    axes[7].yaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: f'{x/1000:.0f}K'))
-    
-    plt.tight_layout()
-    if save_path:
-        plt.savefig(save_path, dpi=300, bbox_inches='tight')
-    plt.show()
-
 # Figure 3: Cell type composition by tissue type
 def plot_celltype_by_tissue(adata, figsize=(8, 5), save_path=None):
     """Plot cell type composition across tissue types"""
     # Prepare data
-    tissue_series = safe_fillna_categorical(adata.obs['Tissue_Type'], 'Unknown')
+    tissue_series = safe_fillna_categorical(adata.obs['tissue'], 'Unknown')
     tissue_celltype = pd.crosstab(tissue_series, 
                                  adata.obs['Major_type'], normalize='index') * 100
     
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=figsize)
     
     # Stacked bar plot (percentage)
-    colors = [cancer_cell_colors['major_types'][ct] for ct in tissue_celltype.columns]
+    colors = [adata.uns['Major_type_colors'][ct] for ct in tissue_celltype.columns]
     tissue_celltype.plot(kind='bar', stacked=True, ax=ax1, color=colors, 
                         legend=False, width=0.8)
     ax1.set_title('Cell Type Composition by Tissue', fontweight='bold', fontsize=8)
@@ -362,80 +267,8 @@ def plot_celltype_by_tissue(adata, figsize=(8, 5), save_path=None):
     if save_path:
         plt.savefig(save_path, dpi=300, bbox_inches='tight')
     plt.show()
-
-# Figure 4: Treatment response analysis
-def plot_treatment_response_analysis(adata, figsize=(10, 6), save_path=None):
-    """Plot treatment response across different variables"""
-    fig, axes = plt.subplots(2, 3, figsize=figsize)
-    axes = axes.flatten()
-    
-    # Response by Treatment Strategy
-    treat_series = safe_fillna_categorical(adata.obs['Treatment_Strategy'], 'Unknown')
-    response_series = safe_fillna_categorical(adata.obs['Response'], 'Unknown')
-    response_treat = pd.crosstab(treat_series, response_series, normalize='index') * 100
-    response_treat.plot(kind='bar', ax=axes[0], 
-                       color=[cancer_cell_colors['response'].get(r, '#CCCCCC') for r in response_treat.columns])
-    axes[0].set_title('Response by Treatment Strategy', fontweight='bold', fontsize=8)
-    axes[0].set_xticklabels(response_treat.index, rotation=45, ha='right', fontsize=6)
-    axes[0].set_ylabel('Percentage (%)', fontsize=7)
-    axes[0].legend(fontsize=6)
-    
-    # Response by Microsatellite Status
-    msi_series = safe_fillna_categorical(adata.obs['Microsatellite_Status'], 'Unknown')
-    response_msi = pd.crosstab(msi_series, response_series, normalize='index') * 100
-    response_msi.plot(kind='bar', ax=axes[1],
-                     color=[cancer_cell_colors['response'].get(r, '#CCCCCC') for r in response_msi.columns])
-    axes[1].set_title('Response by MSI Status', fontweight='bold', fontsize=8)
-    axes[1].set_xticklabels(response_msi.index, rotation=45, ha='right', fontsize=6)
-    axes[1].set_ylabel('Percentage (%)', fontsize=7)
-    axes[1].legend(fontsize=6)
-    
-    # Cell type composition by response
-    celltype_response = pd.crosstab(response_series, adata.obs['Major_type'], normalize='index') * 100
-    celltype_response.plot(kind='bar', stacked=True, ax=axes[2],
-                          color=[cancer_cell_colors['major_types'][ct] for ct in celltype_response.columns])
-    axes[2].set_title('Cell Types by Response', fontweight='bold', fontsize=8)
-    axes[2].set_xticklabels(celltype_response.index, rotation=45, ha='right', fontsize=6)
-    axes[2].set_ylabel('Percentage (%)', fontsize=7)
-    axes[2].legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize=5)
-    
-    # Treatment stage analysis
-    stage_series = safe_fillna_categorical(adata.obs['Treatment_Stage'], 'Unknown')
-    stage_response = pd.crosstab(stage_series, response_series, normalize='index') * 100
-    stage_response.plot(kind='bar', ax=axes[3],
-                       color=[cancer_cell_colors['response'].get(r, '#CCCCCC') for r in stage_response.columns])
-    axes[3].set_title('Response by Treatment Stage', fontweight='bold', fontsize=8)
-    axes[3].set_xticklabels(stage_response.index, rotation=45, ha='right', fontsize=6)
-    axes[3].set_ylabel('Percentage (%)', fontsize=7)
-    axes[3].legend(fontsize=6)
-    
-    # Gender analysis
-    gender_series = safe_fillna_categorical(adata.obs['Gender'], 'Unknown')
-    gender_response = pd.crosstab(gender_series, response_series, normalize='index') * 100
-    gender_response.plot(kind='bar', ax=axes[4],
-                        color=[cancer_cell_colors['response'].get(r, '#CCCCCC') for r in gender_response.columns])
-    axes[4].set_title('Response by Gender', fontweight='bold', fontsize=8)
-    axes[4].set_xticklabels(gender_response.index, rotation=0, fontsize=6)
-    axes[4].set_ylabel('Percentage (%)', fontsize=7)
-    axes[4].legend(fontsize=6)
-    
-    # Age vs Response
-    response_patients = adata.obs.groupby(['Patient_ID', 'Response', 'Age']).size().reset_index()
-    response_patients = response_patients.dropna()
-    for response in response_patients['Response'].unique():
-        if response != 'Unknown' and not pd.isna(response):
-            data = response_patients[response_patients['Response'] == response]['Age']
-            axes[5].hist(data, alpha=0.6, label=response, bins=15,
-                        color=cancer_cell_colors['response'].get(response, '#CCCCCC'))
-    axes[5].set_title('Age Distribution by Response', fontweight='bold', fontsize=8)
-    axes[5].set_xlabel('Age (years)', fontsize=7)
-    axes[5].set_ylabel('Number of Patients', fontsize=7)
-    axes[5].legend(fontsize=6)
-    
-    plt.tight_layout()
-    if save_path:
-        plt.savefig(save_path, dpi=300, bbox_inches='tight')
-    plt.show()
+    plt.close()
+    return None
 
 # Figure 5: Patient and sample overview
 def plot_patient_sample_overview(adata, figsize=(8, 6), save_path=None):
@@ -443,7 +276,7 @@ def plot_patient_sample_overview(adata, figsize=(8, 6), save_path=None):
     fig, axes = plt.subplots(2, 2, figsize=figsize)
     
     # Cells per patient
-    cells_per_patient = adata.obs.groupby('Patient_ID').size()
+    cells_per_patient = adata.obs.groupby('patient').size()
     axes[0, 0].hist(cells_per_patient, bins=20, color='#1F77B4', alpha=0.7, edgecolor='black')
     axes[0, 0].set_title('Cells per Patient Distribution', fontweight='bold', fontsize=8)
     axes[0, 0].set_xlabel('Number of Cells', fontsize=7)
@@ -451,15 +284,6 @@ def plot_patient_sample_overview(adata, figsize=(8, 6), save_path=None):
     axes[0, 0].axvline(cells_per_patient.median(), color='red', linestyle='--', 
                       label=f'Median: {cells_per_patient.median():.0f}')
     axes[0, 0].legend(fontsize=6)
-    
-    # Samples per patient
-    samples_per_patient = adata.obs.groupby('Patient_ID')['Sample_ID'].nunique()
-    axes[0, 1].hist(samples_per_patient, bins=range(1, samples_per_patient.max()+2), 
-                   color='#2CA02C', alpha=0.7, edgecolor='black')
-    axes[0, 1].set_title('Samples per Patient Distribution', fontweight='bold', fontsize=8)
-    axes[0, 1].set_xlabel('Number of Samples', fontsize=7)
-    axes[0, 1].set_ylabel('Number of Patients', fontsize=7)
-    axes[0, 1].set_xticks(range(1, samples_per_patient.max()+1))
     
     # Study composition
     study_counts = adata.obs['study'].value_counts()
@@ -473,17 +297,14 @@ def plot_patient_sample_overview(adata, figsize=(8, 6), save_path=None):
     Dataset Summary:
     
     Total Cells: {adata.n_obs:,}
-    Total Patients: {adata.obs['Patient_ID'].nunique()}
-    Total Samples: {adata.obs['Sample_ID'].nunique()}
+    Total Patients: {adata.obs['patient'].nunique()}
+    Total Samples: {adata.obs['sample_id'].nunique()}
     
     Cell Types: {adata.obs['Major_type'].nunique()}
     Studies: {adata.obs['study'].nunique()}
     
     Median cells/patient: {cells_per_patient.median():.0f}
     Mean cells/patient: {cells_per_patient.mean():.0f}
-    
-    Treatment Strategies: {adata.obs['Treatment_Strategy'].nunique()-1}
-    Response Available: {(~adata.obs['Response'].isna()).sum():,} cells
     """
     axes[1, 1].text(0.1, 0.9, summary_text, transform=axes[1, 1].transAxes,
                    fontsize=7, verticalalignment='top',

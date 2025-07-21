@@ -219,3 +219,18 @@ There were 26 warnings (use warnings() to see them)
 ✓ Calculate CN and Spatial Context of CN_knn_50_cluster_10 done 
 ✓ Calculate CN and Spatial Context of CN_knn_50_cluster_12 done 
 ✓ Calculate CN and Spatial Context of CN_knn_50_cluster_15 done 
+✓ Perform permutation test on knn_50 done 
+✓ Calculate CN and Spatial Context of CN_delaunay_cluster_8 done 
+✓ Calculate CN and Spatial Context of CN_delaunay_cluster_10 done 
+✓ Calculate CN and Spatial Context of CN_delaunay_cluster_12 done 
+✓ Calculate CN and Spatial Context of CN_delaunay_cluster_15 done 
+✓ Perform permutation test on delaunay done 
+Warning message:
+did not converge in 10 iterations 
+Error in reducer$value.cache[[as.character(idx)]] <- values : 
+  wrong args for environment subassignment
+Calls: patchDetection ... .bploop_impl -> .collect_result -> .reducer_add -> .reducer_add
+In addition: Warning message:
+In parallel::mccollect(wait = FALSE, timeout = 1) :
+  2 parallel jobs did not deliver results
+Execution halted
