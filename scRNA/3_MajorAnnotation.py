@@ -461,12 +461,14 @@ plt.show()
 print("✅ Enhanced marker gene dot plot created!")
 
 #%% 4.1 Create some data descriptions
+if 'final_integrated' not in locals():
+    final_integrated = sc.read_h5ad(os.path.join(DataPath, "major_anno_all.h5ad"))
+
 # Explore all clinical variables
-key_vars = ['Major_type', 'Tissue_Type', 'Treatment_Strategy', 'Microsatellite_Status', 
-           'TNM', 'Tumor_stage', 'Gender', 'Age', 'Response', 'Treatment_Stage']
+key_vars = ['Major_type', 'tissue']
 
 results = explore_clinical_data(final_integrated, key_vars)
-patient_stats = explore_patient_level(final_integrated)
+patient_stats = explore_patient_level(final_integrated, patient_id_col='patient', sample_id_col='batch')
 
 # Set Cancer Cell journal style
 plt.rcParams.update({
@@ -484,30 +486,25 @@ plt.rcParams.update({
     'figure.dpi': 300
 })
 
-# Save all color mappings
-cancer_cell_colors = color_setting()
-save_color_maps(final_integrated, cancer_cell_colors)
+final_integrated.uns['tissue_colors'] = {
+    'TC': '#15b01a',
+    'IM': '#da70d6',
+    'PT': '#7bc8f6',
+    'Unknown': '#CCCCCC'
+}
 print("🎨 Creating Cancer Cell style descriptive figures...") # Execute all plots
 
 # Generate all fancy figures
 print("📊 Figure 1: Fancy Cell Type Composition (Treemap + Donut)...")
-plot_fancy_cell_type_composition(final_integrated, 
+plot_cell_type_composition(final_integrated, 
                                 save_path=os.path.join(figurePath, 'Fig1_fancy_cell_composition.pdf'))
 
-print("📊 Figure 2: Clinical Overview (Violin + Bubble + Ridgeline)...")
-plot_fancy_clinical_overview(final_integrated,
-                            save_path=os.path.join(figurePath, 'Fig2_fancy_clinical_overview.pdf'))
-
 print("📊 Figure 3: Alluvial Flow Diagram...")
-plot_alluvial_celltype_tissue(final_integrated,
+plot_celltype_by_tissue(final_integrated,
                              save_path=os.path.join(figurePath, 'Fig3_alluvial_celltype_tissue.pdf'))
 
-print("📊 Figure 4: Network Treatment Response (Waterfall + Sunburst)...")
-plot_network_treatment_response(final_integrated,
-                               save_path=os.path.join(figurePath, 'Fig4_network_treatment_response.pdf'))
-
 print("📊 Figure 5: Patient Journey Overview (Timeline + Matrix)...")
-plot_patient_journey_overview(final_integrated,
+plot_patient_sample_overview(final_integrated,
                              save_path=os.path.join(figurePath, 'Fig5_patient_journey_overview.pdf'))
 
 print("✅ All fancy figures generated and saved!")
