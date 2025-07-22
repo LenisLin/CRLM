@@ -156,81 +156,284 @@ The following object is masked from ‘package:S4Vectors’:
 
     expand
 
+DataFrame with 6 rows and 86 columns
+           sample_id ObjectNumber      area axis_major_length axis_minor_length
+         <character>    <numeric> <numeric>         <numeric>         <numeric>
+B2_001_1      B2_001            1        18           7.08692           3.23526
+B2_001_2      B2_001            2        34           8.95541           5.10864
+B2_001_3      B2_001            3        22           7.42613           3.86888
+B2_001_4      B2_001            4        10           4.09878           2.99333
+B2_001_5      B2_001            5        22           6.46670           4.27176
+B2_001_6      B2_001            6        20           6.33137           3.93875
+         eccentricity  width_px height_px  patient_id     Batch
+            <numeric> <numeric> <numeric> <character> <integer>
+B2_001_1     0.889717      1000      1000          B2         1
+B2_001_2     0.821330      1000      1000          B2         1
+B2_001_3     0.853568      1000      1000          B2         1
+B2_001_4     0.683130      1000      1000          B2         1
+B2_001_5     0.750757      1000      1000          B2         1
+B2_001_6     0.782937      1000      1000          B2         1
+         Chemical_therapy taget_therapy RFS_status  RFS_time fong_score
+                <integer>     <integer>  <integer> <numeric>  <integer>
+B2_001_1                0             0          1     17.83          5
+B2_001_2                0             0          1     17.83          5
+B2_001_3                0             0          1     17.83          5
+B2_001_4                0             0          1     17.83          5
+B2_001_5                0             0          1     17.83          5
+B2_001_6                0             0          1     17.83          5
+               Age       TBS       CEA     CA199 CRLM_number CRLM_size
+         <integer> <numeric> <numeric> <numeric>   <integer> <numeric>
+B2_001_1        51      8.25     955.1      14.7           2         8
+B2_001_2        51      8.25     955.1      14.7           2         8
+B2_001_3        51      8.25     955.1      14.7           2         8
+B2_001_4        51      8.25     955.1      14.7           2         8
+B2_001_5        51      8.25     955.1      14.7           2         8
+B2_001_6        51      8.25     955.1      14.7           2         8
+           T_stage    Gender Pathology Recurrence_site Differential_grade
+         <integer> <integer> <integer>       <integer>          <integer>
+B2_001_1         4         0         0               0                  0
+B2_001_2         4         0         0               0                  0
+B2_001_3         4         0         0               0                  0
+B2_001_4         4         0         0               0                  0
+B2_001_5         4         0         0               0                  0
+B2_001_6         4         0         0               0                  0
+         Lymph_positive KRAS_mutation NAS_mutation BRAF_mutation      Tissue
+              <integer>     <integer>    <integer>     <integer> <character>
+B2_001_1              1             0            0             0          PT
+B2_001_2              1             0            0             0          PT
+B2_001_3              1             0            0             0          PT
+B2_001_4              1             0            0             0          PT
+B2_001_5              1             0            0             0          PT
+B2_001_6              1             0            0             0          PT
+         nn_clusters  Major_type sub_celltype major_celltype   Treatment
+            <factor> <character>  <character>    <character> <character>
+B2_001_1          1      Stromal  SC_Collagen        Stromal       Chemo
+B2_001_2          18     Myeloid    Mono_CD14      Monocytes       Chemo
+B2_001_3          1      Stromal  SC_Collagen        Stromal       Chemo
+B2_001_4          18     Myeloid    Mono_CD14      Monocytes       Chemo
+B2_001_5          1      Stromal  SC_Collagen        Stromal       Chemo
+B2_001_6          1      Stromal  SC_Collagen        Stromal       Chemo
+         CN_neighborhood_cluster_8 Context_neighborhood_cluster_8
+                          <factor>                    <character>
+B2_001_1                         5                            5_6
+B2_001_2                         6                            5_6
+B2_001_3                         6                              6
+B2_001_4                         6                              5
+B2_001_5                         6                              6
+B2_001_6                         6                              6
+         CN_neighborhood_cluster_10 Context_neighborhood_cluster_10
+                           <factor>                     <character>
+B2_001_1                          5                               5
+B2_001_2                          9                               9
+B2_001_3                          9                               9
+B2_001_4                          5                               9
+B2_001_5                          9                               9
+B2_001_6                          9                               9
+         CN_neighborhood_cluster_12 Context_neighborhood_cluster_12
+                           <factor>                     <character>
+B2_001_1                          5                               5
+B2_001_2                          7                             4_7
+B2_001_3                          7                               7
+B2_001_4                          7                               7
+B2_001_5                          7                               7
+B2_001_6                          7                               7
+         CN_neighborhood_cluster_15 Context_neighborhood_cluster_15
+                           <factor>                     <character>
+B2_001_1                          6                               6
+B2_001_2                          8                               1
+B2_001_3                          1                               1
+B2_001_4                          1                               1
+B2_001_5                          1                               1
+B2_001_6                          1                               1
+         CN_knn_10_cluster_8 Context_knn_10_cluster_8 CN_knn_10_cluster_10
+                    <factor>              <character>             <factor>
+B2_001_1                   8                        8                    8
+B2_001_2                   8                        8                    8
+B2_001_3                   1                      1_8                    9
+B2_001_4                   8                        8                    8
+B2_001_5                   1                      1_8                    8
+B2_001_6                   1                      1_8                    8
+         Context_knn_10_cluster_10 CN_knn_10_cluster_12
+                       <character>             <factor>
+B2_001_1                         8                    2
+B2_001_2                         8                    2
+B2_001_3                       3_9                    8
+B2_001_4                         8                    2
+B2_001_5                       3_8                    1
+B2_001_6                       3_8                    1
+         Context_knn_10_cluster_12 CN_knn_10_cluster_15
+                       <character>             <factor>
+B2_001_1                         2                   13
+B2_001_2                         2                   13
+B2_001_3                     4_6_8                   15
+B2_001_4                       1_2                   13
+B2_001_5                       1_2                   13
+B2_001_6                       1_2                   6 
+         Context_knn_10_cluster_15 CN_knn_20_cluster_8 Context_knn_20_cluster_8
+                       <character>            <factor>              <character>
+B2_001_1                        13                   4                        4
+B2_001_2                        13                   4                        4
+B2_001_3                   12_15_6                   2                      2_4
+B2_001_4                      13_6                   4                      2_4
+B2_001_5                      13_6                   2                      2_4
+B2_001_6                      13_6                   2                      2_4
+         CN_knn_20_cluster_10 Context_knn_20_cluster_10 CN_knn_20_cluster_12
+                     <factor>               <character>             <factor>
+B2_001_1                    6                         6                   7 
+B2_001_2                    6                         6                   7 
+B2_001_3                    9                         9                   4 
+B2_001_4                    6                       6_9                   12
+B2_001_5                    9                       6_9                   12
+B2_001_6                    9                       6_9                   12
+         Context_knn_20_cluster_12 CN_knn_20_cluster_15
+                       <character>             <factor>
+B2_001_1                         7                   13
+B2_001_2                         7                   13
+B2_001_3                      12_4                   9 
+B2_001_4                      12_7                   12
+B2_001_5                      12_7                   2 
+B2_001_6                      12_7                   2 
+         Context_knn_20_cluster_15 CN_knn_30_cluster_8 Context_knn_30_cluster_8
+                       <character>            <factor>              <character>
+B2_001_1                      13_2                   3                        3
+B2_001_2                        13                   3                        3
+B2_001_3                      12_9                   5                    3_5_8
+B2_001_4                      12_2                   3                      3_5
+B2_001_5                   12_13_2                   3                      3_5
+B2_001_6                      12_2                   3                      3_5
+         CN_knn_30_cluster_10 Context_knn_30_cluster_10 CN_knn_30_cluster_12
+                     <factor>               <character>             <factor>
+B2_001_1                   2                        2_9                    2
+B2_001_2                   2                          2                    2
+B2_001_3                   10                    1_10_9                    3
+B2_001_4                   9                       10_9                    4
+B2_001_5                   2                        2_9                    4
+B2_001_6                   2                        2_9                    2
+         Context_knn_30_cluster_12 CN_knn_30_cluster_15
+                       <character>             <factor>
+B2_001_1                       2_4                   9 
+B2_001_2                         2                   9 
+B2_001_3                12_3_4_5_7                   13
+B2_001_4                       4_5                   14
+B2_001_5                       2_4                   14
+B2_001_6                       2_4                   14
+         Context_knn_30_cluster_15 CN_knn_50_cluster_8 Context_knn_50_cluster_8
+                       <character>            <factor>              <character>
+B2_001_1                      14_9                   8                      2_8
+B2_001_2                         9                   8                        8
+B2_001_3                   13_14_8                   2                      2_4
+B2_001_4                     13_14                   2                      2_8
+B2_001_5                      14_9                   2                      2_8
+B2_001_6                      14_9                   2                      2_8
+         CN_knn_50_cluster_10 Context_knn_50_cluster_10 CN_knn_50_cluster_12
+                     <factor>               <character>             <factor>
+B2_001_1                    7                       7_8                   10
+B2_001_2                    7                         7                   10
+B2_001_3                    5                       2_5                   11
+B2_001_4                    5                         5                   11
+B2_001_5                    8                         8                   4 
+B2_001_6                    8                         8                   4 
+         Context_knn_50_cluster_12 CN_knn_50_cluster_15
+                       <character>             <factor>
+B2_001_1                      10_4                   7 
+B2_001_2                        10                   12
+B2_001_3                     11_12                   1 
+B2_001_4                        11                   4 
+B2_001_5                         4                   7 
+B2_001_6                         4                   7 
+         Context_knn_50_cluster_15 CN_delaunay_cluster_8
+                       <character>              <factor>
+B2_001_1                   12_13_7                     3
+B2_001_2                        12                     7
+B2_001_3                     1_2_4                     3
+B2_001_4                      13_4                     7
+B2_001_5                      13_7                     7
+B2_001_6                      13_7                     7
+         Context_delaunay_cluster_8 CN_delaunay_cluster_10
+                        <character>               <factor>
+B2_001_1                        3_7                      3
+B2_001_2                          3                      7
+B2_001_3                        3_7                      6
+B2_001_4                        3_7                      3
+B2_001_5                        3_7                      4
+B2_001_6                        4_7                      6
+         Context_delaunay_cluster_10 CN_delaunay_cluster_12
+                         <character>               <factor>
+B2_001_1                       3_4_7                     12
+B2_001_2                         3_7                     12
+B2_001_3                       3_4_6                     12
+B2_001_4                     3_4_6_7                     12
+B2_001_5                         3_6                     12
+B2_001_6                       3_4_6                     11
+         Context_delaunay_cluster_12 CN_delaunay_cluster_15
+                         <character>               <factor>
+B2_001_1                          12                      3
+B2_001_2                        1_12                      6
+B2_001_3                    10_11_12                      3
+B2_001_4                          12                      3
+B2_001_5                       11_12                      3
+B2_001_6                       11_12                      3
+         Context_delaunay_cluster_15     Tumor Tumor_patch
+                         <character> <logical> <character>
+B2_001_1                           3     FALSE          NA
+B2_001_2                         3_6     FALSE          NA
+B2_001_3                      15_2_3     FALSE          NA
+B2_001_4                           3     FALSE          NA
+B2_001_5                           3     FALSE          NA
+B2_001_6                         2_3     FALSE          NA
+Total cells in TC and IM: 1486420 
+Malignant cells: 592269 
+Malignant cell subtypes:
 
-Attaching package: ‘scales’
+     EC_CAIX     EC_EpCAM     EC_GLUT1      EC_Ki67 EC_Ki67_CAIX  EC_Vimentin 
+       84784       178474       203208        63102         7712        54989 
+[1] "ROI summary statistics:"
+# A tibble: 6 × 9
+  sample_id patient_id Tissue Treatment RFS_status total_cells malignant_cells
+  <chr>     <chr>      <chr>  <chr>          <int>       <int>           <int>
+1 B10_005   B10        IM     Combo              1        7198            2903
+2 B10_010   B10        IM     Combo              1        7284             113
+3 B10_011   B10        TC     Combo              1        6946             130
+4 B10_013   B10        TC     Combo              1        6824             396
+5 B10_014   B10        TC     Combo              1        6085             413
+6 B10_015   B10        IM     Combo              1        6386            3401
+# ℹ 2 more variables: malignant_fraction <dbl>, RFS_group <chr>
+Warning messages:
+1: In to_lodes_form(data = data, axes = axis_ind, discern = params$discern) :
+  Some strata appear at multiple axes.
+2: In to_lodes_form(data = data, axes = axis_ind, discern = params$discern) :
+  Some strata appear at multiple axes.
+3: In to_lodes_form(data = data, axes = axis_ind, discern = params$discern) :
+  Some strata appear at multiple axes.
 
-The following object is masked from ‘package:viridis’:
+=== ANALYZING MALIGNANT SUBTYPES ===
+Malignant subtypes found: EC_GLUT1, EC_EpCAM, EC_Vimentin, EC_Ki67, EC_CAIX, EC_Ki67_CAIX 
+Analyzing subtype: EC_GLUT1 
+Analyzing subtype: EC_EpCAM 
+Analyzing subtype: EC_Vimentin 
+Analyzing subtype: EC_Ki67 
+Analyzing subtype: EC_CAIX 
+Analyzing subtype: EC_Ki67_CAIX 
+There were 36 warnings (use warnings() to see them)
+=== SELECTING MALIGNANT-RELEVANT MARKERS ===
+All available markers:
+ [1] "CLEC9A"     "CD169"      "Vimentin"   "CD14"       "CD127"     
+ [6] "CD16"       "CD163"      "FASN"       "CD80"       "CD274"     
+[11] "TIGIT"      "CD45"       "PRPS1"      "CD11c"      "FoxP3"     
+[16] "CD4"        "CD57"       "CD68"       "EpCAM"      "CD20"      
+[21] "CD8a"       "VEGF"       "CA_IX"      "CD279"      "GLUT1"     
+[26] "CD366"      "Ki67"       "Collagen_I" "CD3"        "CD27"      
+[31] "FAP"        "CD11b"      "HLA_DR"     "Alpha_SMA"  "HK2"       
+[36] "DNA1"       "DNA2"      
 
-    viridis_pal
+Selected malignant markers (available):
+[1] "EpCAM"    "Vimentin" "Ki67"     "VEGF"     "CA_IX"    "GLUT1"    "HK2"     
+[8] "FASN"    
 
-========================================
-circlize version 0.4.16
-CRAN page: https://cran.r-project.org/package=circlize
-Github page: https://github.com/jokergoo/circlize
-Documentation: https://jokergoo.github.io/circlize_book/book/
-
-If you use it in published research, please cite:
-Gu, Z. circlize implements and enhances circular visualization
-  in R. Bioinformatics 2014.
-
-This message can be suppressed by:
-  suppressPackageStartupMessages(library(circlize))
-========================================
-
-
-Attaching package: ‘circlize’
-
-The following object is masked from ‘package:igraph’:
-
-    degree
-
-The returned object is ordered by the 'sample_id' entry.
-✓ Construct graph through: knn_10 done 
-The returned object is ordered by the 'sample_id' entry.
-✓ Construct graph through: knn_20 done 
-The returned object is ordered by the 'sample_id' entry.
-✓ Construct graph through: knn_30 done 
-The returned object is ordered by the 'sample_id' entry.
-✓ Construct graph through: knn_50 done 
-The returned object is ordered by the 'sample_id' entry.
-✓ Construct graph through: delaunay done 
-There were 26 warnings (use warnings() to see them)
-✓ Calculate CN and Spatial Context of CN_neighborhood_cluster_8 done 
-✓ Calculate CN and Spatial Context of CN_neighborhood_cluster_10 done 
-✓ Calculate CN and Spatial Context of CN_neighborhood_cluster_12 done 
-✓ Calculate CN and Spatial Context of CN_neighborhood_cluster_15 done 
-✓ Perform permutation test on neighborhood done 
-✓ Calculate CN and Spatial Context of CN_knn_10_cluster_8 done 
-✓ Calculate CN and Spatial Context of CN_knn_10_cluster_10 done 
-✓ Calculate CN and Spatial Context of CN_knn_10_cluster_12 done 
-✓ Calculate CN and Spatial Context of CN_knn_10_cluster_15 done 
-✓ Perform permutation test on knn_10 done 
-✓ Calculate CN and Spatial Context of CN_knn_20_cluster_8 done 
-✓ Calculate CN and Spatial Context of CN_knn_20_cluster_10 done 
-✓ Calculate CN and Spatial Context of CN_knn_20_cluster_12 done 
-✓ Calculate CN and Spatial Context of CN_knn_20_cluster_15 done 
-✓ Perform permutation test on knn_20 done 
-✓ Calculate CN and Spatial Context of CN_knn_30_cluster_8 done 
-✓ Calculate CN and Spatial Context of CN_knn_30_cluster_10 done 
-✓ Calculate CN and Spatial Context of CN_knn_30_cluster_12 done 
-✓ Calculate CN and Spatial Context of CN_knn_30_cluster_15 done 
-✓ Perform permutation test on knn_30 done 
-✓ Calculate CN and Spatial Context of CN_knn_50_cluster_8 done 
-✓ Calculate CN and Spatial Context of CN_knn_50_cluster_10 done 
-✓ Calculate CN and Spatial Context of CN_knn_50_cluster_12 done 
-✓ Calculate CN and Spatial Context of CN_knn_50_cluster_15 done 
-✓ Perform permutation test on knn_50 done 
-✓ Calculate CN and Spatial Context of CN_delaunay_cluster_8 done 
-✓ Calculate CN and Spatial Context of CN_delaunay_cluster_10 done 
-✓ Calculate CN and Spatial Context of CN_delaunay_cluster_12 done 
-✓ Calculate CN and Spatial Context of CN_delaunay_cluster_15 done 
-✓ Perform permutation test on delaunay done 
-Warning message:
-did not converge in 10 iterations 
-Error in reducer$value.cache[[as.character(idx)]] <- values : 
-  wrong args for environment subassignment
-Calls: patchDetection ... .bploop_impl -> .collect_result -> .reducer_add -> .reducer_add
-In addition: Warning message:
-In parallel::mccollect(wait = FALSE, timeout = 1) :
-  2 parallel jobs did not deliver results
-Execution halted
+=== EXTRACTING MALIGNANT CELLS DATA ===
+Total malignant cells in TC/IM: 592269 
+TC malignant cells: 399552 
+IM malignant cells: 192717 
+Loading required package: scuttle
+Warning in (function (A, nv = 5, nu = nv, maxit = 1000, work = nv + 7, reorth = TRUE,  :
+  You're computing too large a percentage of total singular values, use a standard svd instead.
