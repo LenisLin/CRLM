@@ -122,7 +122,9 @@ saveRDS(spe,file.path(saveDir,paste0("spatial_spe_",date_time,".rds")))
 # 4. Patch detection
 ## calculate the minimum distance between each cell and tumor patch
 detectPatch_List <- list()
-detectPatch_List[["Tumor"]] <- c("EC_Vimentin","EC_CAIX","EC_EpCAM","EC_Ki67","EC_GLUT1","EC_Ki67_CAIX")
+celltypes <- unique(spe$sub_celltype)
+
+detectPatch_List[["Tumor"]] <- celltypes[startsWith(celltypes,prefix = "EC")]
 
 for(patch_name_ in names(detectPatch_List)){
 
