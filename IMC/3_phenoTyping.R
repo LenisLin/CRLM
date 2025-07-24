@@ -333,7 +333,7 @@ if(T){
     spe_temp <- readRDS(file.path(figureDir,paste0(subtype_,"_SOM_cluster_0714.rds")))
     
     anno_cellsubtype <- recode(as.character(spe_temp$minor_som_clusters),
-                               "1" = "EC_CAIX","2" = "EC_CAIX","3" = "EC_Ki67_CAIX","4" = "EC_Ki67","5" = "EC_EpCAM",
+                               "1" = "EC_CAIX","2" = "EC_CAIX","3" = "EC_CAIX","4" = "EC_Ki67","5" = "EC_EpCAM",
                                "6" = "EC_Vimentin","7" = "EC_CAIX","8" = "EC_EpCAM","9" = "EC_EpCAM","10" = "EC_EpCAM",
                                "11" = "EC_EpCAM","12" = "EC_Vimentin","13" = "EC_GLUT1","14" = "EC_Vimentin","15" = "EC_GLUT1",
                                "16" = "EC_Vimentin","17" = "EC_GLUT1","18" = "EC_Ki67","19" = "unlabelled","20" = "unlabelled"

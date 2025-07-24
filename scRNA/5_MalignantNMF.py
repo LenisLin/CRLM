@@ -158,6 +158,11 @@ all_metabolism_genes = set()
 for pathway, genes in metabolism_gene_sets.items():
     all_metabolism_genes.update(genes)
 
+# # Use HVGs for NMF
+# candidate_genes_table = pd.read_table('/mnt/NAS_21T/ProjectData/IMC_CRLM/bulkRNA/BCGSC/protein-coding_gene.txt',sep='\t')
+# candidate_genes = candidate_genes_table["symbol"].tolist()
+# all_metabolism_genes = get_highly_variable_genes(adata=malignant_cells, candidate_genes = candidate_genes,n_top_genes=2000)
+
 all_metabolism_genes = list(all_metabolism_genes)
 print(f"Total unique metabolism genes: {len(all_metabolism_genes)}")
 
@@ -184,7 +189,7 @@ print("="*60)
 
 # Run the robust NMF analysis
 malignant_cells.obs["sample_id"] = malignant_cells.obs["batch"]
-robust_results = run_robust_nmf_analysis(malignant_cells, available_metabolism_genes, result_path)
+robust_results = run_robust_nmf_analysis_aligned(malignant_cells, available_metabolism_genes, result_path)
 
 # Manually merge
 # updated_results, updated_cells = merge_meta_programs(
