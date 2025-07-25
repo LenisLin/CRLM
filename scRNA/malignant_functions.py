@@ -20,10 +20,11 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle, FancyBboxPatch
 
+import scipy
 import scipy.io
 import scipy.sparse
 from scipy import stats
-from scipy.stats import hypergeom, zscore
+from scipy.stats import hypergeom, zscore, pearsonr
 from scipy.cluster.hierarchy import linkage, fcluster, dendrogram
 from scipy.spatial.distance import squareform, pdist
 
@@ -33,7 +34,6 @@ from sklearn.decomposition import NMF, PCA
 
 from lifelines import KaplanMeierFitter
 from lifelines.statistics import logrank_test
-
 
 def get_metabolism_pathways():
     """Enhanced metabolism pathway collection"""
@@ -211,16 +211,34 @@ def get_stress_resistance_pathways():
     
     return stress_gene_sets
 
-def get_highly_variable_genes(adata, candidate_genes, n_top_genes=3000):
+def get_highly_variable_genes(adata, candidate_genes = None, n_top_genes=3000):
     """Get highly variable genes from candidates"""
     
-    if 'highly_variable' not in adata.var.columns:
-        sc.pp.highly_variable_genes(adata, n_top_genes=n_top_genes)
+    if candidate_genes:
+        # First filter to only include candidate genes that exist in the data
+        available_candidates = [gene for gene in candidate_genes if gene in adata.var_names]
+        
+        if len(available_candidates) == 0:
+            print("Warning: No candidate genes found in the data")
+            return []
+        
+        # Subset the data to only include candidate genes
+        adata_subset = adata[:, available_candidates].copy()
+
+        # Adjust n_top_genes if we have fewer candidates than requested
+        n_genes_to_select = min(n_top_genes, len(available_candidates))
+        
+    else:
+        adata_subset = adata.copy()
+        n_genes_to_select = min(n_top_genes, adata_subset.shape[1])
+
+    # Perform HVG selection on the filtered subset
+    sc.pp.highly_variable_genes(adata_subset, n_top_genes=n_genes_to_select)
     
-    hvg_genes = adata.var_names[adata.var.highly_variable].tolist()
-    hvg_candidates = [gene for gene in hvg_genes if gene in candidate_genes]
-    
-    return hvg_candidates
+    # Get the highly variable genes from the filtered set
+    hvg_genes = adata_subset.var_names[adata_subset.var.highly_variable].tolist()
+        
+    return hvg_genes
 
 def get_multi_pathway_genes(gene_sets, candidate_genes, min_pathways=2):
     """Get genes that appear in multiple pathways"""
@@ -336,6 +354,21 @@ def get_imc_aligned_hallmark_pathways():
     
     return imc_aligned_gene_sets
 
+def get_all_hallmark_pathways():
+    """
+    Get HALLMARK pathways specifically aligned with IMC panel markers
+    Focused on pathways detectable by: GLUT1, HK2, FASN, PRPS1, CA-IX, VEGF, VIM, EPCAM, Ki67
+    """
+        
+    msig = Msigdb()
+    
+    print("🎯 Fetching IMC-aligned HALLMARK pathways...")
+    
+    # Get all HALLMARK gene sets
+    hallmark = msig.get_gmt(category='h.all', dbver="2025.1.Hs")
+    
+    return hallmark
+
 def validate_imc_pathway_coverage(pathways_dict, malignant_cells):
     """
     Validate how well the pathways cover IMC panel genes
@@ -393,52 +426,429 @@ def validate_imc_pathway_coverage(pathways_dict, malignant_cells):
     
     return coverage_report
 
-def calculate_gene_overlap(genes1, genes2):
-    """Calculate Jaccard similarity between two gene sets"""
-    set1, set2 = set(genes1), set(genes2)
-    intersection = len(set1 & set2)
-    union = len(set1 | set2)
+def get_overlap_count(list1, list2):
+    return len(set(list1) & set(list2))
+
+def calculate_gene_overlap(list1, list2):
+    intersection = len(set(list1) & set(list2))
+    union = len(set(list1) | set(list2))
     return intersection / union if union > 0 else 0
 
-def get_overlap_count(genes1, genes2, total_genes=20000, alpha=0.05):
-    """Add hypergeometric test for overlap significance"""
+# def run_robust_nmf_analysis(malignant_cells, available_metabolism_genes, save_path):
+#     """
+#     Implement robust NMF strategy following CSCC paper methodology
+#     """
     
-    overlap = len(set(genes1) & set(genes2))
-    # p_value = hypergeom.sf(overlap-1, total_genes, len(genes1), len(genes2))
-    # print(f"🎯 P value of significant overlap is {str(p_value)}...")
+#     print("🎯 Starting robust NMF analysis...")
     
-    return overlap
+#     # Parameters following the paper
+#     K_RANGE = range(4, 9)  # Try: range(3, 8) or range(4, 10)
+#     TOP_GENES_PER_PROGRAM = 50  # Top 25 genes per program
+#     MIN_CELLS_PER_PATIENT = 150  # Minimum 150 cells per patient
+#     MAX_CLUSTER_NUM = 8
 
-def run_robust_nmf_analysis(malignant_cells, available_metabolism_genes, save_path):
+#     # Robustness criteria
+#     SAME_PATIENT_OVERLAP_THRESHOLD = 0.7  # 50% overlap
+#     CROSS_PATIENT_OVERLAP_THRESHOLD = 0.2  # 20% overlap
+#     MAX_INTRA_PATIENT_OVERLAP = 0.2  # <20% overlap within same patient
+    
+#     # Group cells by patient/study
+#     patient_groups = malignant_cells.obs['sample_id'].unique()
+#     print(f"Found {len(patient_groups)} unique samples")
+    
+#     # Filter patients with sufficient cells
+#     valid_patients = []
+#     for patient in patient_groups:
+#         patient_cells = malignant_cells[malignant_cells.obs['sample_id'] == patient]
+#         if patient_cells.n_obs >= MIN_CELLS_PER_PATIENT:
+#             valid_patients.append(patient)
+    
+#     print(f"{len(valid_patients)} samples with ≥{MIN_CELLS_PER_PATIENT} cells")
+    
+#     # Step 1: Run NMF for each patient and each K
+#     print("\n📊 Step 1: Running NMF for each patient...")
+#     all_programs = []
+#     patient_programs = {}
+    
+#     for patient_id in valid_patients:
+#         print(f"  Processing sample {patient_id}...")
+        
+#         # Subset patient cells
+#         patient_cells = malignant_cells[malignant_cells.obs['sample_id'] == patient_id]
+#         patient_metabolism = patient_cells[:, available_metabolism_genes].copy()
+        
+#         # Preprocessing
+#         # sc.pp.normalize_total(patient_metabolism, target_sum=1e4)
+#         if scipy.sparse.issparse(patient_metabolism.X):
+#             X_patient = patient_metabolism.X.toarray()
+#         else:
+#             X_patient = patient_metabolism.X.copy()
+        
+#         X_patient = np.maximum(X_patient, 0)  # Ensure non-negative
+        
+#         patient_programs[patient_id] = {}
+        
+#         # Run NMF for different K values
+#         for k in K_RANGE:
+#             print(f"    K={k}: {patient_metabolism.n_obs} cells, {patient_metabolism.n_vars} genes")
+            
+#             # Run NMF
+#             nmf_model = NMF(n_components=k, random_state=619, max_iter=2000)
+#             W = nmf_model.fit_transform(X_patient)
+#             H = nmf_model.components_
+            
+#             # Extract top genes for each program
+#             k_programs = []
+#             for factor_idx in range(k):
+#                 # Get top 50 genes for this factor
+#                 factor_scores = H[factor_idx, :]
+#                 top_gene_indices = np.argsort(factor_scores)[-TOP_GENES_PER_PROGRAM:][::-1]
+#                 top_genes = [available_metabolism_genes[i] for i in top_gene_indices]
+                
+#                 program = {
+#                     'patient': patient_id,
+#                     'k_value': k,
+#                     'factor_idx': factor_idx,
+#                     'genes': top_genes,
+#                     'gene_scores': factor_scores[top_gene_indices],
+#                     'program_id': f"{patient_id}_K{k}_F{factor_idx}"
+#                 }
+                
+#                 k_programs.append(program)
+#                 all_programs.append(program)
+            
+#             patient_programs[patient_id][k] = k_programs
+    
+#     print(f"✅ Generated {len(all_programs)} total programs from {len(valid_patients)} patients")
+    
+#     # Step 2: Apply robustness criteria
+#     print("\n🔍 Step 2: Applying robustness criteria...")
+    
+#     # Criterion 1: 70% overlap with different K in same patient
+#     print("  Applying criterion 1: Cross-K stability within patients...")
+#     stable_programs = []
+
+#     for program in all_programs:
+#         patient_id = program['patient']
+#         k_value = program['k_value']
+#         genes = program['genes']
+        
+#         # Check overlap with other K values for same patient
+#         cross_k_overlaps = []
+#         for other_k in K_RANGE:
+#             if other_k != k_value and other_k in patient_programs[patient_id]:
+#                 for other_program in patient_programs[patient_id][other_k]:
+#                     overlap = get_overlap_count(genes, other_program['genes'])
+#                     cross_k_overlaps.append(overlap)
+        
+#         # Check if any overlap meets the 70% threshold (35/50 genes)
+#         same_paient_threshold = int(TOP_GENES_PER_PROGRAM * SAME_PATIENT_OVERLAP_THRESHOLD)
+
+#         if any(overlap >= same_paient_threshold for overlap in cross_k_overlaps):
+#             stable_programs.append(program)
+    
+#     print(f"    Programs passing criterion 1: {len(stable_programs)}")
+    
+#     # Criterion 2: 20% overlap with programs in other patients
+#     print("  Applying criterion 2: Cross-patient similarity...")
+#     cross_patient_programs = []
+
+#     cross_patient_threshold = int(TOP_GENES_PER_PROGRAM * CROSS_PATIENT_OVERLAP_THRESHOLD)
+    
+#     for program in stable_programs:
+#         patient_id = program['patient']
+#         genes = program['genes']
+        
+#         # Check overlap with programs from other patients
+#         cross_patient_overlaps = []
+#         for other_program in stable_programs:
+#             if other_program['patient'] != patient_id:
+#                 overlap = get_overlap_count(genes, other_program['genes'])
+#                 cross_patient_overlaps.append(overlap)
+        
+#         # Check if any overlap meets the 20% threshold (10/50 genes)
+#         if any(overlap >= cross_patient_threshold for overlap in cross_patient_overlaps):
+#             cross_patient_programs.append(program)
+    
+#     print(f"    Programs passing criterion 2: {len(cross_patient_programs)}")
+    
+#     # Criterion 3: <20% overlap with other programs in same patient + selection
+#     print("  Applying criterion 3: Intra-patient redundancy removal...")
+    
+#     # Rank programs by cross-patient similarity
+#     program_similarities = []
+#     for program in cross_patient_programs:
+#         patient_id = program['patient']
+#         genes = program['genes']
+        
+#         # Calculate average similarity to programs in other patients
+#         similarities = []
+#         for other_program in cross_patient_programs:
+#             if other_program['patient'] != patient_id:
+#                 overlap = get_overlap_count(genes, other_program['genes'])
+#                 similarities.append(overlap)
+        
+#         avg_similarity = np.mean(similarities) if similarities else 0
+#         program_similarities.append((program, avg_similarity))
+    
+#     # Sort by decreasing cross-patient similarity
+#     program_similarities.sort(key=lambda x: x[1], reverse=True)
+    
+#     # Select programs, avoiding redundancy within patients
+#     robust_programs = []
+#     selected_patient_programs = {patient: [] for patient in valid_patients}
+    
+#     high_overlap_threshold = int(TOP_GENES_PER_PROGRAM * MAX_INTRA_PATIENT_OVERLAP)
+
+#     for program, similarity in program_similarities:
+#         patient_id = program['patient']
+#         genes = program['genes']
+        
+#         # Check overlap with already selected programs from same patient
+#         intra_patient_overlaps = []
+#         for selected_program in selected_patient_programs[patient_id]:
+#             overlap = get_overlap_count(genes, selected_program['genes'])
+#             intra_patient_overlaps.append(overlap)
+        
+#         # Select if no high overlap with selected programs from same patient
+#         if not any(overlap >= high_overlap_threshold for overlap in intra_patient_overlaps):
+#             robust_programs.append(program)
+#             selected_patient_programs[patient_id].append(program)
+    
+#     print(f"    Final robust programs: {len(robust_programs)}")
+    
+#     # Step 3: Hierarchical clustering to identify Meta-Programs (MPs)
+#     print("\n🌳 Step 3: Hierarchical clustering to identify Meta-Programs...")
+    
+#     if len(robust_programs) < 2:
+#         print("  ⚠️ Too few robust programs for clustering")
+#         return None
+    
+#     # Create similarity matrix using Jaccard similarity
+#     n_programs = len(robust_programs)
+#     similarity_matrix = np.zeros((n_programs, n_programs))
+    
+#     for i in range(n_programs):
+#         for j in range(n_programs):
+#             overlap = calculate_gene_overlap(robust_programs[i]['genes'], robust_programs[j]['genes'])
+#             similarity_matrix[i, j] = overlap
+    
+#     # Convert to distance matrix
+#     distance_matrix = 1 - similarity_matrix
+    
+#     # Hierarchical clustering
+#     condensed_distances = squareform(distance_matrix, checks=False)
+#     linkage_matrix = linkage(condensed_distances, method='average')
+    
+#     # Determine optimal number of clusters (Meta-Programs)
+#     # Try different numbers of clusters and evaluate
+#     max_clusters = min(MAX_CLUSTER_NUM, len(robust_programs))
+#     cluster_solutions = {}
+    
+#     for n_clusters in range(2, max_clusters + 1):
+#         clusters = fcluster(linkage_matrix, n_clusters, criterion='maxclust')
+        
+#         # Calculate within-cluster similarity
+#         within_cluster_similarities = []
+#         for cluster_id in range(1, n_clusters + 1):
+#             cluster_programs = [i for i, c in enumerate(clusters) if c == cluster_id]
+#             if len(cluster_programs) > 1:
+#                 cluster_similarities = []
+#                 for i, j in combinations(cluster_programs, 2):
+#                     cluster_similarities.append(similarity_matrix[i, j])
+#                 within_cluster_similarities.extend(cluster_similarities)
+        
+#         avg_within_similarity = np.mean(within_cluster_similarities) if within_cluster_similarities else 0
+#         cluster_solutions[n_clusters] = {
+#             'clusters': clusters,
+#             'within_similarity': avg_within_similarity,
+#             'n_programs_per_cluster': [np.sum(clusters == i) for i in range(1, n_clusters + 1)]
+#         }
+    
+#     # Select optimal clustering (highest within-cluster similarity)
+#     optimal_n_clusters = max(cluster_solutions.keys(), 
+#                            key=lambda k: cluster_solutions[k]['within_similarity'])
+#     optimal_clusters = cluster_solutions[optimal_n_clusters]['clusters']
+    
+#     print(f"    Optimal number of Meta-Programs: {optimal_n_clusters}")
+#     print(f"    Programs per MP: {cluster_solutions[optimal_n_clusters]['n_programs_per_cluster']}")
+    
+#     # Step 4: Generate Meta-Program signatures
+#     print("\n🧬 Step 4: Generating Meta-Program signatures...")
+    
+#     meta_programs = {}
+    
+#     for mp_id in range(1, optimal_n_clusters + 1):
+#         mp_program_indices = [i for i, c in enumerate(optimal_clusters) if c == mp_id]
+#         mp_programs = [robust_programs[i] for i in mp_program_indices]
+        
+#         print(f"  Meta-Program {mp_id}: {len(mp_programs)} constituent programs")
+        
+#         # Collect all genes from constituent programs
+#         all_mp_genes = []
+#         for program in mp_programs:
+#             all_mp_genes.extend(program['genes'])
+        
+#         # Count gene occurrences
+#         gene_counts = Counter(all_mp_genes)
+        
+#         # Select genes occurring in ≥25% of constituent programs
+#         min_occurrence = max(1, len(mp_programs) * 0.25)
+#         candidate_genes = [gene for gene, count in gene_counts.items() if count >= min_occurrence]
+        
+#         # Calculate gene scores (average across programs where gene appears)
+#         gene_scores = {}
+#         for gene in candidate_genes:
+#             scores = []
+#             for program in mp_programs:
+#                 if gene in program['genes']:
+#                     gene_idx = program['genes'].index(gene)
+#                     scores.append(program['gene_scores'][gene_idx])
+#             gene_scores[gene] = np.mean(scores)
+        
+#         # Sort by score and take top genes
+#         sorted_genes = sorted(gene_scores.items(), key=lambda x: x[1], reverse=True)
+        
+#         # Limit to reasonable signature size
+#         max_signature_size = min(50, len(sorted_genes))
+#         signature_genes = [gene for gene, score in sorted_genes[:max_signature_size]]
+#         signature_scores = [score for gene, score in sorted_genes[:max_signature_size]]
+        
+#         meta_programs[mp_id] = {
+#             'mp_id': mp_id,
+#             'constituent_programs': mp_programs,
+#             'signature_genes': signature_genes,
+#             'signature_scores': signature_scores,
+#             'n_programs': len(mp_programs),
+#             'patients_represented': list(set(p['patient'] for p in mp_programs))
+#         }
+        
+#         print(f"    MP{mp_id} signature: {len(signature_genes)} genes, "
+#               f"{len(meta_programs[mp_id]['patients_represented'])} samples")
+    
+#     # Step 5: Calculate Meta-Program scores for all cells
+#     print("\n📊 Step 5: Calculating Meta-Program scores for all cells...")
+    
+#     # Calculate MP scores using scanpy
+#     for mp_id, mp_data in meta_programs.items():
+#         signature_genes = mp_data['signature_genes']
+#         available_signature_genes = [g for g in signature_genes if g in malignant_cells.var_names]
+        
+#         if len(available_signature_genes) >= 5:  # Minimum genes for scoring
+#             sc.tl.score_genes(malignant_cells, available_signature_genes, 
+#                              score_name=f'MP{mp_id}_score', use_raw=False)
+#             print(f"    MP{mp_id}: {len(available_signature_genes)} genes used for scoring")
+    
+#     # Step 6: Assign cells to Meta-Programs
+#     print("\n🎯 Step 6: Assigning cells to Meta-Programs...")
+    
+#     # Get MP score columns
+#     mp_score_cols = [f'MP{mp_id}_score' for mp_id in meta_programs.keys() 
+#                      if f'MP{mp_id}_score' in malignant_cells.obs.columns]
+    
+#     if len(mp_score_cols) >= 2:
+#         # Normalize scores by mean subtraction
+#         for col in mp_score_cols:
+#             malignant_cells.obs[f'{col}_normalized'] = (malignant_cells.obs[col] - 
+#                                                        malignant_cells.obs[col].mean())
+        
+#         # Assign cells to MPs
+#         normalized_cols = [f'{col}_normalized' for col in mp_score_cols]
+#         mp_assignments = []
+        
+#         for idx in range(malignant_cells.n_obs):
+#             scores = [malignant_cells.obs.iloc[idx][col] for col in normalized_cols]
+            
+#             if len(scores) >= 2:
+#                 max_score_idx = np.argmax(scores)
+#                 max_score = scores[max_score_idx]
+                
+#                 # Get second highest score
+#                 scores_sorted = sorted(scores, reverse=True)
+#                 second_highest = scores_sorted[1] if len(scores_sorted) > 1 else 0
+                
+#                 # Assign if highest score > 85% threshold of second highest
+#                 if second_highest == 0 or max_score > 0.85 * abs(second_highest):
+#                     mp_assignments.append(f'MP{max_score_idx + 1}')
+#                 else:
+#                     mp_assignments.append('Unresolved')
+#             else:
+#                 mp_assignments.append('Unresolved')
+        
+#         malignant_cells.obs['MP_assignment'] = mp_assignments
+#         malignant_cells.obs['MP_assignment'] = malignant_cells.obs['MP_assignment'].astype('category')
+        
+#         # Print assignment statistics
+#         assignment_counts = malignant_cells.obs['MP_assignment'].value_counts()
+#         print("    MP assignment distribution:")
+#         for mp, count in assignment_counts.items():
+#             percentage = count / len(malignant_cells) * 100
+#             print(f"      {mp}: {count} cells ({percentage:.1f}%)")
+    
+#     # Save results
+#     print("\n💾 Saving robust NMF results...")
+    
+#     robust_nmf_results = {
+#         'all_programs': all_programs,
+#         'robust_programs': robust_programs,
+#         'meta_programs': meta_programs,
+#         'clustering_info': {
+#             'optimal_n_clusters': optimal_n_clusters,
+#             'similarity_matrix': similarity_matrix,
+#             'linkage_matrix': linkage_matrix,
+#             'cluster_assignments': optimal_clusters
+#         },
+#         'parameters': {
+#             'K_range': list(K_RANGE),
+#             'top_genes_per_program': TOP_GENES_PER_PROGRAM,
+#             'min_cells_per_patient': MIN_CELLS_PER_PATIENT,
+#             'same_patient_overlap_threshold': SAME_PATIENT_OVERLAP_THRESHOLD,
+#             'cross_patient_overlap_threshold': CROSS_PATIENT_OVERLAP_THRESHOLD,
+#             'max_intra_patient_overlap': MAX_INTRA_PATIENT_OVERLAP
+#         }
+#     }
+    
+#     with open(os.path.join(save_path, "robust_metabolism_nmf_results.pkl"), 'wb') as f:
+#         pickle.dump(robust_nmf_results, f)
+    
+#     print(f"✅ Robust NMF analysis completed!")
+#     print(f"📊 Summary:")
+#     print(f"   - {len(all_programs)} total programs generated")
+#     print(f"   - {len(robust_programs)} robust programs identified")  
+#     print(f"   - {optimal_n_clusters} Meta-Programs discovered")
+#     print(f"   - {len(valid_patients)} patients analyzed")
+    
+#     return robust_nmf_results
+
+def run_robust_nmf_analysis_aligned(malignant_cells, available_metabolism_genes, save_path):
     """
-    Implement robust NMF strategy following CSCC paper methodology
+    Implement robust NMF strategy aligned with the CSCC paper methodology.
     """
     
-    print("🎯 Starting robust NMF analysis...")
+    print("🎯 Starting robust NMF analysis (Aligned Version)...")
     
     # Parameters following the paper
-    K_RANGE = range(3, 12)  # Try: range(3, 8) or range(4, 10)
-    TOP_GENES_PER_PROGRAM = 50  # Top 25 genes per program
-    MIN_CELLS_PER_PATIENT = 50  # Minimum 50 cells per patient
-    MAX_CLUSTER_NUM = 5
+    K_RANGE = range(4, 10)
+    TOP_GENES_PER_PROGRAM = 50
+    MIN_CELLS_PER_PATIENT = 150
+    N_META_PROGRAMS = 4
 
     # Robustness criteria
-    SAME_PATIENT_OVERLAP_THRESHOLD = 0.7  # 50% overlap
-    CROSS_PATIENT_OVERLAP_THRESHOLD = 0.3  # 20% overlap
-    MAX_INTRA_PATIENT_OVERLAP = 0.3  # <20% overlap within same patient
+    SAME_PATIENT_OVERLAP_THRESHOLD = 0.7
+    CROSS_PATIENT_OVERLAP_THRESHOLD = 0.2
+    MAX_INTRA_PATIENT_OVERLAP = 0.2
     
     # Group cells by patient/study
     patient_groups = malignant_cells.obs['sample_id'].unique()
     print(f"Found {len(patient_groups)} unique samples")
     
     # Filter patients with sufficient cells
-    valid_patients = []
-    for patient in patient_groups:
-        patient_cells = malignant_cells[malignant_cells.obs['sample_id'] == patient]
-        if patient_cells.n_obs >= MIN_CELLS_PER_PATIENT:
-            valid_patients.append(patient)
+    valid_patients = [
+        p for p in patient_groups 
+        if malignant_cells[malignant_cells.obs['sample_id'] == p].n_obs >= MIN_CELLS_PER_PATIENT
+    ]
     
-    print(f"Samples with ≥{MIN_CELLS_PER_PATIENT} cells: {len(valid_patients)}")
+    print(f"{len(valid_patients)} samples with ≥{MIN_CELLS_PER_PATIENT} cells")
     
     # Step 1: Run NMF for each patient and each K
     print("\n📊 Step 1: Running NMF for each patient...")
@@ -448,47 +858,35 @@ def run_robust_nmf_analysis(malignant_cells, available_metabolism_genes, save_pa
     for patient_id in valid_patients:
         print(f"  Processing sample {patient_id}...")
         
-        # Subset patient cells
         patient_cells = malignant_cells[malignant_cells.obs['sample_id'] == patient_id]
         patient_metabolism = patient_cells[:, available_metabolism_genes].copy()
         
-        # Preprocessing
-        # sc.pp.normalize_total(patient_metabolism, target_sum=1e4)
         if scipy.sparse.issparse(patient_metabolism.X):
             X_patient = patient_metabolism.X.toarray()
         else:
             X_patient = patient_metabolism.X.copy()
         
-        X_patient = np.maximum(X_patient, 0)  # Ensure non-negative
+        X_patient = np.maximum(X_patient, 0)
         
         patient_programs[patient_id] = {}
         
-        # Run NMF for different K values
         for k in K_RANGE:
             print(f"    K={k}: {patient_metabolism.n_obs} cells, {patient_metabolism.n_vars} genes")
-            
-            # Run NMF
-            nmf_model = NMF(n_components=k, random_state=619, max_iter=2000)
+            nmf_model = NMF(n_components=k, random_state=619, max_iter=2000, init='nndsvda')
             W = nmf_model.fit_transform(X_patient)
             H = nmf_model.components_
             
-            # Extract top genes for each program
             k_programs = []
             for factor_idx in range(k):
-                # Get top 50 genes for this factor
                 factor_scores = H[factor_idx, :]
                 top_gene_indices = np.argsort(factor_scores)[-TOP_GENES_PER_PROGRAM:][::-1]
                 top_genes = [available_metabolism_genes[i] for i in top_gene_indices]
                 
                 program = {
-                    'patient': patient_id,
-                    'k_value': k,
-                    'factor_idx': factor_idx,
-                    'genes': top_genes,
-                    'gene_scores': factor_scores[top_gene_indices],
+                    'patient': patient_id, 'k_value': k, 'factor_idx': factor_idx,
+                    'genes': top_genes, 'gene_scores': factor_scores[top_gene_indices],
                     'program_id': f"{patient_id}_K{k}_F{factor_idx}"
                 }
-                
                 k_programs.append(program)
                 all_programs.append(program)
             
@@ -499,195 +897,125 @@ def run_robust_nmf_analysis(malignant_cells, available_metabolism_genes, save_pa
     # Step 2: Apply robustness criteria
     print("\n🔍 Step 2: Applying robustness criteria...")
     
-    # Criterion 1: 70% overlap with different K in same patient
-    print("  Applying criterion 1: Cross-K stability within patients...")
+    # Criterion 1: Cross-K stability within patients
     stable_programs = []
-
+    same_patient_threshold = int(TOP_GENES_PER_PROGRAM * SAME_PATIENT_OVERLAP_THRESHOLD)
     for program in all_programs:
-        patient_id = program['patient']
-        k_value = program['k_value']
-        genes = program['genes']
-        
-        # Check overlap with other K values for same patient
-        cross_k_overlaps = []
+        patient_id, k_value, genes = program['patient'], program['k_value'], program['genes']
+        has_stable_overlap = False
         for other_k in K_RANGE:
-            if other_k != k_value and other_k in patient_programs[patient_id]:
-                for other_program in patient_programs[patient_id][other_k]:
-                    overlap = get_overlap_count(genes, other_program['genes'])
-                    cross_k_overlaps.append(overlap)
-        
-        # Check if any overlap meets the 70% threshold (35/50 genes)
-        same_paient_threshold = int(TOP_GENES_PER_PROGRAM * SAME_PATIENT_OVERLAP_THRESHOLD)
-
-        if any(overlap >= same_paient_threshold for overlap in cross_k_overlaps):
+            if other_k != k_value:
+                for other_program in patient_programs[patient_id].get(other_k, []):
+                    if get_overlap_count(genes, other_program['genes']) >= same_patient_threshold:
+                        has_stable_overlap = True
+                        break
+            if has_stable_overlap:
+                break
+        if has_stable_overlap:
             stable_programs.append(program)
-    
-    print(f"    Programs passing criterion 1: {len(stable_programs)}")
-    
-    # Criterion 2: 20% overlap with programs in other patients
-    print("  Applying criterion 2: Cross-patient similarity...")
-    cross_patient_programs = []
+    print(f"  Programs passing criterion 1: {len(stable_programs)}")
 
+    # Criterion 2: Cross-patient similarity
+    cross_patient_programs = []
     cross_patient_threshold = int(TOP_GENES_PER_PROGRAM * CROSS_PATIENT_OVERLAP_THRESHOLD)
-    
     for program in stable_programs:
-        patient_id = program['patient']
-        genes = program['genes']
-        
-        # Check overlap with programs from other patients
-        cross_patient_overlaps = []
+        has_cross_overlap = False
         for other_program in stable_programs:
-            if other_program['patient'] != patient_id:
-                overlap = get_overlap_count(genes, other_program['genes'])
-                cross_patient_overlaps.append(overlap)
-        
-        # Check if any overlap meets the 20% threshold (10/50 genes)
-        if any(overlap >= cross_patient_threshold for overlap in cross_patient_overlaps):
+            if other_program['patient'] != program['patient']:
+                if get_overlap_count(program['genes'], other_program['genes']) >= cross_patient_threshold:
+                    has_cross_overlap = True
+                    break
+        if has_cross_overlap:
             cross_patient_programs.append(program)
-    
-    print(f"    Programs passing criterion 2: {len(cross_patient_programs)}")
-    
-    # Criterion 3: <20% overlap with other programs in same patient + selection
-    print("  Applying criterion 3: Intra-patient redundancy removal...")
-    
-    # Rank programs by cross-patient similarity
+    print(f"  Programs passing criterion 2: {len(cross_patient_programs)}")
+
+    # Criterion 3: Intra-patient redundancy removal
     program_similarities = []
     for program in cross_patient_programs:
-        patient_id = program['patient']
-        genes = program['genes']
-        
-        # Calculate average similarity to programs in other patients
-        similarities = []
-        for other_program in cross_patient_programs:
-            if other_program['patient'] != patient_id:
-                overlap = get_overlap_count(genes, other_program['genes'])
-                similarities.append(overlap)
-        
+        similarities = [
+            get_overlap_count(program['genes'], other['genes'])
+            for other in cross_patient_programs if other['patient'] != program['patient']
+        ]
         avg_similarity = np.mean(similarities) if similarities else 0
         program_similarities.append((program, avg_similarity))
     
-    # Sort by decreasing cross-patient similarity
     program_similarities.sort(key=lambda x: x[1], reverse=True)
     
-    # Select programs, avoiding redundancy within patients
     robust_programs = []
-    selected_patient_programs = {patient: [] for patient in valid_patients}
-    
+    selected_in_patient = {p: [] for p in valid_patients}
     high_overlap_threshold = int(TOP_GENES_PER_PROGRAM * MAX_INTRA_PATIENT_OVERLAP)
-
-    for program, similarity in program_similarities:
-        patient_id = program['patient']
-        genes = program['genes']
-        
-        # Check overlap with already selected programs from same patient
-        intra_patient_overlaps = []
-        for selected_program in selected_patient_programs[patient_id]:
-            overlap = get_overlap_count(genes, selected_program['genes'])
-            intra_patient_overlaps.append(overlap)
-        
-        # Select if no high overlap with selected programs from same patient
-        if not any(overlap >= high_overlap_threshold for overlap in intra_patient_overlaps):
-            robust_programs.append(program)
-            selected_patient_programs[patient_id].append(program)
     
-    print(f"    Final robust programs: {len(robust_programs)}")
+    for program, _ in program_similarities:
+        patient_id = program['patient']
+        is_redundant = False
+        for selected in selected_in_patient[patient_id]:
+            if get_overlap_count(program['genes'], selected['genes']) >= high_overlap_threshold:
+                is_redundant = True
+                break
+        if not is_redundant:
+            robust_programs.append(program)
+            selected_in_patient[patient_id].append(program)
+    print(f"  Final robust programs: {len(robust_programs)}")
     
     # Step 3: Hierarchical clustering to identify Meta-Programs (MPs)
     print("\n🌳 Step 3: Hierarchical clustering to identify Meta-Programs...")
     
-    if len(robust_programs) < 2:
-        print("  ⚠️ Too few robust programs for clustering")
+    if len(robust_programs) < N_META_PROGRAMS:
+        print(f"  ⚠️ Too few robust programs ({len(robust_programs)}) for clustering into {N_META_PROGRAMS} MPs")
         return None
-    
-    # Create similarity matrix using Jaccard similarity
+        
     n_programs = len(robust_programs)
-    similarity_matrix = np.zeros((n_programs, n_programs))
-    
-    for i in range(n_programs):
-        for j in range(n_programs):
-            overlap = calculate_gene_overlap(robust_programs[i]['genes'], robust_programs[j]['genes'])
-            similarity_matrix[i, j] = overlap
-    
-    # Convert to distance matrix
+    similarity_matrix = np.array([[calculate_gene_overlap(p1['genes'], p2['genes']) for p2 in robust_programs] for p1 in robust_programs])
     distance_matrix = 1 - similarity_matrix
     
-    # Hierarchical clustering
     condensed_distances = squareform(distance_matrix, checks=False)
-    linkage_matrix = linkage(condensed_distances, method='ward')
+    linkage_matrix = linkage(condensed_distances, method='average') 
     
-    # Determine optimal number of clusters (Meta-Programs)
-    # Try different numbers of clusters and evaluate
-    max_clusters = min(MAX_CLUSTER_NUM, len(robust_programs))
-    cluster_solutions = {}
-    
-    for n_clusters in range(2, max_clusters + 1):
-        clusters = fcluster(linkage_matrix, n_clusters, criterion='maxclust')
-        
-        # Calculate within-cluster similarity
-        within_cluster_similarities = []
-        for cluster_id in range(1, n_clusters + 1):
-            cluster_programs = [i for i, c in enumerate(clusters) if c == cluster_id]
-            if len(cluster_programs) > 1:
-                cluster_similarities = []
-                for i, j in combinations(cluster_programs, 2):
-                    cluster_similarities.append(similarity_matrix[i, j])
-                within_cluster_similarities.extend(cluster_similarities)
-        
-        avg_within_similarity = np.mean(within_cluster_similarities) if within_cluster_similarities else 0
-        cluster_solutions[n_clusters] = {
-            'clusters': clusters,
-            'within_similarity': avg_within_similarity,
-            'n_programs_per_cluster': [np.sum(clusters == i) for i in range(1, n_clusters + 1)]
-        }
-    
-    # Select optimal clustering (highest within-cluster similarity)
-    optimal_n_clusters = max(cluster_solutions.keys(), 
-                           key=lambda k: cluster_solutions[k]['within_similarity'])
-    optimal_clusters = cluster_solutions[optimal_n_clusters]['clusters']
-    
-    print(f"    Optimal number of Meta-Programs: {optimal_n_clusters}")
-    print(f"    Programs per MP: {cluster_solutions[optimal_n_clusters]['n_programs_per_cluster']}")
+    optimal_n_clusters = N_META_PROGRAMS
+    clusters = fcluster(linkage_matrix, optimal_n_clusters, criterion='maxclust')
+    print(f"  Clustered into {optimal_n_clusters} Meta-Programs (fixed)")
     
     # Step 4: Generate Meta-Program signatures
     print("\n🧬 Step 4: Generating Meta-Program signatures...")
     
     meta_programs = {}
     
+    full_metabolism_adata = malignant_cells[:, available_metabolism_genes]
+    if scipy.sparse.issparse(full_metabolism_adata.X):
+        full_expr_matrix = full_metabolism_adata.X.toarray()
+    else:
+        full_expr_matrix = full_metabolism_adata.X
+    
+    expr_df = pd.DataFrame(full_expr_matrix, columns=available_metabolism_genes)
+
     for mp_id in range(1, optimal_n_clusters + 1):
-        mp_program_indices = [i for i, c in enumerate(optimal_clusters) if c == mp_id]
+        mp_program_indices = [i for i, c in enumerate(clusters) if c == mp_id]
+        if not mp_program_indices:
+            continue
+            
         mp_programs = [robust_programs[i] for i in mp_program_indices]
-        
         print(f"  Meta-Program {mp_id}: {len(mp_programs)} constituent programs")
         
-        # Collect all genes from constituent programs
-        all_mp_genes = []
-        for program in mp_programs:
-            all_mp_genes.extend(program['genes'])
-        
-        # Count gene occurrences
+        all_mp_genes = [gene for prog in mp_programs for gene in prog['genes']]
         gene_counts = Counter(all_mp_genes)
-        
-        # Select genes occurring in ≥25% of constituent programs
         min_occurrence = max(1, len(mp_programs) * 0.25)
         candidate_genes = [gene for gene, count in gene_counts.items() if count >= min_occurrence]
         
-        # Calculate gene scores (average across programs where gene appears)
-        gene_scores = {}
-        for gene in candidate_genes:
-            scores = []
-            for program in mp_programs:
-                if gene in program['genes']:
-                    gene_idx = program['genes'].index(gene)
-                    scores.append(program['gene_scores'][gene_idx])
-            gene_scores[gene] = np.mean(scores)
+        if len(candidate_genes) < 2:
+            print(f"    ⚠️ Not enough candidate genes for MP {mp_id}, skipping.")
+            continue
+
+        temp_score_name = f'temp_MP{mp_id}_score'
+        sc.tl.score_genes(malignant_cells, candidate_genes, score_name=temp_score_name, use_raw=False)
+        mp_signature_scores = malignant_cells.obs[temp_score_name].values
         
-        # Sort by score and take top genes
-        sorted_genes = sorted(gene_scores.items(), key=lambda x: x[1], reverse=True)
+        correlations = expr_df.corrwith(pd.Series(mp_signature_scores, index=expr_df.index), method='pearson')
+        top_30_correlated = correlations.nlargest(30)
         
-        # Limit to reasonable signature size
-        max_signature_size = min(50, len(sorted_genes))
-        signature_genes = [gene for gene, score in sorted_genes[:max_signature_size]]
-        signature_scores = [score for gene, score in sorted_genes[:max_signature_size]]
+        signature_genes = top_30_correlated.index.tolist()
+        signature_scores = top_30_correlated.values.tolist()
+
+        del malignant_cells.obs[temp_score_name]
         
         meta_programs[mp_id] = {
             'mp_id': mp_id,
@@ -697,70 +1025,42 @@ def run_robust_nmf_analysis(malignant_cells, available_metabolism_genes, save_pa
             'n_programs': len(mp_programs),
             'patients_represented': list(set(p['patient'] for p in mp_programs))
         }
+        print(f"    MP{mp_id} signature: {len(signature_genes)} genes, {len(meta_programs[mp_id]['patients_represented'])} samples")
         
-        print(f"    MP{mp_id} signature: {len(signature_genes)} genes, "
-              f"{len(meta_programs[mp_id]['patients_represented'])} samples")
-    
-    # Step 5: Calculate Meta-Program scores for all cells
-    print("\n📊 Step 5: Calculating Meta-Program scores for all cells...")
-    
-    # Calculate MP scores using scanpy
+    # Step 5: Calculate final Meta-Program scores for all cells
+    print("\n📊 Step 5: Calculating final Meta-Program scores for all cells...")
     for mp_id, mp_data in meta_programs.items():
-        signature_genes = mp_data['signature_genes']
-        available_signature_genes = [g for g in signature_genes if g in malignant_cells.var_names]
-        
-        if len(available_signature_genes) >= 5:  # Minimum genes for scoring
-            sc.tl.score_genes(malignant_cells, available_signature_genes, 
-                             score_name=f'MP{mp_id}_score', use_raw=False)
+        available_signature_genes = [g for g in mp_data['signature_genes'] if g in malignant_cells.var_names]
+        if len(available_signature_genes) >= 5:
+            sc.tl.score_genes(malignant_cells, available_signature_genes, score_name=f'MP{mp_id}_score', use_raw=False)
             print(f"    MP{mp_id}: {len(available_signature_genes)} genes used for scoring")
     
     # Step 6: Assign cells to Meta-Programs
     print("\n🎯 Step 6: Assigning cells to Meta-Programs...")
-    
-    # Get MP score columns
-    mp_score_cols = [f'MP{mp_id}_score' for mp_id in meta_programs.keys() 
-                     if f'MP{mp_id}_score' in malignant_cells.obs.columns]
+    mp_score_cols = [f'MP{mp_id}_score' for mp_id in meta_programs.keys() if f'MP{mp_id}_score' in malignant_cells.obs.columns]
     
     if len(mp_score_cols) >= 2:
-        # Normalize scores by mean subtraction
-        for col in mp_score_cols:
-            malignant_cells.obs[f'{col}_normalized'] = (malignant_cells.obs[col] - 
-                                                       malignant_cells.obs[col].mean())
+        score_df = malignant_cells.obs[mp_score_cols].copy()
+        normalized_score_df = score_df.subtract(score_df.mean(axis=0), axis=1)
         
-        # Assign cells to MPs
-        normalized_cols = [f'{col}_normalized' for col in mp_score_cols]
         mp_assignments = []
-        
-        for idx in range(malignant_cells.n_obs):
-            scores = [malignant_cells.obs.iloc[idx][col] for col in normalized_cols]
+        for _, row in normalized_score_df.iterrows():
+            sorted_scores = row.sort_values(ascending=False)
+            max_score = sorted_scores.iloc[0]
+            second_highest = sorted_scores.iloc[1]
             
-            if len(scores) >= 2:
-                max_score_idx = np.argmax(scores)
-                max_score = scores[max_score_idx]
-                
-                # Get second highest score
-                scores_sorted = sorted(scores, reverse=True)
-                second_highest = scores_sorted[1] if len(scores_sorted) > 1 else 0
-                
-                # Assign if highest score > 85% threshold of second highest
-                if second_highest == 0 or max_score > 0.85 * abs(second_highest):
-                    mp_assignments.append(f'MP{max_score_idx + 1}')
-                else:
-                    mp_assignments.append('Unresolved')
+            if second_highest <= 0.85 * max_score:
+                assignment = sorted_scores.index[0].split('_')[0]
+                mp_assignments.append(assignment)
             else:
                 mp_assignments.append('Unresolved')
         
-        malignant_cells.obs['MP_assignment'] = mp_assignments
-        malignant_cells.obs['MP_assignment'] = malignant_cells.obs['MP_assignment'].astype('category')
+        malignant_cells.obs['MP_assignment'] = pd.Categorical(mp_assignments)
         
-        # Print assignment statistics
-        assignment_counts = malignant_cells.obs['MP_assignment'].value_counts()
         print("    MP assignment distribution:")
-        for mp, count in assignment_counts.items():
-            percentage = count / len(malignant_cells) * 100
-            print(f"      {mp}: {count} cells ({percentage:.1f}%)")
-    
-    # Save results
+        print(malignant_cells.obs['MP_assignment'].value_counts(normalize=True).mul(100).round(1).astype(str) + '%')
+
+    # --- MODIFIED: Restored original save and return structure ---
     print("\n💾 Saving robust NMF results...")
     
     robust_nmf_results = {
@@ -771,27 +1071,30 @@ def run_robust_nmf_analysis(malignant_cells, available_metabolism_genes, save_pa
             'optimal_n_clusters': optimal_n_clusters,
             'similarity_matrix': similarity_matrix,
             'linkage_matrix': linkage_matrix,
-            'cluster_assignments': optimal_clusters
+            'cluster_assignments': clusters
         },
         'parameters': {
             'K_range': list(K_RANGE),
             'top_genes_per_program': TOP_GENES_PER_PROGRAM,
             'min_cells_per_patient': MIN_CELLS_PER_PATIENT,
+            'n_meta_programs': N_META_PROGRAMS,
             'same_patient_overlap_threshold': SAME_PATIENT_OVERLAP_THRESHOLD,
             'cross_patient_overlap_threshold': CROSS_PATIENT_OVERLAP_THRESHOLD,
             'max_intra_patient_overlap': MAX_INTRA_PATIENT_OVERLAP
         }
     }
     
-    with open(os.path.join(save_path, "robust_metabolism_nmf_results.pkl"), 'wb') as f:
+    # Save the results dictionary to a pickle file
+    results_path = os.path.join(save_path, "robust_metabolism_nmf_results_aligned.pkl")
+    with open(results_path, 'wb') as f:
         pickle.dump(robust_nmf_results, f)
     
-    print(f"✅ Robust NMF analysis completed!")
+    print(f"\n✅ Robust NMF analysis completed!")
     print(f"📊 Summary:")
-    print(f"   - {len(all_programs)} total programs generated")
-    print(f"   - {len(robust_programs)} robust programs identified")  
-    print(f"   - {optimal_n_clusters} Meta-Programs discovered")
-    print(f"   - {len(valid_patients)} patients analyzed")
+    print(f"    - {len(all_programs)} total programs generated")
+    print(f"    - {len(robust_programs)} robust programs identified")
+    print(f"    - {optimal_n_clusters} Meta-Programs discovered")
+    print(f"    - {len(valid_patients)} patients analyzed")
     
     return robust_nmf_results
 
@@ -1987,197 +2290,185 @@ def export_results_for_r_analysis(malignant_cells, robust_results, save_path):
     print(f"📁 Total files exported: {len(data_dict)}")
     
     return r_analysis_dir
-    
+
 # UMAP Visualization of MP Distribution
 def create_mp_umap_visualization(malignant_cells, available_metabolism_genes, save_path, figsize=(15, 10)):
     """
-    Create UMAP visualization showing MP distribution across cells
-    
+    Create UMAP visualization showing MP distribution across cells.
+    This corrected version improves subplot management to ensure figures are placed correctly
+    by using plt.subplots() for better axis control and closing figures after use.
+
     Parameters:
     -----------
     malignant_cells : AnnData
-        Malignant cells with MP assignments and scores
+        Malignant cells with MP assignments and scores.
+    available_metabolism_genes : list
+        List of metabolism genes to use for UMAP.
     save_path : str
-        Directory to save figures
+        Directory to save figures.
     figsize : tuple
-        Figure size
+        Default figure size, can be overridden by specific plot settings.
     """
-    
     print("🗺️ Creating UMAP visualization of Meta-Program distribution...")
-    
+
     # Create a copy for UMAP analysis
     adata_umap = malignant_cells.copy()
-    adata_umap = adata_umap[:,available_metabolism_genes]
-    
+    adata_umap = adata_umap[:, available_metabolism_genes]
+
     # Downsample if too many cells (for computational efficiency)
     if adata_umap.n_obs > 30000:
         print(f"  📉 Downsampling from {adata_umap.n_obs} to 30,000 cells for UMAP...")
         sc.pp.subsample(adata_umap, n_obs=30000, random_state=42)
-    
+
     # Preprocessing for UMAP
     print("  🔄 Preprocessing for UMAP...")
-    
-    # Normalize and log-transform if not already done
     if adata_umap.X.max() > 50:  # Check if data looks like raw counts
         sc.pp.normalize_total(adata_umap, target_sum=1e4)
         sc.pp.log1p(adata_umap)
-    
-    # Scale data
     sc.pp.scale(adata_umap, max_value=10)
-    
-    # Principal component analysis
     print("  📊 Computing PCA...")
     sc.tl.pca(adata_umap, svd_solver='arpack', n_comps=50)
-    
-    # Compute neighborhood graph
     print("  🕸️ Computing neighborhood graph...")
     sc.pp.neighbors(adata_umap, n_neighbors=15, n_pcs=40)
-    
-    # Compute UMAP
     print("  🗺️ Computing UMAP embedding...")
     sc.tl.umap(adata_umap, random_state=42)
-    
-    # Create comprehensive UMAP plots
+
+    # --- Plotting Section ---
     print("  🎨 Creating UMAP visualizations...")
+    sc.settings.set_figure_params(dpi=300, facecolor='white')
+
+    # --- Plot 1: Comprehensive UMAP overview (MP Assignment, Patient, Treatment) ---
+    # CORRECTION: Use plt.subplots for better control over the figure and axes.
+    fig, axes = plt.subplots(1, 3, figsize=(24, 7))
     
-    # Set up the plotting parameters
-    sc.settings.set_figure_params(dpi=300, facecolor='white', figsize=figsize)
-    
-    # Create figure with multiple subplots
-    fig = plt.figure(figsize=(20, 6))
-    
-    # 1. UMAP colored by MP assignment
-    if 'MP_assignment' in adata_umap.obs.columns:
-        ax1 = plt.subplot(1, 3, 1)
-        sc.pl.umap(adata_umap, color='MP_assignment', 
-                  palette='tab20', size=30, alpha=0.8,
-                  title='Meta-Program Assignment', 
-                  frameon=False, ax=ax1, show=False)
-    
-    # 2. UMAP colored by Patient ID (to show batch effects)
-    if 'patient' in adata_umap.obs.columns:
-        ax2 = plt.subplot(1, 3, 2)
-        sc.pl.umap(adata_umap, color='patient', 
-                  palette='plasma',size=20, alpha=0.6,
-                  title='Patient ID', 
-                  frameon=False, ax=ax2, show=False, legend_loc=None)
-    
-    # 3. UMAP colored by Treatment Strategy
-    if 'Treatment_Strategy' in adata_umap.obs.columns:
-        ax3 = plt.subplot(1, 3, 3)
-        sc.pl.umap(adata_umap, color='Treatment_Strategy', 
-                  palette='Set2', size=30, alpha=0.8,
-                  title='Treatment Strategy', 
-                  frameon=False, ax=ax3, show=False)
-    
+    plot_configs = [
+        {'key': 'MP_assignment', 'title': 'Meta-Program Assignment', 'palette': 'tab20', 'size': 30, 'alpha': 0.8, 'legend_loc': 'on data'},
+        {'key': 'patient', 'title': 'Patient ID', 'palette': 'plasma', 'size': 20, 'alpha': 0.6, 'legend_loc': None},
+        {'key': 'Treatment_Strategy', 'title': 'Treatment Strategy', 'palette': 'Set2', 'size': 30, 'alpha': 0.8, 'legend_loc': 'on data'}
+    ]
+
+    for i, config in enumerate(plot_configs):
+        if config['key'] in adata_umap.obs.columns:
+            sc.pl.umap(adata_umap, color=config['key'],
+                       palette=config['palette'], size=config['size'], alpha=config['alpha'],
+                       title=config['title'],
+                       frameon=False, ax=axes[i], show=False, legend_loc=config['legend_loc'])
+        else:
+            axes[i].axis('off')
+            axes[i].text(0.5, 0.5, f"'{config['key']}' not found", ha='center', va='center', transform=axes[i].transAxes)
+
     plt.tight_layout()
-    plt.savefig(f"{save_path}/mp_umap.pdf", dpi=300, bbox_inches='tight')
+    plt.savefig(f"{save_path}/mp_umap_overview.pdf", dpi=300, bbox_inches='tight')
     plt.show()
-    
-    # 4-6. UMAP colored by top MP scores
-    fig = plt.figure(figsize=(20, 10))
+    plt.close(fig) # CORRECTION: Close the figure to free memory and prevent state leakage.
+
+    # --- Plot 2: UMAP colored by MP scores ---
     mp_score_cols = [col for col in adata_umap.obs.columns if 'MP' in col and 'score' in col and not 'normalized' in col]
 
-    all_scores = [] # Calculate global min/max for consistent color scaling
-    for mp_col in mp_score_cols:
-        all_scores.extend(adata_umap.obs[mp_col].values)
-    vmin = min(all_scores)
-    vmax = max(all_scores)
+    if mp_score_cols:
+        all_scores = adata_umap.obs[mp_score_cols].values.flatten()
+        vmin, vmax = np.nanmin(all_scores), np.nanmax(all_scores)
 
-    for i, mp_col in enumerate(mp_score_cols):
-        # Calculate subplot position (2 rows, 3 columns)
-        ax = plt.subplot(2, 3, i + 1)
-        
-        sc.pl.umap(adata_umap, color=mp_col, 
-                size=5, alpha=0.8, cmap='rainbow',  # Purple to yellow colormap
-                title=f'{mp_col.replace("_", " ").title()}', 
-                frameon=False, ax=ax, show=False,
-                vmin=vmin, vmax=vmax)  # Consistent color scaling
-        
-    plt.tight_layout()
-    plt.savefig(f"{save_path}/mp_scores_umap.pdf", dpi=300, bbox_inches='tight')
-    plt.show()
-    
-    # Create individual high-quality UMAP for MP assignment
+        # CORRECTION: Robustly calculate grid size to fit all plots.
+        n_plots = len(mp_score_cols)
+        ncols = 3 
+        nrows = int(np.ceil(n_plots / ncols))
+
+        fig, axes = plt.subplots(nrows, ncols, figsize=(5 * ncols, 4 * nrows), squeeze=False)
+        axes = axes.flatten()
+
+        for i, mp_col in enumerate(mp_score_cols):
+            sc.pl.umap(adata_umap, color=mp_col,
+                       size=5, alpha=0.8, cmap='viridis', # Using perceptually uniform colormap
+                       title=f'{mp_col.replace("_", " ").title()}',
+                       frameon=False, ax=axes[i], show=False,
+                       vmin=vmin, vmax=vmax)
+
+        # CORRECTION: Hide any unused subplots for a cleaner look.
+        for j in range(i + 1, len(axes)):
+            axes[j].axis('off')
+
+        plt.tight_layout()
+        plt.savefig(f"{save_path}/mp_scores_umap.pdf", dpi=300, bbox_inches='tight')
+        plt.show()
+        plt.close(fig)
+
+    # --- Plot 3: Individual high-quality UMAP for MP assignment ---
     if 'MP_assignment' in adata_umap.obs.columns:
         fig, ax = plt.subplots(figsize=(12, 10))
-        
-        # Custom color palette for MPs
-        mp_categories = adata_umap.obs['MP_assignment'].cat.categories if hasattr(adata_umap.obs['MP_assignment'], 'cat') else adata_umap.obs['MP_assignment'].unique()
-        colors = plt.cm.tab20(np.linspace(0, 1, len(mp_categories)))
-        mp_colors = dict(zip(mp_categories, colors))
-        
-        sc.pl.umap(adata_umap, color='MP_assignment', 
-                  palette=mp_colors, size=40, alpha=0.8,
-                  title='Meta-Program Assignment Distribution', 
-                  frameon=False, ax=ax, show=False,
-                  legend_loc='right margin')
-        
+        sc.pl.umap(adata_umap, color='MP_assignment',
+                   palette='tab20', size=40, alpha=0.8,
+                   title='Meta-Program Assignment Distribution',
+                   frameon=False, ax=ax, show=False,
+                   legend_loc='right margin')
         plt.savefig(f"{save_path}/mp_assignment_umap_high_quality.pdf", dpi=300, bbox_inches='tight')
         plt.show()
-    
-    # Create density plots for each MP
+        plt.close(fig)
+
+    # --- Plot 4: Density plots for each MP ---
     if 'MP_assignment' in adata_umap.obs.columns:
-        mp_categories = adata_umap.obs['MP_assignment'].unique()
-        n_mps = len(mp_categories)
-        
-        fig, axes = plt.subplots(2, (n_mps) // 2, figsize=(5 * ((n_mps + 1) // 2), 10))
-        axes = axes.flatten() if n_mps > 2 else [axes] if n_mps == 1 else axes
-        
-        for i, mp in enumerate(mp_categories):
-            if mp != 'Unresolved' and mp != '':  # Skip unresolved cells
-                # Create binary annotation for this MP
-                adata_umap.obs[f'is_{mp}'] = (adata_umap.obs['MP_assignment'] == mp).astype(int)
-                
-                sc.pl.umap(adata_umap, color=f'is_{mp}', 
-                          size=30, alpha=0.8, cmap='Reds',
-                          title=f'{mp} Distribution', 
-                          frameon=False, ax=axes[i], show=False)
-        
-        plt.tight_layout()
-        plt.savefig(f"{save_path}/mp_individual_density_umap.pdf", dpi=300, bbox_inches='tight')
-        plt.show()
-    
+        mp_categories_to_plot = [mp for mp in adata_umap.obs['MP_assignment'].unique() if mp not in ['Unresolved', '', None]]
+        n_plots = len(mp_categories_to_plot)
+
+        if n_plots > 0:
+            # CORRECTION: The original subplot calculation was incorrect for odd numbers. This is the fix.
+            ncols = 3
+            nrows = int(np.ceil(n_plots / ncols))
+            
+            fig, axes = plt.subplots(nrows, ncols, figsize=(5 * ncols, 5 * nrows), squeeze=False)
+            axes = axes.flatten()
+
+            for i, mp in enumerate(mp_categories_to_plot):
+                adata_umap.obs[f'is_{mp}'] = (adata_umap.obs['MP_assignment'] == mp).astype('category')
+                sc.pl.umap(adata_umap, color=f'is_{mp}',
+                           size=30, alpha=0.8, cmap='Reds',
+                           title=f'{mp} Distribution',
+                           frameon=False, ax=axes[i], show=False, legend_loc=None)
+
+            for j in range(i + 1, len(axes)):
+                axes[j].axis('off')
+            
+            plt.tight_layout()
+            plt.savefig(f"{save_path}/mp_individual_density_umap.pdf", dpi=300, bbox_inches='tight')
+            plt.show()
+            plt.close(fig)
+
     print("  ✅ UMAP visualizations saved!")
-    
-    # Save UMAP coordinates for potential use in R
+
+    # --- Save UMAP coordinates ---
+    print("  💾 Saving UMAP coordinates...")
     umap_coords = pd.DataFrame({
         'cell_barcode': adata_umap.obs.index,
         'UMAP_1': adata_umap.obsm['X_umap'][:, 0],
         'UMAP_2': adata_umap.obsm['X_umap'][:, 1],
-        'MP_assignment': adata_umap.obs['MP_assignment'] if 'MP_assignment' in adata_umap.obs.columns else 'Unknown',
-        'patient': adata_umap.obs['patient'] if 'patient' in adata_umap.obs.columns else 'Unknown'
+        'MP_assignment': adata_umap.obs.get('MP_assignment', 'Unknown'),
+        'patient': adata_umap.obs.get('patient', 'Unknown')
     })
-    
-    # Add MP scores to coordinates
     for col in mp_score_cols:
         if col in adata_umap.obs.columns:
             umap_coords[col] = adata_umap.obs[col].values
     
-    umap_coords.to_csv(f"{save_path}/umap_coordinates_with_mp_data.csv", index=False)
-    print(f"  💾 UMAP coordinates saved to: {save_path}/umap_coordinates_with_mp_data.csv")
-    
+    umap_coords_path = f"{save_path}/umap_coordinates_with_mp_data.csv"
+    umap_coords.to_csv(umap_coords_path, index=False)
+    print(f"  💾 UMAP coordinates saved to: {umap_coords_path}")
+
     return adata_umap
 
-def run_mp_comparison_analysis(adata, comparison_type, group_col, group1, group2, 
-                              save_path, description, paired_analysis=False, patient_col=None):
-    """Generic function to run MP comparison analysis"""
+def run_mp_comparison_analysis(adata, comparison_type, group_col, group1, group2,
+                             save_path, description, paired_analysis=False, patient_col=None):
+    """Generic function to run MP comparison analysis (unchanged)."""
     
     print(f"\n{description}")
     
-    # Calculate MP fractions per patient
     patient_mp_data = []
     
     for patient_id in adata.obs['patient'].unique():
         patient_data = adata[adata.obs['patient'] == patient_id]
         
         if paired_analysis:
-            # For paired analysis, calculate fractions for each treatment stage
             for stage in patient_data.obs[group_col].unique():
                 stage_data = patient_data[patient_data.obs[group_col] == stage]
-                
-                if len(stage_data) < 5:  # Minimum cells per patient-stage
-                    continue
+                if len(stage_data) < 5: continue
                 
                 mp_counts = stage_data.obs['MP_assignment'].value_counts()
                 total_cells = len(stage_data)
@@ -2185,19 +2476,10 @@ def run_mp_comparison_analysis(adata, comparison_type, group_col, group1, group2
                 for mp in adata.obs['MP_assignment'].unique():
                     if mp != 'Unresolved':
                         fraction = mp_counts.get(mp, 0) / total_cells
-                        
-                        patient_mp_data.append({
-                            'patient': patient_id,
-                            'mp': mp,
-                            'fraction': fraction,
-                            'group': stage,
-                            'total_cells': total_cells
-                        })
+                        patient_mp_data.append({'patient': patient_id, 'mp': mp, 'fraction': fraction, 'group': stage, 'total_cells': total_cells})
         else:
-            # For unpaired analysis
-            if len(patient_data) < 10:
-                continue
-                
+            if len(patient_data) < 10: continue
+            
             group_value = patient_data.obs[group_col].iloc[0]
             mp_counts = patient_data.obs['MP_assignment'].value_counts()
             total_cells = len(patient_data)
@@ -2205,146 +2487,53 @@ def run_mp_comparison_analysis(adata, comparison_type, group_col, group1, group2
             for mp in adata.obs['MP_assignment'].unique():
                 if mp != 'Unresolved':
                     fraction = mp_counts.get(mp, 0) / total_cells
-                    
-                    patient_mp_data.append({
-                        'patient': patient_id,
-                        'mp': mp,
-                        'fraction': fraction,
-                        'group': group_value,
-                        'total_cells': total_cells
-                    })
-    
+                    patient_mp_data.append({'patient': patient_id, 'mp': mp, 'fraction': fraction, 'group': group_value, 'total_cells': total_cells})
+
     if not patient_mp_data:
         print("No valid patient data for analysis")
         return None
     
     patient_df = pd.DataFrame(patient_mp_data)
-    
-    # Statistical analysis
     mp_results = []
     
     for mp in patient_df['mp'].unique():
         mp_data = patient_df[patient_df['mp'] == mp]
-        
         group1_fractions = mp_data[mp_data['group'] == group1]['fraction']
         group2_fractions = mp_data[mp_data['group'] == group2]['fraction']
         
         if len(group1_fractions) >= 3 and len(group2_fractions) >= 3:
-            
             if paired_analysis:
-                # Paired t-test for paired samples
-                # Match patients between groups
                 group1_patients = set(mp_data[mp_data['group'] == group1]['patient'])
                 group2_patients = set(mp_data[mp_data['group'] == group2]['patient'])
                 common_patients = group1_patients & group2_patients
                 
                 if len(common_patients) >= 3:
-                    paired_group1 = []
-                    paired_group2 = []
-                    
-                    for patient in common_patients:
-                        g1_fraction = mp_data[(mp_data['patient'] == patient) & 
-                                            (mp_data['group'] == group1)]['fraction'].iloc[0]
-                        g2_fraction = mp_data[(mp_data['patient'] == patient) & 
-                                            (mp_data['group'] == group2)]['fraction'].iloc[0]
-                        paired_group1.append(g1_fraction)
-                        paired_group2.append(g2_fraction)
+                    paired_group1 = [mp_data[(mp_data['patient'] == p) & (mp_data['group'] == group1)]['fraction'].iloc[0] for p in common_patients]
+                    paired_group2 = [mp_data[(mp_data['patient'] == p) & (mp_data['group'] == group2)]['fraction'].iloc[0] for p in common_patients]
                     
                     t_stat, p_value = stats.ttest_rel(paired_group1, paired_group2)
-                    
-                    # Calculate effect size for paired data
                     differences = np.array(paired_group1) - np.array(paired_group2)
                     cohens_d = np.mean(differences) / np.std(differences, ddof=1) if np.std(differences, ddof=1) > 0 else 0
                     
-                    mp_results.append({
-                        'mp': mp,
-                        'group1_mean': np.mean(paired_group1),
-                        'group2_mean': np.mean(paired_group2),
-                        'group1_std': np.std(paired_group1),
-                        'group2_std': np.std(paired_group2),
-                        'n_paired_patients': len(common_patients),
-                        't_statistic': t_stat,
-                        'p_value': p_value,
-                        'cohens_d': cohens_d,
-                        'test_type': 'paired_t_test'
-                    })
-                else:
-                    continue
+                    mp_results.append({'mp': mp, 'group1_mean': np.mean(paired_group1), 'group2_mean': np.mean(paired_group2), 'n_paired_patients': len(common_patients), 't_statistic': t_stat, 'p_value': p_value, 'cohens_d': cohens_d, 'test_type': 'paired_t_test'})
             else:
-                # Unpaired t-test
                 t_stat, p_value = stats.ttest_ind(group1_fractions, group2_fractions)
-                
-                # Calculate effect size (Cohen's d)
-                pooled_std = np.sqrt(((len(group1_fractions) - 1) * np.var(group1_fractions, ddof=1) + 
-                                    (len(group2_fractions) - 1) * np.var(group2_fractions, ddof=1)) / 
-                                   (len(group1_fractions) + len(group2_fractions) - 2))
-                
+                pooled_std = np.sqrt(((len(group1_fractions) - 1) * np.var(group1_fractions, ddof=1) + (len(group2_fractions) - 1) * np.var(group2_fractions, ddof=1)) / (len(group1_fractions) + len(group2_fractions) - 2))
                 cohens_d = (np.mean(group1_fractions) - np.mean(group2_fractions)) / pooled_std if pooled_std > 0 else 0
                 
-                mp_results.append({
-                    'mp': mp,
-                    'group1_mean': np.mean(group1_fractions),
-                    'group2_mean': np.mean(group2_fractions),
-                    'group1_std': np.std(group1_fractions),
-                    'group2_std': np.std(group2_fractions),
-                    'n_group1_patients': len(group1_fractions),
-                    'n_group2_patients': len(group2_fractions),
-                    't_statistic': t_stat,
-                    'p_value': p_value,
-                    'cohens_d': cohens_d,
-                    'test_type': 'unpaired_t_test'
-                })
-            
-            # Print results
-            print(f"\n{mp}:")
-            print(f"  {group1} mean: {np.mean(group1_fractions):.3f} ± {np.std(group1_fractions):.3f}")
-            print(f"  {group2} mean: {np.mean(group2_fractions):.3f} ± {np.std(group2_fractions):.3f}")
-            print(f"  t-test: t={t_stat:.3f}, p={p_value:.3e}")
-            print(f"  Cohen's d: {cohens_d:.3f}")
-            
-            if p_value < 0.05:
-                direction = "higher" if cohens_d > 0 else "lower"
-                print(f"  🌟 SIGNIFICANT: {group1} {direction} than {group2}")
-                if abs(cohens_d) > 0.5:
-                    print(f"  📈 LARGE EFFECT SIZE")
-    
+                mp_results.append({'mp': mp, 'group1_mean': np.mean(group1_fractions), 'group2_mean': np.mean(group2_fractions), 'n_group1_patients': len(group1_fractions), 'n_group2_patients': len(group2_fractions), 't_statistic': t_stat, 'p_value': p_value, 'cohens_d': cohens_d, 'test_type': 'unpaired_t_test'})
+
     if mp_results:
         mp_results_df = pd.DataFrame(mp_results)
-        
-        # Multiple testing correction
         _, p_corrected, _, _ = multipletests(mp_results_df['p_value'], method='fdr_bh')
         mp_results_df['p_corrected'] = p_corrected
-        
-        # Add analysis metadata
         mp_results_df['comparison_type'] = comparison_type
         mp_results_df['group1'] = group1
         mp_results_df['group2'] = group2
         
-        # Identify significant MPs
-        significant_mps = mp_results_df[
-            (mp_results_df['p_corrected'] < 0.05) & 
-            (abs(mp_results_df['cohens_d']) > 0.5)
-        ]
-        
-        if len(significant_mps) > 0:
-            print(f"\n🎉 SIGNIFICANT META-PROGRAMS ({comparison_type}):")
-            for _, row in significant_mps.iterrows():
-                direction = "higher" if row['cohens_d'] > 0 else "lower"
-                print(f"  {row['mp']}: {direction} in {group1}")
-                print(f"    {group1}: {row['group1_mean']:.3f} vs {group2}: {row['group2_mean']:.3f}")
-                print(f"    Corrected p-value: {row['p_corrected']:.3e}")
-                print(f"    Effect size: {row['cohens_d']:.3f}")
-        
-        # Save results
         filename = f"mp_{comparison_type}_resistance_analysis.csv"
         mp_results_df.to_csv(f"{save_path}/{filename}", index=False)
-        
-        return {
-            'results_df': mp_results_df,
-            'significant_mps': significant_mps,
-            'comparison_type': comparison_type,
-            'description': description
-        }
+        return {'results_df': mp_results_df}
     
     return None
 
@@ -3849,9 +4038,9 @@ def perform_pathway_enrichment_analysis(meta_programs, malignant_cells,
 
 def create_mp_pathway_comprehensive_figure(malignant_cells, robust_results, 
                                          imc_aligned_pathways, save_path, 
-                                         figsize=(20, 14)):
+                                         figsize=(24, 16)):
     """
-    Create comprehensive MP-pathway relationship figure
+    Create comprehensive MP-pathway relationship figure with improved layout
     """
     
     print("🎨 Creating comprehensive MP-pathway relationship figure...")
@@ -3865,15 +4054,29 @@ def create_mp_pathway_comprehensive_figure(malignant_cells, robust_results,
         print("❌ No enrichment results found!")
         return None
     
-    # Prepare the figure
+    # Prepare the figure with better layout
     fig = plt.figure(figsize=figsize)
-    gs = fig.add_gridspec(3, 4, height_ratios=[1.5, 1, 0.8], width_ratios=[3, 1, 1, 1.5],
-                         hspace=0.3, wspace=0.3)
+    
+    # Create a 4x4 grid layout for better organization
+    gs = fig.add_gridspec(4, 4, 
+                         height_ratios=[0.1, 2, 1.2, 0.5], 
+                         width_ratios=[2.5, 1, 1.2, 0.3],
+                         hspace=0.25, wspace=0.15,
+                         left=0.06, right=0.94, top=0.92, bottom=0.08)
     
     # =========================================================================
-    # Panel 1: Main Enrichment Heatmap (Top Left)
+    # Title Section
     # =========================================================================
-    ax1 = fig.add_subplot(gs[0, :3])
+    title_ax = fig.add_subplot(gs[0, :])
+    title_ax.axis('off')
+    title_ax.text(0.5, 0.5, 'Meta-Program Pathway Enrichment Analysis', 
+                  ha='center', va='center', fontsize=20, fontweight='bold',
+                  transform=title_ax.transAxes)
+    
+    # =========================================================================
+    # Panel 1: Main Enrichment Heatmap (Top Left - Large)
+    # =========================================================================
+    ax1 = fig.add_subplot(gs[1, :2])
     
     # Create enrichment matrix
     all_pathways = set()
@@ -3914,7 +4117,7 @@ def create_mp_pathway_comprehensive_figure(malignant_cells, robust_results,
             
             if marker and enrichment_matrix[i, j] > 1:
                 ax1.text(j, i, marker, ha='center', va='center', 
-                        fontsize=12, fontweight='bold', color='white')
+                        fontsize=10, fontweight='bold', color='white')
                 
     # Format axes
     ax1.set_xticks(range(len(all_mps)))
@@ -3926,48 +4129,19 @@ def create_mp_pathway_comprehensive_figure(malignant_cells, robust_results,
                           for p in all_pathways]
     ax1.set_yticklabels(clean_pathway_names, fontsize=10)
     
-    ax1.set_title('Meta-Program Pathway Enrichment Analysis', 
-                  fontsize=16, fontweight='bold', pad=20)
+    ax1.set_title('Pathway Enrichment Heatmap', 
+                  fontsize=14, fontweight='bold', pad=15)
     ax1.set_xlabel('Meta-Programs', fontsize=12, fontweight='bold')
     ax1.set_ylabel('HALLMARK Pathways', fontsize=12, fontweight='bold')
     
-    # Add colorbar
-    cbar1 = plt.colorbar(im1, ax=ax1, shrink=0.8, pad=0.02)
-    cbar1.set_label('log₂(Enrichment Score + 1)', rotation=270, labelpad=20, fontsize=11)
+    # Add grid for better readability
+    ax1.grid(True, alpha=0.3, linestyle='--', linewidth=0.5)
+    ax1.set_axisbelow(True)
     
     # =========================================================================
-    # Panel 2: Top Pathways per MP (Top Right)
+    # Panel 2: Network View (Top Right)
     # =========================================================================
-    ax2 = fig.add_subplot(gs[0, 3])
-    ax2.axis('off')
-    
-    # Create summary text
-    summary_text = "Top Enriched Pathways\n" + "="*25 + "\n\n"
-    
-    for mp in all_mps:
-        if mp in enrichment_results:
-            mp_enrichments = enrichment_results[mp]
-            
-            # Sort by enrichment score
-            top_pathways = sorted(mp_enrichments.items(), 
-                                key=lambda x: x[1]['enrichment_score'], reverse=True)[:3]
-            
-            summary_text += f"{mp}:\n"
-            for pathway, data in top_pathways:
-                clean_name = pathway.replace('HALLMARK_', '').replace('_', ' ').title()
-                summary_text += f"  • {clean_name}\n"
-                summary_text += f"    ES: {data['enrichment_score']:.2f}\n"
-                summary_text += f"    p: {data['p_value']:.2e}\n"
-            summary_text += "\n"
-    
-    ax2.text(0.05, 0.95, summary_text, transform=ax2.transAxes, fontsize=9,
-             verticalalignment='top', fontfamily='monospace')
-    
-    
-    # =========================================================================
-    # Panel 4: Network View (Middle Right)
-    # =========================================================================
-    ax4 = fig.add_subplot(gs[0, 2:])
+    ax2 = fig.add_subplot(gs[1, 2])
     
     # Create network graph
     G = nx.Graph()
@@ -3986,12 +4160,23 @@ def create_mp_pathway_comprehensive_figure(malignant_cells, robust_results,
         pos[mp] = (x, y)
         G.add_node(mp, node_type='MP', color=mp_colors[i])
     
-    # Add pathway nodes and edges
-    pathway_angles = np.linspace(0, 2*np.pi, len(all_pathways), endpoint=False)
+    # Add pathway nodes and edges (only top enriched pathways for clarity)
+    top_pathways = []
+    for mp in all_mps:
+        if mp in enrichment_results:
+            mp_enrichments = enrichment_results[mp]
+            top_mp_pathways = sorted(mp_enrichments.items(), 
+                                   key=lambda x: x[1]['enrichment_score'], reverse=True)[:3]
+            for pathway, data in top_mp_pathways:
+                if data['p_value'] < 0.05 and data['enrichment_score'] > 1.5:
+                    top_pathways.append(pathway)
+    
+    top_pathways = list(set(top_pathways))  # Remove duplicates
+    pathway_angles = np.linspace(0, 2*np.pi, len(top_pathways), endpoint=False)
     pathway_radius = 0.8
     
-    for i, pathway in enumerate(all_pathways):
-        clean_name = pathway.replace('HALLMARK_', '').replace('_', '\n')
+    for i, pathway in enumerate(top_pathways):
+        clean_name = pathway.replace('HALLMARK_', '').replace('_', '\n')[:15] + '...' if len(pathway) > 15 else pathway.replace('HALLMARK_', '').replace('_', '\n')
         x = pathway_radius * np.cos(pathway_angles[i])
         y = pathway_radius * np.sin(pathway_angles[i])
         pos[clean_name] = (x, y)
@@ -4013,70 +4198,148 @@ def create_mp_pathway_comprehensive_figure(malignant_cells, robust_results,
     # Draw MP nodes
     nx.draw_networkx_nodes(G, pos, nodelist=mp_nodes, 
                           node_color=[G.nodes[node]['color'] for node in mp_nodes],
-                          node_size=800, ax=ax4, alpha=0.8)
+                          node_size=1000, ax=ax2, alpha=0.8)
     
     # Draw pathway nodes
     nx.draw_networkx_nodes(G, pos, nodelist=pathway_nodes,
-                          node_color='lightblue', node_size=300, ax=ax4, alpha=0.6)
+                          node_color='lightblue', node_size=400, ax=ax2, alpha=0.6)
     
     # Draw edges with thickness proportional to enrichment
     edges = G.edges()
     if edges:
         weights = [G[u][v]['weight'] for u, v in edges]
         nx.draw_networkx_edges(G, pos, edgelist=edges, 
-                              width=[w/2 for w in weights], alpha=0.6, ax=ax4)
+                              width=[max(1, w/2) for w in weights], alpha=0.6, ax=ax2)
     
     # Add labels
     nx.draw_networkx_labels(G, pos, labels={node: node for node in mp_nodes}, 
-                           font_size=10, font_weight='bold', ax=ax4)
+                           font_size=9, font_weight='bold', ax=ax2)
     nx.draw_networkx_labels(G, pos, labels={node: node for node in pathway_nodes}, 
-                           font_size=6, ax=ax4)
+                           font_size=6, ax=ax2)
     
-    ax4.set_title('MP-Pathway Network', fontsize=14, fontweight='bold')
+    ax2.set_title('MP-Pathway Network\n(Top Enrichments)', fontsize=12, fontweight='bold')
+    ax2.axis('off')
+    
+    # =========================================================================
+    # Panel 3: Colorbar (Top Far Right)
+    # =========================================================================
+    cbar_ax = fig.add_subplot(gs[1, 3])
+    cbar1 = plt.colorbar(im1, cax=cbar_ax)
+    cbar1.set_label('log₂(Enrichment Score + 1)', rotation=270, labelpad=20, fontsize=11)
+    
+    # =========================================================================
+    # Panel 4: Top Pathways Summary (Middle Left)
+    # =========================================================================
+    ax3 = fig.add_subplot(gs[2, :2])
+    ax3.axis('off')
+    
+    # Create a formatted table-like summary
+    summary_data = []
+    headers = ['Meta-Program', 'Top Pathway', 'Enrichment Score', 'P-value']
+    
+    for mp in all_mps:
+        if mp in enrichment_results:
+            mp_enrichments = enrichment_results[mp]
+            
+            # Get top pathway
+            if mp_enrichments:
+                top_pathway = max(mp_enrichments.items(), 
+                                key=lambda x: x[1]['enrichment_score'])
+                pathway_name, data = top_pathway
+                clean_name = pathway_name.replace('HALLMARK_', '').replace('_', ' ').title()
+                
+                summary_data.append([
+                    mp,
+                    clean_name[:30] + '...' if len(clean_name) > 30 else clean_name,
+                    f"{data['enrichment_score']:.2f}",
+                    f"{data['p_value']:.2e}"
+                ])
+    
+    # Create table
+    table = ax3.table(cellText=summary_data, 
+                     colLabels=headers,
+                     cellLoc='left',
+                     loc='center',
+                     colWidths=[0.15, 0.5, 0.15, 0.2])
+    
+    table.auto_set_font_size(False)
+    table.set_fontsize(10)
+    table.scale(1, 2)
+    
+    # Style the table
+    for i in range(len(headers)):
+        table[(0, i)].set_facecolor('#4CAF50')
+        table[(0, i)].set_text_props(weight='bold', color='white')
+    
+    for i in range(1, len(summary_data) + 1):
+        for j in range(len(headers)):
+            if i % 2 == 0:
+                table[(i, j)].set_facecolor('#f0f0f0')
+    
+    ax3.set_title('Top Enriched Pathway per Meta-Program', 
+                  fontsize=14, fontweight='bold', pad=20)
+    
+    # =========================================================================
+    # Panel 5: IMC Alignment (Middle Right)
+    # =========================================================================
+    ax4 = fig.add_subplot(gs[2, 2:])
     ax4.axis('off')
     
-    # =========================================================================
-    # Panel 5: Legend and Statistics (Bottom)
-    # =========================================================================
-    ax5 = fig.add_subplot(gs[2, :])
-    ax5.axis('off')
-    
-    # Create legend and statistics
-    legend_text = "Legend: *** p<0.001, ** p<0.01, * p<0.05  |  "
-    legend_text += f"Enrichment Score: Observed/Expected overlap  |  "
-    legend_text += f"Total pathways analyzed: {len(imc_aligned_pathways)}  |  "
-    legend_text += f"Significantly enriched: {len(all_pathways)}"
-    
-    ax5.text(0.5, 0.7, legend_text, transform=ax5.transAxes, fontsize=11,
-             ha='center', va='center', 
-             bbox=dict(boxstyle="round,pad=0.5", facecolor='lightgray', alpha=0.8))
-    
     # Add pathway-IMC marker mapping
-    imc_mapping_text = "Pathway → IMC Marker Alignment:\n"
+    imc_mapping_text = "Pathway → IMC Marker Alignment\n" + "="*35 + "\n\n"
     pathway_imc_mapping = {
         'HALLMARK_GLYCOLYSIS': 'GLUT1, HK2',
-        'HALLMARK_HYPOXIA': 'CA-IX, VEGF',
+        'HALLMARK_HYPOXIA': 'CA-IX, VEGF', 
         'HALLMARK_FATTY_ACID_METABOLISM': 'FASN',
         'HALLMARK_EPITHELIAL_MESENCHYMAL_TRANSITION': 'Vimentin, EpCAM',
-        'HALLMARK_E2F_TARGETS': 'Ki67'
+        'HALLMARK_E2F_TARGETS': 'Ki67',
+        'HALLMARK_OXIDATIVE_PHOSPHORYLATION': 'COX4',
+        'HALLMARK_MTORC1_SIGNALING': 'mTOR, S6',
+        'HALLMARK_INFLAMMATORY_RESPONSE': 'CD68, CD163'
     }
     
     for pathway, markers in pathway_imc_mapping.items():
         clean_pathway = pathway.replace('HALLMARK_', '').replace('_', ' ').title()
-        imc_mapping_text += f"{clean_pathway} → {markers}  "
+        imc_mapping_text += f"• {clean_pathway}:\n  {markers}\n\n"
     
-    ax5.text(0.5, 0.3, imc_mapping_text, transform=ax5.transAxes, fontsize=10,
-             ha='center', va='center', style='italic')
+    ax4.text(0.05, 0.95, imc_mapping_text, transform=ax4.transAxes, fontsize=10,
+             verticalalignment='top', fontfamily='monospace',
+             bbox=dict(boxstyle="round,pad=0.5", facecolor='lightyellow', alpha=0.8))
+    
+    # =========================================================================
+    # Panel 6: Legend and Statistics (Bottom)
+    # =========================================================================
+    ax5 = fig.add_subplot(gs[3, :])
+    ax5.axis('off')
+    
+    # Create comprehensive legend and statistics
+    stats_text = f"Analysis Summary: {len(all_mps)} Meta-Programs • {len(all_pathways)} Significantly Enriched Pathways • {len(imc_aligned_pathways)} Total Pathways Analyzed"
+    
+    legend_text = "Statistical Significance: *** p<0.001, ** p<0.01, * p<0.05 | Enrichment Score = Observed/Expected Gene Overlap"
+    
+    method_text = "Methods: Hypergeometric test for pathway enrichment | Network shows top 3 pathways per MP (p<0.05, ES>1.5)"
+    
+    # Add text elements with different styling
+    ax5.text(0.5, 0.75, stats_text, transform=ax5.transAxes, fontsize=12,
+             ha='center', va='center', fontweight='bold',
+             bbox=dict(boxstyle="round,pad=0.3", facecolor='lightblue', alpha=0.8))
+    
+    ax5.text(0.5, 0.45, legend_text, transform=ax5.transAxes, fontsize=10,
+             ha='center', va='center',
+             bbox=dict(boxstyle="round,pad=0.3", facecolor='lightgray', alpha=0.8))
+    
+    ax5.text(0.5, 0.15, method_text, transform=ax5.transAxes, fontsize=9,
+             ha='center', va='center', style='italic',
+             bbox=dict(boxstyle="round,pad=0.3", facecolor='lightyellow', alpha=0.8))
     
     # =========================================================================
     # Save and Display
     # =========================================================================
-    plt.suptitle('Meta-Program Pathway Enrichment Analysis', 
-                 fontsize=18, fontweight='bold', y=0.98)
     
     # Save figure
     output_path = f"{save_path}/mp_pathway_enrichment_analysis.pdf"
-    plt.savefig(output_path, dpi=300, bbox_inches='tight', format='pdf')
+    plt.savefig(output_path, dpi=300, bbox_inches='tight', format='pdf', 
+                facecolor='white', edgecolor='none')
     
     print(f"✅ MP-pathway figure saved to: {output_path}")
     plt.show()
@@ -4090,7 +4353,7 @@ def create_mp_pathway_analysis(malignant_cells, robust_results, save_path):
     """
     
     # Define IMC-aligned HALLMARK pathways (use your function from before)
-    imc_aligned_pathways = get_imc_aligned_hallmark_pathways()
+    imc_aligned_pathways = get_imc_aligned_hallmark_pathways() # get_all_hallmark_pathways()
     
     # Create comprehensive figure
     fig, enrichment_results = create_mp_pathway_comprehensive_figure(

@@ -13,6 +13,7 @@ library(ggalluvial)
 library(RColorBrewer)
 library(ggpubr)
 library(ggraph)
+library(ggrepel)
 library(viridis)
 library(patchwork)
 
@@ -179,6 +180,194 @@ p4 <- ggplot(sankey_data, aes(axis1 = TC_bin, axis2 = IM_bin, y = freq)) +
 ggsave(file.path(figureDir, paste0("all_malignant_sankey.pdf")), p4, width = 12, height = 8)
 
 # ================================================================================
+# MALIGNANT MARKER ANALYSIS
+# ================================================================================
+
+# Compare the expression among all EP cells during IM
+malignant_roi_expression <- data.frame()
+malignant_cell_expression <- assay(spe)[,rownames(malignant_cells)]
+
+malignant_cells$RFS_group <- ifelse(malignant_cells$RFS_status == 0, 
+                                "No Early Relapse", "Early Relapse")
+
+tumor_markers <- c("EpCAM", "Vimentin", "Ki67", "VEGF", "CA_IX", "GLUT1", "HK2", "FASN")
+
+for(roi in unique(malignant_cells$sample_id)) {
+  roi_malignant_cells <- malignant_cells[malignant_cells$sample_id == roi, ]
+  if(nrow(roi_malignant_cells) == 0) next
+  
+  malignant_cell_indices <- rownames(roi_malignant_cells)
+  roi_expression <- malignant_cell_expression[tumor_markers, malignant_cell_indices, drop = FALSE]
+  
+  # Calculate mean expression for this ROI
+  roi_means <- rowMeans(roi_expression)
+  
+  # Get clinical metadata
+  roi_meta <- roi_malignant_cells[1, c("sample_id", "patient_id", "Treatment", "Tissue", "RFS_status", "RFS_group")]
+
+  # Combine with expression data
+  roi_data <- data.frame(t(roi_means), roi_meta)
+  malignant_roi_expression <- rbind(malignant_roi_expression, roi_data)
+}
+
+rownames(malignant_roi_expression) <- malignant_roi_expression$sample_id
+
+## volcano plot
+# Define marker columns
+marker_cols <- c("EpCAM", "Vimentin", "Ki67", "VEGF", "CA_IX", "GLUT1", "HK2", "FASN")
+
+# Create combinations for analysis
+tissue_types <- c("TC+IM", "TC", "IM")  # Adjust based on your actual tissue types
+treatments <- c("All", "Chemo", "Combo")
+
+# Initialize results dataframe
+results_list <- list()
+
+# Loop through each combination
+for(tissue in tissue_types) {
+  for(treatment in treatments) {
+    
+    # Filter data based on tissue and treatment
+    if(tissue == "TC+IM") {
+      subset_data <- malignant_roi_expression
+    }
+    else{
+      subset_data <- malignant_roi_expression[malignant_roi_expression$Tissue == tissue, ]
+    }
+    # Filter data based on tissue and treatment
+    if(treatment == "All") {
+      subset_data <- subset_data
+    } else {
+      subset_data <- subset_data[subset_data$Treatment == treatment, ]
+    }
+    
+    # Skip if too few samples
+    if(nrow(subset_data) < 6) next
+    
+    # Get unique RFS groups in this subset
+    rfs_groups <- unique(subset_data$RFS_group)
+    if(length(rfs_groups) < 2) next
+    
+    # Calculate statistics for each marker
+    for(marker in marker_cols) {
+      
+      # Split data by RFS group
+      group1_data <- subset_data[subset_data$RFS_group == rfs_groups[1], marker]
+      group2_data <- subset_data[subset_data$RFS_group == rfs_groups[2], marker]
+      
+      # Remove NA values
+      group1_data <- group1_data[!is.na(group1_data)]
+      group2_data <- group2_data[!is.na(group2_data)]
+      
+      # Skip if too few samples in either group
+      if(length(group1_data) < 3 | length(group2_data) < 3) next
+      
+      # Calculate means
+      mean1 <- mean(group1_data)
+      mean2 <- mean(group2_data)
+      
+      # Calculate fold change (log2)
+      # Add small constant to avoid log(0)
+      fold_change <- log2((mean1 + 0.001) / (mean2 + 0.001))
+      
+      # Perform t-test
+      t_test_result <- t.test(group1_data, group2_data)
+      p_value <- t_test_result$p.value
+      
+      # Store results
+      results_list[[length(results_list) + 1]] <- data.frame(
+        tissue_type = tissue,
+        treatment = treatment,
+        marker = marker,
+        group1 = rfs_groups[1],
+        group2 = rfs_groups[2],
+        mean1 = mean1,
+        mean2 = mean2,
+        fold_change = fold_change,
+        p_value = p_value,
+        n1 = length(group1_data),
+        n2 = length(group2_data)
+      )
+    }
+  }
+}
+
+# Combine results
+results_df <- do.call(rbind, results_list)
+
+# Adjust p-values using Benjamini-Hochberg method
+results_df$adj_p_value <- p.adjust(results_df$p_value, method = "BH")
+results_df$significance <- ifelse(results_df$adj_p_value <= 0.001, "***",
+                                  ifelse(results_df$adj_p_value <= 0.01, "**",
+                                         ifelse(results_df$adj_p_value <= 0.05, "*", "ns")))
+results_df$log10_adj_p <- -log10(results_df$adj_p_value)
+
+# Set factor levels for proper ordering
+results_df$tissue_type <- factor(results_df$tissue_type, levels = c("TC+IM", "TC", "IM"))
+results_df$treatment <- factor(results_df$treatment, levels = c("All", "Chemo", "Combo"))
+
+# Print results summary
+print("Summary of significant differences:")
+significant_results <- results_df[results_df$significance != "ns", ]
+print(significant_results[, c("tissue_type", "treatment", "marker", "fold_change", "adj_p_value", "significance")])
+
+# --- Create the Volcano Plot ---
+significant_results <- results_df[results_df$significance != "ns", ]
+p_volcano <- ggplot(results_df, aes(x = fold_change, y = log10_adj_p)) +
+  
+  geom_point(data = subset(results_df, significance == "ns"), 
+             size = 1, color = 'grey', alpha = 0.6) +
+  geom_point(data = significant_results, 
+             aes(color = significance), size = 2) +
+  geom_text_repel(
+    data = significant_results,
+    aes(label = marker),
+    size = 3.5,               # Font size for the labels.
+    box.padding = 0.5,        # Padding around the label text.
+    point.padding = 0.3,      # Padding around the point itself.
+    max.overlaps = 20,        # Increase max overlaps to allow more labels.
+    min.segment.length = 0,   # Always draw segment lines, regardless of distance.
+    segment.color = 'grey50', # Set the color of the line segments.
+    force = 2                 # Increase the force of repulsion between labels.
+  ) +
+  
+  # Facet the plot by tissue type and treatment.
+  facet_grid(tissue_type ~ treatment, scales = "free") +
+  
+  # Add significance threshold lines.
+  geom_vline(xintercept = c(-0.58, 0.58), size = 0.5, color = "grey50", linetype = 'dashed') +
+  geom_hline(yintercept = -log10(0.05), size = 0.5, color = "grey50", linetype = 'dashed') +
+  
+  # Manually set the colors for significance levels and add a legend title.
+  scale_color_manual(
+    name = "Significance", 
+    values = c("*" = "#FF7F00", "**" = "#E31A1C", "***" = "#800080")
+  ) +
+  
+  xlab("Log2 Fold Change") +
+  ylab("-Log10 Adjusted P-value") +
+  
+  theme_bw() +
+  theme(
+    legend.position = 'bottom',
+    panel.grid = element_blank(),
+    axis.text = element_text(size = 10, color = "black"),
+    axis.title = element_text(size = 12, face = "bold"),
+    # This rotation now applies to the p-value axis labels.
+    axis.text.x = element_text(angle = 0, hjust = 0.5, vjust = 0.5), 
+    strip.text = element_text(size = 10, face = 'bold'),
+    strip.background = element_rect(fill = "grey90", color = "black")
+  )
+
+
+# Print volcano plot
+print(p_volcano)
+
+# Save plots
+ggsave(file.path(figureDir,"marker_volcano_plot.pdf"), plot = p_volcano, width = 12, height = 10)
+write.csv(file.path(figureDir,"marker_expression_analysis.csv"), , row.names = FALSE)
+
+# ================================================================================
 # MALIGNANT SUBTYPE ANALYSIS
 # ================================================================================
 
@@ -195,125 +384,6 @@ for(subtype in malignant_subtypes) {
   subtype_data <- compute_subtype_fractions(subtype)
   subtype_results[[subtype]] <- create_subtype_plots(subtype, subtype_data, figureDir)
 }
-
-# =============================================================================
-# unsupervised clustering analysis for malignant cells
-# =============================================================================
-
-# Load required libraries
-library(SpatialExperiment)
-library(dplyr)
-library(ggplot2)
-library(pheatmap)
-library(cluster)
-library(ggpubr)
-library(RColorBrewer)
-library(viridis)
-library(tidyr)
-
-# Create output directory for clustering figures
-if (!dir.exists("figures/clustering")) {
-  dir.create("figures/clustering", recursive = TRUE)
-}
-
-# ================================================================================
-# STEP 1: SELECT RELEVANT MALIGNANT MARKERS
-# ================================================================================
-
-cat("=== SELECTING MALIGNANT-RELEVANT MARKERS ===\n")
-
-# Available markers
-all_markers <- rownames(spe)
-cat("All available markers:\n")
-print(all_markers)
-
-# Select malignant-relevant markers based on biological relevance
-malignant_markers <- c(
-  "EpCAM",      # Epithelial marker - core malignant identity
-  "Vimentin",   # EMT marker - invasion/metastasis
-  "Ki67",       # Proliferation marker
-  "VEGF",       # Angiogenesis/hypoxia response
-  "CA_IX",      # Hypoxia marker
-  "GLUT1",      # Metabolic reprogramming
-  "HK2",        # Metabolic reprogramming  
-  "FASN"       # Lipid metabolism
-)
-
-# Check which markers are available
-available_malignant_markers <- malignant_markers[malignant_markers %in% all_markers]
-missing_markers <- malignant_markers[!malignant_markers %in% all_markers]
-
-cat("\nSelected malignant markers (available):\n")
-print(available_malignant_markers)
-
-if(length(missing_markers) > 0) {
-  cat("\nMissing markers:\n")
-  print(missing_markers)
-}
-
-# ================================================================================
-# STEP 2: EXTRACT MALIGNANT CELLS AND EXPRESSION DATA
-# ================================================================================
-
-cat("\n=== EXTRACTING MALIGNANT CELLS DATA ===\n")
-
-# Get cell metadata
-cell_data <- as.data.frame(colData(spe))
-
-# Filter for malignant cells in TC and IM
-malignant_tc_im <- cell_data[
-  cell_data$Tissue %in% c("TC", "IM") & 
-    grepl("^EC_", cell_data$sub_celltype), 
-]
-
-cat("Total malignant cells in TC/IM:", nrow(malignant_tc_im), "\n")
-cat("TC malignant cells:", sum(malignant_tc_im$Tissue == "TC"), "\n")
-cat("IM malignant cells:", sum(malignant_tc_im$Tissue == "IM"), "\n")
-
-# Extract expression matrix for these cells
-malignant_cell_ids <- rownames(malignant_tc_im)
-
-spe_malignant_tc_im <- spe[,malignant_cell_ids]
-
-# ================================================================================
-# STEP 3: DATA PREPROCESSING AND CLUSTERING
-# ================================================================================
-library(batchelor)
-library(scran)
-library(bluster)
-library(BiocParallel)
-
-maxK_ <- 20
-set.seed(619)
-
-# Perform unsupervised clustering on the subset
-rowData(spe_malignant_tc_im)$malignant_channel <- NA
-rowData(spe_malignant_tc_im)$malignant_channel <- (rownames(spe_malignant_tc_im) %in% available_malignant_markers)
-
-  
-out <- fastMNN(spe_malignant_tc_im, batch = spe_malignant_tc_im$sample_id,
-               auto.merge = TRUE,
-               subset.row = rowData(spe_malignant_tc_im)$malignant_channel,
-               assay.type = "exprs")
-reducedDim(spe_malignant_tc_im, "fastMNN") <- reducedDim(out, "corrected")
-spe_malignant_tc_im <- runUMAP(spe_malignant_tc_im, dimred= "fastMNN", name = "UMAP_mnnCorrected") 
-
-clusters <- clusterCells(spe_malignant_tc_im[rowData(spe_malignant_tc_im)$malignant_channel,], 
-                         use.dimred = "fastMNN", 
-                         BLUSPARAM = SNNGraphParam(k = maxK_, 
-                                                   cluster.fun = "louvain",
-                                                   type = "jaccard"))
-
-spe_malignant_tc_im$nn_clusters_corrected <- clusters
-
-# Store the clustering results
-saveRDS(spe_malignant_tc_im,file.path(figureDir,paste0("Tumor_spe_0722.rds")))
-
-# plot the heatmap of clustering results
-# p <- plot_cluster_Heatmap(spe_ = spe_subset, marker_use_col = selective_types_, clustercol = "minor_som_clusters", cutoff = FALSE)
-# pdf(file.path(figureDir,paste0("Heatmap of ",selective_types_," cell type clustering via SOM(k=",maxK_,").pdf")),width = 15,height = 6)
-# print(p)
-# dev.off()
 
 # ================================================================================
 ## Tumor Budding analysis
@@ -339,7 +409,10 @@ if (!dir.exists("figures/budding")) {
 cat("=== EXTRACTING MALIGNANT CELLS FROM IM ===\n")
 
 malignant_IM <- spe[, spe$Tissue %in% "IM"]
+malignant_IM_all <- malignant_IM
 malignant_IM <- malignant_IM[, grepl("^EC_", malignant_IM$sub_celltype)]
+
+all_IM_cells <- as.data.frame(colData(malignant_IM_all))
 
 cat("Total malignant cells in IM:", ncol(malignant_IM), "\n")
 cat("Number of ROIs:", length(unique(malignant_IM$sample_id)), "\n")
@@ -405,8 +478,9 @@ for(roi in roi_list) {
   
   # Get cells in this ROI
   roi_cells <- which(malignant_IM$sample_id == roi)
+  all_roi_cells <- which(all_IM_cells$sample_id == roi)
   
-  if(length(roi_cells) == 0) next
+  if(length(roi_cells) / length(all_roi_cells) < 0.1) next
   
   # Filter edges to only include cells in this ROI
   roi_edges_mask <- (filtered_edges_from %in% roi_cells) & (filtered_edges_to %in% roi_cells)
@@ -539,13 +613,15 @@ cat("Available budding markers:", paste(available_budding_markers, collapse = ",
 
 # Calculate mean expression per ROI for budding cells
 roi_budding_expression <- data.frame()
+rownames(budding_cell_data) <- budding_cell_data$Row.names
 
 for(roi in unique(budding_cell_data$sample_id)) {
-  roi_budding_cells <- budding_cell_data[budding_cell_data$sample_id == roi, ]
+  roi_budding_cells <- budding_results[[roi]][["budding_cells"]]
+  roi_budding_cells <- budding_cell_data[roi_budding_cells, ]
   
   if(nrow(roi_budding_cells) == 0) next
   
-  roi_cell_indices <- roi_budding_cells$Row.names
+  roi_cell_indices <- rownames(roi_budding_cells)
   roi_expression <- budding_expression[available_budding_markers, roi_cell_indices, drop = FALSE]
   
   # Calculate mean expression for this ROI
@@ -564,39 +640,6 @@ for(roi in unique(budding_cell_data$sample_id)) {
 rownames(roi_budding_expression) <- roi_budding_expression$sample_id
 
 cat("ROIs with budding cells:", nrow(roi_budding_expression), "\n")
-
-# Statistical comparisons for each marker
-budding_stats <- data.frame()
-
-for(marker in available_budding_markers) {
-  marker_data <- roi_budding_expression[[marker]]
-  rfs_status <- roi_budding_expression$RFS_status
-  
-  # Overall test
-  if(length(unique(rfs_status)) > 1) {
-    test_result <- wilcox.test(marker_data ~ rfs_status)
-    pval <- test_result$p.value
-  } else {
-    pval <- NA
-  }
-  
-  # Summary statistics
-  no_relapse_mean <- mean(marker_data[rfs_status == 0], na.rm = TRUE)
-  early_relapse_mean <- mean(marker_data[rfs_status == 1], na.rm = TRUE)
-  
-  stats_row <- data.frame(
-    marker = marker,
-    no_relapse_mean = round(no_relapse_mean, 3),
-    early_relapse_mean = round(early_relapse_mean, 3),
-    p_value = round(pval, 4),
-    fold_change = round(early_relapse_mean / no_relapse_mean, 2)
-  )
-  
-  budding_stats <- rbind(budding_stats, stats_row)
-}
-
-cat("Budding marker expression statistics:\n")
-print(budding_stats)
 
 # Boxplots for each marker
 budding_expression_long <- roi_budding_expression %>%
@@ -618,51 +661,6 @@ p_budding_rfs <- ggplot(budding_expression_long, aes(x = RFS_group, y = expressi
 
 print(p_budding_rfs)
 ggsave("figures/budding/budding_markers_rfs_comparison.pdf", p_budding_rfs, width = 12, height = 10)
-
-# ================================================================================
-# STEP 6: EXTEND ANALYSIS TO TREATMENT SUBGROUPS
-# ================================================================================
-
-cat("\n=== ANALYZING BY TREATMENT SUBGROUPS ===\n")
-
-# Statistical comparisons by treatment
-treatment_budding_stats <- data.frame()
-
-for(treatment in unique(roi_budding_expression$Treatment)) {
-  treatment_data <- roi_budding_expression[roi_budding_expression$Treatment == treatment, ]
-  
-  cat("Treatment:", treatment, "- ROIs:", nrow(treatment_data), "\n")
-  
-  for(marker in available_budding_markers) {
-    marker_data <- treatment_data[[marker]]
-    rfs_status <- treatment_data$RFS_status
-    
-    if(length(unique(rfs_status)) > 1 && length(marker_data) > 2) {
-      test_result <- wilcox.test(marker_data ~ rfs_status)
-      pval <- test_result$p.value
-    } else {
-      pval <- NA
-    }
-    
-    # Summary statistics
-    no_relapse_mean <- mean(marker_data[rfs_status == 0], na.rm = TRUE)
-    early_relapse_mean <- mean(marker_data[rfs_status == 1], na.rm = TRUE)
-    
-    stats_row <- data.frame(
-      treatment = treatment,
-      marker = marker,
-      no_relapse_mean = round(no_relapse_mean, 3),
-      early_relapse_mean = round(early_relapse_mean, 3),
-      p_value = round(pval, 4),
-      fold_change = round(early_relapse_mean / no_relapse_mean, 2)
-    )
-    
-    treatment_budding_stats <- rbind(treatment_budding_stats, stats_row)
-  }
-}
-
-cat("Treatment-specific budding statistics:\n")
-print(treatment_budding_stats)
 
 # Treatment-stratified boxplots
 p_budding_treatment <- ggplot(budding_expression_long, aes(x = RFS_group, y = expression)) +
@@ -739,9 +737,77 @@ cat("- budding_cell_counts.pdf: Number of budding cells per ROI\n")
 cat("- budding_cluster_sizes.pdf: Cluster size distributions\n")
 
 # Export results
-write.csv(budding_stats, "figures/budding/budding_marker_statistics.csv", row.names = FALSE)
-write.csv(treatment_budding_stats, "figures/budding/treatment_budding_statistics.csv", row.names = FALSE)
 write.csv(roi_budding_expression, "figures/budding/roi_budding_expression_data.csv", row.names = FALSE)
+
+# Compare the expression among all EP cells during IM
+roi_EC_expression <- data.frame()
+IM_EC_expression <- assay(malignant_IM)
+IM_EC_cells <- as.data.frame(colData(malignant_IM))
+IM_EC_cells$RFS_group <- ifelse(IM_EC_cells$RFS_status == 0, 
+                                "No Early Relapse", "Early Relapse")
+
+for(roi in unique(malignant_IM$sample_id)) {
+  roi_EC_cells <- IM_EC_cells[IM_EC_cells$sample_id == roi, ]
+  
+  if(nrow(roi_EC_cells) == 0) next
+  
+  roi_cell_indices <- rownames(roi_EC_cells)
+  roi_expression <- IM_EC_expression[available_budding_markers, roi_cell_indices, drop = FALSE]
+  
+  # Calculate mean expression for this ROI
+  roi_means <- rowMeans(roi_expression)
+  
+  # Get clinical metadata
+  roi_meta <- roi_EC_cells[1, c("sample_id", "patient_id", "Treatment", "RFS_status", "RFS_group")]
+  roi_meta$n_budding_cells <- nrow(roi_EC_cells)
+  
+  # Combine with expression data
+  roi_data <- data.frame(t(roi_means), roi_meta)
+  roi_EC_expression <- rbind(roi_EC_expression, roi_data)
+}
+
+rownames(roi_EC_expression) <- roi_EC_expression$sample_id
+
+cat("ROIs with EC cells:", nrow(roi_EC_expression), "\n")
+
+# Boxplots for each marker
+EC_expression_long <- roi_EC_expression %>%
+  select(sample_id, patient_id, Treatment, RFS_status, RFS_group, all_of(available_budding_markers)) %>%
+  pivot_longer(cols = all_of(available_budding_markers), 
+               names_to = "marker", values_to = "expression")
+
+p_budding_rfs <- ggplot(EC_expression_long, aes(x = RFS_group, y = expression)) +
+  geom_boxplot(aes(fill = RFS_group), alpha = 0.7) +
+  geom_jitter(width = 0.2, alpha = 0.6) +
+  facet_wrap(~marker, scales = "free_y") +
+  stat_compare_means(method = "wilcox.test", label = "p.format") +
+  theme_minimal() +
+  labs(title = "Tumor Marker Expression by RFS Status",
+       x = "RFS Status",
+       y = "Mean Expression",
+       fill = "RFS Status") +
+  scale_fill_manual(values = c("No Early Relapse" = "#0073c2b2", "Early Relapse" = "#efc000b2"))
+
+print(p_budding_rfs)
+ggsave("figures/budding/all_EC_markers_rfs_comparison.pdf", p_budding_rfs, width = 12, height = 10)
+
+# Treatment-stratified boxplots
+p_budding_treatment <- ggplot(EC_expression_long, aes(x = RFS_group, y = expression)) +
+  geom_boxplot(aes(fill = RFS_group), alpha = 0.7) +
+  geom_jitter(width = 0.2, alpha = 0.6) +
+  facet_grid(Treatment ~ marker, scales = "free_x") +
+  stat_compare_means(method = "wilcox.test", label = "p.format", size = 2.5) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(title = "Tumor Marker Expression by Treatment and RFS Status",
+       x = "RFS Status",
+       y = "Mean Expression",
+       fill = "RFS Status") +
+  scale_fill_manual(values = c("No Early Relapse" = "#0073c2b2", "Early Relapse" = "#efc000b2"))
+
+print(p_budding_treatment)
+ggsave("figures/budding/all_EC_markers_treatment_comparison.pdf", p_budding_treatment, 
+       width = 12, height = 6)
 
 # ================================================================================
 # TASK 1: SPATIAL VISUALIZATION OF TUMOR BUDDING
@@ -750,7 +816,7 @@ write.csv(roi_budding_expression, "figures/budding/roi_budding_expression_data.c
 cat("\n=== CREATING SPATIAL VISUALIZATIONS ===\n")
 
 # Get IM spe
-spe_IM <- spe[,spe$Tissue %in% "IM"]
+spe_IM <- malignant_IM_all
 
 # Add EpCAM expression levels and match TB label
 spe_IM$EpCAM_expr <- assay(spe_IM)["EpCAM",]
@@ -829,30 +895,27 @@ for(roi in selected_rois) {
 budding_cells <- c()
 for(roi in selected_rois) {
   roi_data <- budding_cell_data[budding_cell_data$sample_id == roi, ]
-  
-  # Get edges for this ROI
-  roi_edges_from <- budding_results[[roi]]$roi_edges_from
-  roi_edges_to <- budding_results[[roi]]$roi_edges_to
-  
-  budding_cells <- c(budding_cells,unique(c(roi_edges_from,roi_edges_to)))
+  budding_cells <- c(budding_cells,budding_results[[roi]]$budding_cells)
 }
 
+budding_cells <- unique(budding_cells)
 budding_expression <- budding_expression[,match(budding_cells,colnames(budding_expression)) ]
-
 
 cat("\n=== CREATING EpCAM:GLUT1 BIOMARKER ===\n")
 
 # Extract GLUT1 expression
 glut1_expression <- budding_expression["GLUT1", ]
-budding_cell_data$GLUT1_expr <- glut1_expression[budding_cell_data$Row.names]
+
+budding_cell_data <- budding_cell_data[budding_cells,]
+budding_cell_data$GLUT1_expr <- glut1_expression
 
 # Calculate EpCAM:GLUT1 ratio
 # Add small constant to avoid division by zero
-budding_cell_data$EpCAM_GLUT1_ratio <- (budding_cell_data$EpCAM_expr + 0.001) / 
-  (budding_cell_data$GLUT1_expr + 0.001)
+budding_cell_data$GLUT1_EpCAM_ratio <- (budding_cell_data$GLUT1_expr + 0.001) /
+  (budding_cell_data$EpCAM_expr + 0.001)
 
 # Log transform ratio for better distribution
-budding_cell_data$log_EpCAM_GLUT1_ratio <- log2(budding_cell_data$EpCAM_GLUT1_ratio)
+budding_cell_data$GLUT1_EpCAM_ratio <- budding_cell_data$GLUT1_EpCAM_ratio
 
 # Add clinical variables
 budding_cell_data$RFS_group <- ifelse(budding_cell_data$RFS_status == 0, 
@@ -865,59 +928,40 @@ roi_biomarker_data <- budding_cell_data %>%
     n_budding_cells = n(),
     mean_EpCAM = mean(EpCAM_expr),
     mean_GLUT1 = mean(GLUT1_expr),
-    mean_ratio = mean(EpCAM_GLUT1_ratio),
-    median_ratio = median(EpCAM_GLUT1_ratio),
-    log_mean_ratio = mean(log_EpCAM_GLUT1_ratio),
-    log_median_ratio = median(log_EpCAM_GLUT1_ratio),
+    mean_ratio = mean(GLUT1_EpCAM_ratio),
+    mean_log2_ratio = mean(log2(GLUT1_EpCAM_ratio)),
     .groups = "drop"
   )
 
 cat("ROIs with tumor budding data:", nrow(roi_biomarker_data), "\n")
 
-# Statistical comparisons of the biomarker
-biomarker_stats <- data.frame()
-
-for(treatment in unique(roi_biomarker_data$Treatment)) {
-  treatment_data <- roi_biomarker_data[roi_biomarker_data$Treatment == treatment, ]
-  
-  if(length(unique(treatment_data$RFS_status)) > 1) {
-    # Test log ratio
-    test_log <- wilcox.test(log_mean_ratio ~ RFS_status, data = treatment_data)
-    
-    # Summary stats
-    no_relapse_mean <- mean(treatment_data$log_mean_ratio[treatment_data$RFS_status == 0], na.rm = TRUE)
-    early_relapse_mean <- mean(treatment_data$log_mean_ratio[treatment_data$RFS_status == 1], na.rm = TRUE)
-    
-    biomarker_stats <- rbind(biomarker_stats, data.frame(
-      treatment = treatment,
-      biomarker = "log_EpCAM_GLUT1_ratio",
-      no_relapse_mean = round(no_relapse_mean, 3),
-      early_relapse_mean = round(early_relapse_mean, 3),
-      p_value = round(test_log$p.value, 4),
-      fold_change = round(2^(early_relapse_mean - no_relapse_mean), 2)
-    ))
-  }
-}
-
-cat("EpCAM:GLUT1 biomarker statistics:\n")
-print(biomarker_stats)
-
 # Visualize biomarker
-p_biomarker <- ggplot(roi_biomarker_data, aes(x = RFS_group, y = log_mean_ratio)) +
+p_biomarker <- ggplot(roi_biomarker_data, aes(x = RFS_group, y = mean_log2_ratio)) +
+  geom_boxplot(aes(fill = RFS_group), alpha = 0.7) +
+  geom_jitter(width = 0.2, alpha = 0.6) +
+  stat_compare_means(method = "wilcox.test", label = "p.format") +
+  theme_minimal() +
+  labs(title = "GLUT1:EpCAM Ratio Biomarker in Tumor Budding",
+       subtitle = "Scaling Log2(GLUT1/EpCAM) ratio by treatment and RFS status",
+       x = "RFS Status",
+       y = "Scaling Log2(GLUT1:EpCAM Ratio)",
+       fill = "RFS Status") +
+  scale_fill_manual(values = c("No Early Relapse" = "#0073c2b2", "Early Relapse" = "#efc000b2"))
+
+p_biomarker_treatment <- ggplot(roi_biomarker_data, aes(x = RFS_group, y = mean_log2_ratio)) +
   geom_boxplot(aes(fill = RFS_group), alpha = 0.7) +
   geom_jitter(width = 0.2, alpha = 0.6) +
   facet_wrap(~Treatment) +
   stat_compare_means(method = "wilcox.test", label = "p.format") +
   theme_minimal() +
-  labs(title = "EpCAM:GLUT1 Ratio Biomarker in Tumor Budding",
-       subtitle = "Log2(EpCAM/GLUT1) ratio by treatment and RFS status",
+  labs(title = "GLUT1:EpCAM Ratio Biomarker in Tumor Budding",
+       subtitle = "Scaling Log2(GLUT1/EpCAM) ratio by RFS status",
        x = "RFS Status",
-       y = "Log2(EpCAM:GLUT1 Ratio)",
+       y = "Scaling Log2(GLUT1:EpCAM Ratio)",
        fill = "RFS Status") +
   scale_fill_manual(values = c("No Early Relapse" = "#0073c2b2", "Early Relapse" = "#efc000b2"))
 
-print(p_biomarker)
-ggsave("figures/tb_spatial/EpCAM_GLUT1_biomarker.pdf", p_biomarker, width = 10, height = 6)
+ggsave("figures/tb_spatial/EpCAM_GLUT1_biomarker.pdf", (p_biomarker / p_biomarker_treatment), width = 8, height = 10)
 
 # Create scatter plot showing individual components
 p_scatter <- ggplot(roi_biomarker_data, aes(x = mean_GLUT1, y = mean_EpCAM)) +
@@ -946,14 +990,19 @@ patient_survival_data <- roi_biomarker_data %>%
   summarise(
     RFS_time = first(RFS_time),
     RFS_status = first(RFS_status),
-    mean_biomarker = mean(log_mean_ratio, na.rm = TRUE),
+    mean_biomarker = mean(mean_ratio, na.rm = TRUE),
     .groups = "drop"
   )
 
 # Create biomarker categories (high vs low)
-biomarker_cutoff <- median(patient_survival_data$mean_biomarker, na.rm = TRUE)
-patient_survival_data$biomarker_group <- ifelse(patient_survival_data$mean_biomarker > biomarker_cutoff,
-                                                "High EpCAM:GLUT1", "Low EpCAM:GLUT1")
+library(survival)
+library(survminer)
+biomarker_cutoff <- surv_cutpoint(patient_survival_data,time = "RFS_time",event = "RFS_status","mean_biomarker",minprop = 0.15)
+biomarker_cutoff <- biomarker_cutoff[["cutpoint"]]$cutpoint
+
+# biomarker_cutoff <- median(patient_survival_data$mean_biomarker)
+patient_survival_data$biomarker_group <- ifelse(patient_survival_data$mean_biomarker >= biomarker_cutoff,
+                                                "High GLUT1:EpCAM", "Low GLUT1:EpCAM")
 
 cat("Survival analysis cohort:", nrow(patient_survival_data), "patients\n")
 cat("Biomarker cutoff (median):", round(biomarker_cutoff, 3), "\n")
@@ -974,24 +1023,27 @@ p_km_overall <- ggsurvplot(
   surv.median.line = "hv",
   ggtheme = theme_minimal(),
   palette = c("#E31A1C", "#1F78B4"),
-  title = "Kaplan-Meier: EpCAM:GLUT1 Ratio in Tumor Budding",
+  title = "Kaplan-Meier: GLUT1:EpCAM Ratio in Tumor Budding",
   xlab = "Time to Recurrence (months)",
   ylab = "Recurrence-Free Survival Probability",
   legend.title = "Biomarker Status",
-  legend.labs = c("High EpCAM:GLUT1", "Low EpCAM:GLUT1")
+  legend.labs = c("High GLUT1:EpCAM", "Low GLUT1:EpCAM")
 )
 
+pdf("figures/tb_spatial/KM_overall_biomarker.pdf", width = 10, height = 8)
 print(p_km_overall)
-ggsave("figures/tb_spatial/KM_overall_biomarker.pdf", 
-       print(p_km_overall), width = 10, height = 8)
+dev.off()
 
 # Treatment-stratified survival analysis
-treatment_km_plots <- list()
-
 for(treatment in unique(patient_survival_data$Treatment)) {
   treatment_data <- patient_survival_data[patient_survival_data$Treatment == treatment, ]
   
   if(nrow(treatment_data) > 10) {  # Only analyze if sufficient sample size
+    biomarker_cutoff <- surv_cutpoint(treatment_data,time = "RFS_time",event = "RFS_status","mean_biomarker",minprop = 0.15)
+    biomarker_cutoff <- biomarker_cutoff[["cutpoint"]]$cutpoint
+    treatment_data$biomarker_group <- ifelse(treatment_data$mean_biomarker > biomarker_cutoff,
+                                                    "High GLUT1:EpCAM", "Low GLUT1:EpCAM")
+    
     surv_obj_treat <- Surv(treatment_data$RFS_time, treatment_data$RFS_status)
     surv_fit_treat <- survfit(surv_obj_treat ~ biomarker_group, data = treatment_data)
     
@@ -1013,10 +1065,9 @@ for(treatment in unique(patient_survival_data$Treatment)) {
       legend.labs = c("High EpCAM:GLUT1", "Low EpCAM:GLUT1")
     )
     
-    treatment_km_plots[[treatment]] <- p_km_treat
-    
-    ggsave(paste0("figures/tb_spatial/KM_", treatment, "_biomarker.pdf"),
-           print(p_km_treat), width = 10, height = 8)
+    pdf(paste0("figures/tb_spatial/KM_", treatment, "_biomarker.pdf"),width = 10, height = 8)
+    print(p_km_treat)
+    dev.off()    
   }
 }
 
