@@ -191,4 +191,8 @@ The returned object is ordered by the 'sample_id' entry.
 The returned object is ordered by the 'sample_id' entry.
 ✓ Construct graph through: knn_40 done 
 The returned object is ordered by the 'sample_id' entry.
-✓ Construct graph through: knn_50 done 
+✓ Construct graph through: delaunay done 
+There were 16 warnings (use warnings() to see them)
+[1] "neighborhood" "knn_10"       "knn_20"       "knn_40"       "delaunay"    
+✓ Calculate CN of CN_delaunay_cluster_10 done 
+✓ Calculate CN of CN_delaunay_cluster_12 done 

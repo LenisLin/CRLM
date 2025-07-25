@@ -56,7 +56,7 @@ if(T){
 
 # 1.Cellular neighborhood analysis
 graph_types <- c("knn","delaunay")
-k_s <- c(10,20,40,50)
+k_s <- c(10,20,40)
 
 for(graph_type in graph_types){
   if(graph_type == "knn"){
@@ -72,8 +72,10 @@ for(graph_type in graph_types){
   }
 }
 
+saveRDS(spe,file.path(saveDir,paste0("spatial_spe_",date_time,".rds")))
+
 # 2.Cluster CN + interaction test
-k_clusters <- c(10, 15) # Choose K clusters
+k_clusters <- c(10, 12) # Choose K clusters
 print(colPairNames(spe))
 
 Pairnames_for_CN <- c("delaunay","knn_10","knn_20")
@@ -114,9 +116,11 @@ for(pairname_ in Pairnames_for_CN){
   saveRDS(out,file.path(saveDir,paste0("Interaction_analysis_out_of_",pairname_,".rds")))
 }
 
+saveRDS(spe,file.path(saveDir,paste0("spatial_spe_",date_time,".rds")))
+
 # 3. Spatial Context
-Pairnames_for_SC <- c("knn_40","knn_50")
-cn_types <- c("CN_delaunay_cluster_10", "CN_knn_20_cluster_10")
+Pairnames_for_SC <- c("knn_40")
+cn_types <- c("CN_knn_20_cluster_10", "CN_knn_20_cluster_12")
 
 for(pairname_ in Pairnames_for_SC){
   for(cn_type_ in cn_types){
@@ -141,7 +145,7 @@ for(pairname_ in Pairnames_for_SC){
   }
 }
 
-# saveRDS(spe,file.path(saveDir,paste0("spatial_spe_",date_time,".rds")))
+saveRDS(spe,file.path(saveDir,paste0("spatial_spe_",date_time,".rds")))
 
 # 4. Patch detection
 ## calculate the minimum distance between each cell and tumor patch
