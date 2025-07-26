@@ -1,24 +1,27 @@
 # For spatial analysis
 
 library(SpatialExperiment)
+library(BiocParallel)
+
 library(imcRtools)
-library(igraph)
+library(lisaClust)
 
 library(ggplot2)
 library(ggridges)
-library(pheatmap)
-library(RColorBrewer)
 library(ggpubr)
 library(ggraph)
+library(pheatmap)
+library(corrplot)
+library(RColorBrewer)
 library(viridis)
 library(patchwork)
 
 library(dplyr)
 library(tidyr)
-
-library(BiocParallel)
-library(lisaClust)
+library(tidygraph)
+library(igraph)
 library(scales)
+
 # =============================================================================
 # LOAD AND VALIDATE DATA
 # =============================================================================
@@ -81,9 +84,9 @@ meta_df <- meta_df[!is.na(meta_df[[cn_column]]) & !is.na(meta_df$sub_celltype), 
 print(paste("Cells after removing missing data:", nrow(meta_df)))
 
 # Defined color for CN
-CN_color <- setNames(metadata(spe)$color_vectors$color_10,unique(meta_df[[cn_column]]))
+CN_color <- setNames(metadata(spe_filtered)$color_vectors$color_10,unique(meta_df[[cn_column]]))
 RFS_color <- setNames(c("#EFC000FF", "#0073C2FF"),unique(meta_df$RFS_status))
-Tissue_color <- setNames(metadata(spe)$color_vectors$color_20[1:3],unique(meta_df$Tissue))
+Tissue_color <- setNames(metadata(spe_filtered)$color_vectors$color_20[1:3],unique(meta_df$Tissue))
 
 # CREATE CONTINGENCY TABLE AND CALCULATE PROPORTIONS
 print("Creating contingency table...")
@@ -135,10 +138,6 @@ print("Task 1 completed successfully!")
 # ============================================================================
 # Task 2: CN Composition Stacked Barplots and Pie Charts
 # ============================================================================
-# Load additional libraries for Task 2
-library(viridis)
-library(scales)
-
 print("Starting Task 2: CN Composition Visualization")
 
 # DATA PREPARATION FOR VISUALIZATION
@@ -322,20 +321,6 @@ print(paste("Total ROI records:", nrow(cn_roi_fractions)))
 print(paste("Unique ROIs:", length(unique(cn_roi_fractions$patient_roi_id))))
 print(paste("Unique patients:", length(unique(cn_roi_fractions$patient_id))))
 
-# Check data completeness
-print("=== DATA COMPLETENESS CHECK ===")
-print("ROIs per patient:")
-roi_per_patient <- cn_roi_fractions %>%
-  group_by(patient_id) %>%
-  summarise(n_rois = length(unique(sample_id)), .groups = 'drop')
-print(table(roi_per_patient$n_rois))
-
-print("CNs per ROI:")
-cn_per_roi <- cn_roi_fractions %>%
-  group_by(patient_roi_id) %>%
-  summarise(n_cns = n(), .groups = 'drop')
-print(table(cn_per_roi$n_cns))
-
 # CREATE WIDE FORMAT FOR ANALYSIS
 print("Creating wide format data for analysis...")
 
@@ -354,7 +339,6 @@ print(paste("Wide format dimensions:", nrow(cn_fractions_wide), "rows x", ncol(c
 # Ensure we have all CNs represented
 cn_columns <- colnames(cn_fractions_wide)[grepl("^CN_", colnames(cn_fractions_wide))]
 print(paste("CN fraction columns:", paste(cn_columns, collapse = ", ")))
-
 
 # PATIENT-LEVEL AGGREGATION
 print("Creating patient-level aggregated data...")
@@ -394,13 +378,9 @@ print("=== CN FRACTION SUMMARY STATISTICS ===")
 print(cn_summary_stats)
 
 # DISTRIBUTION ANALYSIS
-
 print("Analyzing CN fraction distributions...")
 
 # Create distribution plots for each CN
-library(ggplot2)
-library(patchwork)
-
 # Prepare data for distribution plotting
 cn_dist_data <- cn_roi_fractions %>%
   select(patient_roi_id, Tissue, Treatment, RFS_status, !!sym(cn_column), cn_fraction)
@@ -442,16 +422,13 @@ print("Analyzing CN-CN correlations...")
 cn_correlation_matrix <- cor(cn_patient_level[, cn_columns], use = "complete.obs")
 
 # Create correlation heatmap
-library(corrplot)
-p <- corrplot(cn_correlation_matrix, 
+pdf(file.path(figureDir, paste0("CN_correlation_matrix_", cn_column, ".pdf")), 
+    width = 8, height = 6)
+corrplot(cn_correlation_matrix, 
               method = "color", type = "upper",order = "hclust",
-              tl.col = "black", tl.srt = 45, col = colorRampPalette(c("blue", "white", "red"))(100),
+              tl.col = "black", tl.srt = 90, col = colorRampPalette(c("darkblue", "white", "darkred"))(100),
               title = paste("CN-CN Correlations (Patient Level) -", cn_column),
               mar = c(0,0,2,0),addCoef.col = "black",number.cex = 0.7)
-
-pdf(file.path(figureDir, paste0("CN_correlation_matrix_", cn_column, ".pdf")), 
-    width = 10, height = 8)
-print(p)
 dev.off()
 
 # SAVE ALL RESULTS
@@ -504,7 +481,7 @@ print("Loading data from Task 3...")
 
 if (!exists("clinical_analysis_data")) {
   # If data doesn't exist in environment, load from file
-  clinical_analysis_data <- read.csv(file.path(figurePath, paste0("CN_data_for_clinical_analysis_", cn_column, ".csv")))
+  clinical_analysis_data <- read.csv(file.path(figureDir, paste0("CN_data_for_clinical_analysis_", cn_column, ".csv")))
   print("Loaded clinical analysis data from file")
 }
 
@@ -520,252 +497,7 @@ clinical_dist <- table(clinical_analysis_data$Treatment, clinical_analysis_data$
 print("Treatment × RFS Status:")
 print(clinical_dist)
 
-
-# TASK 4A: OVERALL RFS STATUS COMPARISON (NOT CONSIDERING TREATMENT)
-print("Task 4A: Overall RFS Status Comparison")
-
-# Prepare data for statistical testing
-rfs_comparison_results <- data.frame()
-
-# Perform Wilcoxon test for each CN
-for (cn_col in cn_columns) {
-  cn_data <- clinical_analysis_data[, c("patient_id", "RFS_status", "RFS_label", cn_col)]
-  colnames(cn_data)[4] <- "cn_value"
-  
-  # Remove any missing values
-  cn_data <- cn_data[!is.na(cn_data$cn_value), ]
-  
-  if (nrow(cn_data) < 4) {
-    print(paste("Skipping", cn_col, "- insufficient data"))
-    next
-  }
-  
-  # Check if we have both RFS groups
-  rfs_groups <- unique(cn_data$RFS_status)
-  if (length(rfs_groups) < 2) {
-    print(paste("Skipping", cn_col, "- only one RFS group"))
-    next
-  }
-  
-  # Calculate group statistics
-  group_stats <- cn_data %>%
-    group_by(RFS_status, RFS_label) %>%
-    summarise(
-      n = n(),
-      mean = mean(cn_value, na.rm = TRUE),
-      median = median(cn_value, na.rm = TRUE),
-      sd = sd(cn_value, na.rm = TRUE),
-      q25 = quantile(cn_value, 0.25, na.rm = TRUE),
-      q75 = quantile(cn_value, 0.75, na.rm = TRUE),
-      .groups = 'drop'
-    )
-  
-  # Perform Wilcoxon test
-  wilcox_result <- wilcox.test(cn_value ~ RFS_status, data = cn_data)
-  
-  # Calculate effect size (rank-biserial correlation)
-  n1 <- sum(cn_data$RFS_status == 0)
-  n2 <- sum(cn_data$RFS_status == 1)
-  U <- wilcox_result$statistic
-  effect_size <- 1 - (2 * U) / (n1 * n2)
-  
-  # Store results
-  rfs_comparison_results <- rbind(rfs_comparison_results, data.frame(
-    CN = gsub("CN_", "", cn_col),
-    comparison_type = "Overall_RFS",
-    treatment_group = "All",
-    n_no_relapse = group_stats$n[group_stats$RFS_status == 0],
-    n_early_relapse = group_stats$n[group_stats$RFS_status == 1],
-    mean_no_relapse = round(group_stats$mean[group_stats$RFS_status == 0], 4),
-    mean_early_relapse = round(group_stats$mean[group_stats$RFS_status == 1], 4),
-    median_no_relapse = round(group_stats$median[group_stats$RFS_status == 0], 4),
-    median_early_relapse = round(group_stats$median[group_stats$RFS_status == 1], 4),
-    p_value = wilcox_result$p.value,
-    effect_size = effect_size,
-    test_statistic = wilcox_result$statistic,
-    stringsAsFactors = FALSE
-  ))
-}
-
-print(paste("Overall RFS comparisons completed:", nrow(rfs_comparison_results)))
-
-
-# TASK 4B: TREATMENT-STRATIFIED COMPARISON
-print("Task 4B: Treatment-Stratified RFS Comparison")
-
-# Get available treatments
-treatments <- unique(clinical_analysis_data$Treatment)
-print(paste("Treatments for analysis:", paste(treatments, collapse = ", ")))
-
-treatment_comparison_results <- data.frame()
-
-# Perform analysis within each treatment group
-for (treatment in treatments) {
-  print(paste("Analyzing treatment group:", treatment))
-  
-  treatment_data <- clinical_analysis_data[clinical_analysis_data$Treatment == treatment, ]
-  
-  # Check if we have both RFS groups in this treatment
-  rfs_groups_treatment <- unique(treatment_data$RFS_status)
-  if (length(rfs_groups_treatment) < 2) {
-    print(paste("Skipping", treatment, "- only one RFS group"))
-    next
-  }
-  
-  print(paste("  Patients in", treatment, "group:", nrow(treatment_data)))
-  print(paste("  RFS distribution:", paste(table(treatment_data$RFS_status), collapse = " / ")))
-  
-  # Test each CN within this treatment group
-  for (cn_col in cn_columns) {
-    cn_data <- treatment_data[, c("patient_id", "RFS_status", "RFS_label", cn_col)]
-    colnames(cn_data)[4] <- "cn_value"
-    
-    # Remove missing values
-    cn_data <- cn_data[!is.na(cn_data$cn_value), ]
-    
-    if (nrow(cn_data) < 4) next
-    
-    # Check RFS groups again after filtering
-    if (length(unique(cn_data$RFS_status)) < 2) next
-    
-    # Calculate group statistics
-    group_stats <- cn_data %>%
-      group_by(RFS_status, RFS_label) %>%
-      summarise(
-        n = n(),
-        mean = mean(cn_value, na.rm = TRUE),
-        median = median(cn_value, na.rm = TRUE),
-        sd = sd(cn_value, na.rm = TRUE),
-        q25 = quantile(cn_value, 0.25, na.rm = TRUE),
-        q75 = quantile(cn_value, 0.75, na.rm = TRUE),
-        .groups = 'drop'
-      )
-    
-    # Perform Wilcoxon test
-    wilcox_result <- wilcox.test(cn_value ~ RFS_status, data = cn_data)
-    
-    # Calculate effect size
-    n1 <- sum(cn_data$RFS_status == 0)
-    n2 <- sum(cn_data$RFS_status == 1)
-    if (n1 > 0 && n2 > 0) {
-      U <- wilcox_result$statistic
-      effect_size <- 1 - (2 * U) / (n1 * n2)
-    } else {
-      effect_size <- NA
-    }
-    
-    # Store results
-    treatment_comparison_results <- rbind(treatment_comparison_results, data.frame(
-      CN = gsub("CN_", "", cn_col),
-      comparison_type = "Treatment_Stratified",
-      treatment_group = treatment,
-      n_no_relapse = ifelse(0 %in% group_stats$RFS_status, group_stats$n[group_stats$RFS_status == 0], 0),
-      n_early_relapse = ifelse(1 %in% group_stats$RFS_status, group_stats$n[group_stats$RFS_status == 1], 0),
-      mean_no_relapse = ifelse(0 %in% group_stats$RFS_status, round(group_stats$mean[group_stats$RFS_status == 0], 4), NA),
-      mean_early_relapse = ifelse(1 %in% group_stats$RFS_status, round(group_stats$mean[group_stats$RFS_status == 1], 4), NA),
-      median_no_relapse = ifelse(0 %in% group_stats$RFS_status, round(group_stats$median[group_stats$RFS_status == 0], 4), NA),
-      median_early_relapse = ifelse(1 %in% group_stats$RFS_status, round(group_stats$median[group_stats$RFS_status == 1], 4), NA),
-      p_value = wilcox_result$p.value,
-      effect_size = effect_size,
-      test_statistic = wilcox_result$statistic,
-      stringsAsFactors = FALSE
-    ))
-  }
-}
-
-print(paste("Treatment-stratified comparisons completed:", nrow(treatment_comparison_results)))
-
-# COMBINE RESULTS AND APPLY MULTIPLE TESTING CORRECTION
-print("Combining results and applying multiple testing correction...")
-
-# Combine all results
-all_comparison_results <- rbind(rfs_comparison_results, treatment_comparison_results)
-
-# Apply Benjamini-Hochberg correction within each comparison type
-all_comparison_results <- all_comparison_results %>%
-  group_by(comparison_type) %>%
-  mutate(
-    p_adjusted = p.adjust(p_value, method = "BH"),
-    .groups = 'drop'
-  )
-
-# Add significance classifications
-all_comparison_results$significance <- ifelse(all_comparison_results$p_adjusted < 0.001, "***",
-                                              ifelse(all_comparison_results$p_adjusted < 0.01, "**",
-                                                     ifelse(all_comparison_results$p_adjusted < 0.05, "*", "ns")))
-
-all_comparison_results$significant <- all_comparison_results$p_adjusted <= 0.05
-print(paste("Total comparisons performed:", nrow(all_comparison_results)))
-
-# EFFECT SIZE INTERPRETATION
-print("Adding effect size interpretation...")
-
-# Add effect size interpretation (for rank-biserial correlation)
-all_comparison_results$effect_size_interpretation <- ifelse(
-  is.na(all_comparison_results$effect_size), "Unknown",
-  ifelse(abs(all_comparison_results$effect_size) < 0.1, "Negligible",
-         ifelse(abs(all_comparison_results$effect_size) < 0.3, "Small",
-                ifelse(abs(all_comparison_results$effect_size) < 0.5, "Medium", "Large")))
-)
-
-# Add direction of effect
-all_comparison_results$effect_direction <- ifelse(
-  is.na(all_comparison_results$mean_no_relapse) | is.na(all_comparison_results$mean_early_relapse), "Unknown",
-  ifelse(all_comparison_results$mean_early_relapse > all_comparison_results$mean_no_relapse, 
-         "Higher_in_Early_Relapse", "Higher_in_No_Relapse")
-)
-
-# IDENTIFY SIGNIFICANT FINDINGS
-print("Identifying significant findings...")
-
-# Overall significant findings
-overall_significant <- all_comparison_results[
-  all_comparison_results$comparison_type == "Overall_RFS" & all_comparison_results$significant, 
-]
-
-if (nrow(overall_significant) > 0) {
-  print("=== SIGNIFICANT OVERALL RFS FINDINGS ===")
-  overall_sig_summary <- overall_significant[, c("CN", "p_value", "p_adjusted", "significance", 
-                                                 "effect_size", "effect_direction")]
-  print(overall_sig_summary)
-} else {
-  print("No significant overall RFS differences found")
-}
-
-# Treatment-specific significant findings
-treatment_significant <- all_comparison_results[
-  all_comparison_results$comparison_type == "Treatment_Stratified" & all_comparison_results$significant, 
-]
-
-if (nrow(treatment_significant) > 0) {
-  print("=== SIGNIFICANT TREATMENT-STRATIFIED FINDINGS ===")
-  treatment_sig_summary <- treatment_significant[, c("CN", "treatment_group", "p_value", "p_adjusted", 
-                                                     "significance", "effect_size", "effect_direction")]
-  print(treatment_sig_summary)
-} else {
-  print("No significant treatment-stratified differences found")
-}
-
-# CN-specific summary (which CNs show most differences)
-cn_summary <- all_comparison_results %>%
-  group_by(CN) %>%
-  summarise(
-    total_tests = n(),
-    significant_tests = sum(significant),
-    prop_significant = round(mean(significant), 3),
-    min_p_value = round(min(p_adjusted), 4),
-    max_effect_size = round(max(abs(effect_size), na.rm = TRUE), 3),
-    .groups = 'drop'
-  ) %>%
-  arrange(desc(prop_significant), min_p_value)
-
-print("=== CN-SPECIFIC SUMMARY (TOP DIFFERENTIAL CNs) ===")
-print(head(cn_summary, 10))
-
-# ============================================================================
 # PREPARE DATA FOR TASK 5 (BOXPLOTS)
-# ============================================================================
-
 print("Preparing data for Task 5 boxplot visualization...")
 
 # Create plotting data with proper factors
@@ -780,18 +512,9 @@ cn_long_data <- plotting_data %>%
   pivot_longer(cols = all_of(cn_columns), names_to = "CN", values_to = "CN_fraction") %>%
   mutate(CN = gsub("CN_", "", CN))
 
-# Add significance information to plotting data
-cn_long_data <- cn_long_data %>%
-  left_join(
-    all_comparison_results %>% 
-      select(CN, comparison_type, treatment_group, p_adjusted, significance, significant),
-    by = c("CN" = "CN"),
-    relationship = "many-to-many"
-  )
-
 # Save plotting data for Task 5
 write.csv(cn_long_data, 
-          file.path(figurePath, paste0("CN_data_for_boxplots_", cn_column, ".csv")), 
+          file.path(figureDir, paste0("CN_data_for_boxplots_", cn_column, ".csv")), 
           row.names = FALSE)
 
 # ============================================================================
@@ -799,33 +522,13 @@ write.csv(cn_long_data,
 # ============================================================================
 print("Starting Task 5: Boxplot Visualization with Significance Testing")
 
-# Load additional libraries for advanced plotting
-library(ggpubr)
-library(patchwork)
-
-# LOAD DATA FROM TASK 4
-print("Loading data from Task 4...")
-
 # Load plotting data
 if (!exists("cn_long_data")) {
-  cn_long_data <- read.csv(file.path(figurePath, paste0("CN_data_for_boxplots_", cn_column, ".csv")))
+  cn_long_data <- read.csv(file.path(figureDir, paste0("CN_data_for_boxplots_", cn_column, ".csv")))
   print("Loaded plotting data from file")
 }
 
-# Load statistical results
-if (!exists("all_comparison_results")) {
-  all_comparison_results <- read.csv(file.path(figurePath, paste0("CN_clinical_comparison_statistics_", cn_column, ".csv")))
-  print("Loaded statistical results from file")
-}
-
 print(paste("Plotting data:", nrow(cn_long_data), "observations"))
-print(paste("Statistical results:", nrow(all_comparison_results), "comparisons"))
-
-# Create boxplot output directory
-boxplot_dir <- file.path(figurePath, "boxplots")
-if (!dir.exists(boxplot_dir)) {
-  dir.create(boxplot_dir, recursive = TRUE)
-}
 
 # Get unique CNs
 unique_cns <- sort(as.numeric(unique(cn_long_data$CN)))
@@ -842,30 +545,7 @@ for (cn_val in unique_cns) {
   # Filter data for this CN
   cn_data <- cn_long_data[cn_long_data$CN == cn_val, ]
   
-  # Get statistical result for this CN (overall comparison)
-  stat_result <- all_comparison_results[
-    all_comparison_results$CN == cn_val & 
-      all_comparison_results$comparison_type == "Overall_RFS", 
-  ]
-  
-  if (nrow(stat_result) == 0) {
-    print(paste("No statistical result found for CN", cn_val))
-    next
-  }
-  
-  # Prepare significance annotation
-  p_val <- stat_result$p_adjusted[1]
-  sig_label <- stat_result$significance[1]
-  effect_direction <- stat_result$effect_direction[1]
-  
-  # Create subtitle with statistics
-  subtitle_text <- paste0(
-    "Wilcoxon p = ", format(p_val, scientific = TRUE, digits = 3),
-    " (adjusted), Effect: ", effect_direction
-  )
-  
   # Create boxplot
-  cn_data$RFS_status <- as.factor(cn_data$RFS_status)
   p_overall <- ggplot(cn_data, aes(x = RFS_label, y = CN_fraction, fill = RFS_status)) +
     geom_boxplot(alpha = 0.7, outlier.shape = NA, width = 0.6) +
     geom_jitter(width = 0.2, alpha = 0.6, size = 1.5) +
@@ -881,7 +561,6 @@ for (cn_val in unique_cns) {
     ) +
     labs(
       title = paste("CN", cn_val, "Fraction - Overall RFS Comparison"),
-      subtitle = subtitle_text,
       x = "RFS Status", 
       y = "CN Fraction"
     ) +
@@ -892,17 +571,15 @@ for (cn_val in unique_cns) {
   y_pos <- y_max * 1.1
   
   p_overall <- p_overall + 
-    stat_compare_means(method = "wilcox.test", label = "p.signif", 
+    stat_compare_means(method = "wilcox.test", label = "p", 
                        hide.ns = FALSE, size = 3)
   
   # Save individual boxplot
-  ggsave(file.path(boxplot_dir, paste0("CN", cn_val, "_RFS_overall_boxplot_", cn_column, ".pdf")), 
+  ggsave(file.path(figureDir, paste0("CN", cn_val, "_RFS_overall_boxplot_", cn_column, ".pdf")), 
          p_overall, width = 6, height = 5)
 }
 
-# ============================================================================
 # TASK 5B: INDIVIDUAL CN BOXPLOTS - TREATMENT-STRATIFIED COMPARISON
-# ============================================================================
 print("Task 5B: Creating individual CN boxplots - Treatment-stratified comparison")
 
 # Get available treatments
@@ -913,13 +590,8 @@ print(paste("Treatments:", paste(treatments, collapse = ", ")))
 for (cn_val in unique_cns) {
   print(paste("Creating treatment-stratified boxplots for CN", cn_val))
   
-  treatment_plots <- list()
-  
-  for (treatment in treatments) {
     # Filter data for this CN and treatment
-    cn_treatment_data <- cn_long_data[
-      cn_long_data$CN == cn_val & cn_long_data$Treatment == treatment, 
-    ]
+    cn_treatment_data <- cn_long_data[cn_long_data$CN == cn_val,]
     
     if (nrow(cn_treatment_data) < 4) {
       print(paste("Insufficient data for CN", cn_val, "in", treatment))
@@ -931,29 +603,6 @@ for (cn_val in unique_cns) {
       print(paste("Only one RFS group for CN", cn_val, "in", treatment))
       next
     }
-    
-    # Get statistical result
-    stat_result <- all_comparison_results[
-      all_comparison_results$CN == cn_val & 
-        all_comparison_results$comparison_type == "Treatment_Stratified" &
-        all_comparison_results$treatment_group == treatment, 
-    ]
-    
-    if (nrow(stat_result) == 0) {
-      print(paste("No statistical result for CN", cn_val, "in", treatment))
-      next
-    }
-    
-    # Prepare significance annotation
-    p_val <- stat_result$p_adjusted[1]
-    sig_label <- stat_result$significance[1]
-    effect_direction <- stat_result$effect_direction[1]
-    
-    # Create subtitle
-    subtitle_text <- paste0(
-      "Wilcoxon p = ", format(p_val, scientific = TRUE, digits = 3),
-      " (adj.)"
-    )
     
     # Create boxplot
     p_treatment <- ggplot(cn_treatment_data, aes(x = RFS_label, y = CN_fraction, fill = RFS_status)) +
@@ -970,8 +619,6 @@ for (cn_val in unique_cns) {
         panel.grid.minor = element_blank()
       ) +
       labs(
-        title = paste("CN", cn_val, "-", treatment, "Treatment"),
-        subtitle = subtitle_text,
         x = "RFS Status", 
         y = "CN Fraction"
       ) +
@@ -982,34 +629,29 @@ for (cn_val in unique_cns) {
     y_pos <- y_max * 1.1
     
     p_treatment <- p_treatment +
-      stat_compare_means(method = "wilcox.test", label = "p.signif", 
-                         hide.ns = FALSE, size = 3)
-    
-    treatment_plots[[treatment]] <- p_treatment
-  }
+      stat_compare_means(method = "wilcox.test", label = "p", 
+                         hide.ns = FALSE, size = 3) + 
+      facet_grid(~Treatment)
   
   # Combine treatment plots if we have both treatments
-  if (length(treatment_plots) > 0) {
-    if (length(treatment_plots) == 2) {
-      combined_plot <- treatment_plots[[1]] + treatment_plots[[2]]
-      width_val <- 12
-    } else {
-      combined_plot <- treatment_plots[[1]]
-      width_val <- 6
-    }
-    
-    ggsave(file.path(boxplot_dir, paste0("CN", cn_val, "_RFS_treatment_stratified_", cn_column, ".pdf")), 
-           combined_plot, width = width_val, height = 5)
-  }
+    ggsave(file.path(figureDir, paste0("CN", cn_val, "_RFS_treatment_stratified_", cn_column, ".pdf")), 
+           p_treatment, width = 12, height = 5)
+  
 }
 
-# ============================================================================
-# TASK 5C: SUMMARY BOXPLOTS - ALL CNs TOGETHER
-# ============================================================================
-print("Task 5C: Creating summary boxplots - All CNs together")
+# TASK 5C: ALL CNs TOGETHER by Tissues
+print("Task 5C: Creating summary boxplots - All CNs together - by tissue")
+
+cn_long_data_roi <- cn_fractions_wide
+cn_long_data_roi$RFS_label <- ifelse(cn_long_data_roi$RFS_status == 0, "No Early Relapse", "Early Relapse")
+cn_long_data_roi <- cn_long_data_roi %>%
+            select(sample_id, RFS_status, Tissue, RFS_label, Treatment, all_of(cn_columns)) %>%
+            pivot_longer(cols = all_of(cn_columns), names_to = "CN", values_to = "CN_fraction") %>%
+            mutate(CN = gsub("CN_", "", CN))
+cn_long_data_roi$RFS_status <- as.factor(cn_long_data_roi$RFS_status)
 
 # Overall RFS comparison - all CNs in one plot
-p_summary_overall <- ggplot(cn_long_data, aes(x = RFS_label, y = CN_fraction, fill = RFS_status)) +
+p_summary_overall <- ggplot(cn_long_data_roi, aes(x = Tissue, y = CN_fraction, fill = RFS_status)) +
   geom_boxplot(alpha = 0.7, outlier.shape = NA) +
   geom_jitter(width = 0.2, alpha = 0.4, size = 0.5) +
   facet_wrap(~ paste("CN", CN), scales = "free_y", ncol = 4) +
@@ -1035,14 +677,14 @@ p_summary_overall <- ggplot(cn_long_data, aes(x = RFS_label, y = CN_fraction, fi
 
 # Add significance annotations using stat_compare_means
 p_summary_overall <- p_summary_overall +
-  stat_compare_means(method = "wilcox.test", label = "p.signif", 
+  stat_compare_means(method = "wilcox.test", label = "p", 
                      hide.ns = FALSE, size = 3)
 
-ggsave(file.path(boxplot_dir, paste0("CN_all_RFS_overall_summary_", cn_column, ".pdf")), 
+ggsave(file.path(figureDir, paste0("CN_all_RFS_overall_summary_", cn_column, ".pdf")), 
        p_summary_overall, width = 16, height = 12)
 
 # Treatment-stratified comparison - all CNs
-p_summary_treatment <- ggplot(cn_long_data, aes(x = RFS_label, y = CN_fraction, fill = RFS_status)) +
+p_summary_treatment <- ggplot(cn_long_data_roi, aes(x = Tissue, y = CN_fraction, fill = RFS_status)) +
   geom_boxplot(alpha = 0.7, outlier.shape = NA) +
   geom_jitter(width = 0.2, alpha = 0.4, size = 0.4) +
   facet_grid(Treatment ~ paste("CN", CN), scales = "free_y") +
@@ -1068,974 +710,585 @@ p_summary_treatment <- ggplot(cn_long_data, aes(x = RFS_label, y = CN_fraction, 
 
 # Add significance annotations
 p_summary_treatment <- p_summary_treatment +
-  stat_compare_means(method = "wilcox.test", label = "p.signif", 
-                     hide.ns = FALSE, size = 2.5)
+  stat_compare_means(method = "wilcox.test", label = "p", 
+                     hide.ns = FALSE, size = 3)
 
-ggsave(file.path(boxplot_dir, paste0("CN_all_RFS_treatment_summary_", cn_column, ".pdf")), 
-       p_summary_treatment, width = 20, height = 10)
+ggsave(file.path(figureDir, paste0("CN_all_RFS_treatment_summary_", cn_column, ".pdf")), 
+       p_summary_treatment, width = 20, height = 8)
 
 # ============================================================================
-# TASK 5E: EFFECT SIZE VISUALIZATION
+# Task 6: CN Functionality Analysis - Epithelial vs T cell CNs
 # ============================================================================
+# Based on proportion table analysis identifying epithelial vs T cell enriched CNs
+print("Starting Task 6: Functionality Analysis - Epithelial vs T cell CNs")
 
-print("Task 5E: Creating effect size visualization")
+# CN GROUP SELECTIONS BASED ON PROPORTION TABLE ANALYSIS
+# Epithelial-enriched CNs (based on EC_* cell enrichment)
+epithelial_cns <- c("3", "5", "7", "8")
 
-# Create effect size plot
-effect_size_data <- all_comparison_results %>%
-  filter(!is.na(effect_size)) %>%
-  mutate(
-    abs_effect_size = abs(effect_size),
-    comparison_label = paste(comparison_type, treatment_group, sep = " - ")
-  )
+# T cell-enriched CNs (based on CD4T, CD8T, Treg enrichment)
+tcell_cns <- c("1", "5", "6", "8", "9")
 
-if (nrow(effect_size_data) > 0) {
-  p_effect_size <- ggplot(effect_size_data, aes(x = reorder(paste("CN", CN), abs_effect_size), 
-                                                y = abs_effect_size, 
-                                                fill = effect_size_interpretation)) +
-    geom_col(alpha = 0.8) +
-    facet_wrap(~ comparison_label, scales = "free_x") +
+# Note: CN5 and CN8 appear in both groups (mixed epithelial-immune neighborhoods)
+print("=== CN GROUP SELECTIONS ===")
+print(paste("Epithelial-enriched CNs:", paste(epithelial_cns, collapse = ", ")))
+print(paste("T cell-enriched CNs:", paste(tcell_cns, collapse = ", ")))
+print(paste("Mixed CNs (both groups):", paste(intersect(epithelial_cns, tcell_cns), collapse = ", ")))
+
+# FUNCTIONALITY MARKER SELECTIONS
+# Epithelial functionality markers (metabolism, hypoxia, proliferation, immune evasion)
+epithelial_markers <- c(
+  "Ki67",      # Proliferation
+  "GLUT1",     # Glucose metabolism  
+  "CA_IX",     # Hypoxia response
+  "FASN",      # Fatty acid synthesis
+  "HK2",       # Glycolysis
+  "PRPS1",     # Nucleotide synthesis
+  "VEGF",      # Angiogenesis
+  "CD274"      # PD-L1 (immune evasion)
+)
+
+# T cell functionality markers (exhaustion, activation, memory)
+tcell_markers <- c(
+  "CD279",     # PD-1 (exhaustion)
+  "TIGIT",     # Exhaustion
+  "CD366",     # TIM-3 (exhaustion)
+  "CD127",     # IL-7R (memory)
+  "CD27",      # Costimulation
+  "Ki67",      # T cell proliferation
+  "CD274"      # PD-L1 (for T cell-tumor interactions)
+)
+
+print("=== FUNCTIONALITY MARKER SELECTIONS ===")
+print(paste("Epithelial markers:", paste(epithelial_markers, collapse = ", ")))
+print(paste("T cell markers:", paste(tcell_markers, collapse = ", ")))
+
+# CELL TYPE SELECTIONS FOR ANALYSIS
+# Epithelial cell types (from proportion table)
+epithelial_celltypes <- c(
+  "EC_CAIX", "EC_EpCAM", "EC_GLUT1", "EC_Ki67", 
+  "EC_Ki67_CAIX", "EC_Vimentin"
+)
+
+# T cell types
+tcell_celltypes <- c(
+  "CD4T", "CD8T", "Treg", "NK"
+)
+
+print("=== CELL TYPE SELECTIONS ===")
+print(paste("Epithelial cell types:", paste(epithelial_celltypes, collapse = ", ")))
+print(paste("T cell types:", paste(tcell_celltypes, collapse = ", ")))
+
+# DATA PREPARATION
+print("Preparing data for functionality analysis...")
+
+# Use the clinical analysis data from previous tasks
+if (!exists("clinical_analysis_data")) {
+  clinical_analysis_data <- read.csv(file.path(figureDir, paste0("CN_data_for_clinical_analysis_", cn_column, ".csv")))
+}
+
+# Also need the original metadata for cell-level analysis
+meta_df_func <- meta_df
+
+# Filter for cells in CNs of interest
+all_cns_of_interest <- unique(c(epithelial_cns, tcell_cns))
+meta_df_func <- meta_df_func[meta_df_func[[cn_column]] %in% all_cns_of_interest, ]
+
+print(paste("Cells in CNs of interest:", nrow(meta_df_func)))
+
+# Check available markers in data
+available_epithelial_markers <- intersect(epithelial_markers, rownames(spe_filtered))
+available_tcell_markers <- intersect(tcell_markers, rownames(spe_filtered))
+
+print("=== AVAILABLE MARKERS CHECK ===")
+print(paste("Available epithelial markers:", paste(available_epithelial_markers, collapse = ", ")))
+print(paste("Available T cell markers:", paste(available_tcell_markers, collapse = ", ")))
+
+# EPITHELIAL CN FUNCTIONALITY ANALYSIS
+print("=== EPITHELIAL CN FUNCTIONALITY ANALYSIS ===")
+
+# Filter for epithelial cells in epithelial CNs
+epithelial_data <- meta_df_func[
+  meta_df_func[[cn_column]] %in% epithelial_cns & 
+    meta_df_func$sub_celltype %in% epithelial_celltypes, 
+]
+
+print(paste("Epithelial cells in epithelial CNs:", nrow(epithelial_data)))
+
+if (nrow(epithelial_data) > 0) {
+  # Get expression data for epithelial cells
+  epithelial_expr <- assay(spe_filtered)[available_epithelial_markers, rownames(epithelial_data)]
+  epithelial_expr_df <- as.data.frame(t(epithelial_expr))
+  
+  # Combine with metadata
+  epithelial_func_df <- cbind(epithelial_data, epithelial_expr_df)
+  
+  # Calculate mean expression per marker per CN per cell type per patient
+  epithelial_summary <- epithelial_func_df %>%
+    group_by(patient_id, !!sym(cn_column), sub_celltype, RFS_status, Treatment) %>%
+    summarise(across(all_of(available_epithelial_markers), mean, na.rm = TRUE), .groups = 'drop')
+  
+  print(paste("Epithelial summary records:", nrow(epithelial_summary)))
+  
+  # Save epithelial functionality data
+  write.csv(epithelial_summary, 
+            file.path(figureDir, paste0("epithelial_functionality_summary_", cn_column, ".csv")), 
+            row.names = FALSE)
+}
+
+# T CELL CN FUNCTIONALITY ANALYSIS  
+print("=== T CELL CN FUNCTIONALITY ANALYSIS ===")
+
+# Filter for T cells in T cell CNs
+tcell_data <- meta_df_func[
+  meta_df_func[[cn_column]] %in% tcell_cns & 
+    meta_df_func$sub_celltype %in% tcell_celltypes, 
+]
+
+print(paste("T cells in T cell CNs:", nrow(tcell_data)))
+
+if (nrow(tcell_data) > 0) {
+  # Get expression data for T cells
+  tcell_expr <- assay(spe_filtered)[available_tcell_markers, rownames(tcell_data)]
+  tcell_expr_df <- as.data.frame(t(tcell_expr))
+  
+  # Combine with metadata
+  tcell_func_df <- cbind(tcell_data, tcell_expr_df)
+  
+  # Calculate mean expression per marker per CN per cell type per patient
+  tcell_summary <- tcell_func_df %>%
+    group_by(patient_id, !!sym(cn_column), sub_celltype, RFS_status, Treatment) %>%
+    summarise(across(all_of(available_tcell_markers), mean, na.rm = TRUE), .groups = 'drop')
+  
+  print(paste("T cell summary records:", nrow(tcell_summary)))
+  
+  # Save T cell functionality data
+  write.csv(tcell_summary, 
+            file.path(figureDir, paste0("tcell_functionality_summary_", cn_column, ".csv")), 
+            row.names = FALSE)
+}
+
+print("Task 6 completed successfully!")
+
+# ============================================================================
+# Task 7: Violin Plot Visualization for Functionality Analysis
+# ============================================================================
+# This continues from Task 6 - make sure you have run Task 6 first
+print("Starting Task 7: Violin Plot Visualization for Functionality Analysis")
+
+# LOAD DATA FROM TASK 6
+print("Loading functionality data from Task 6...")
+
+# Load functionality summaries
+epithelial_summary <- read.csv(file.path(figureDir, paste0("epithelial_functionality_summary_", cn_column, ".csv")))
+tcell_summary <- read.csv(file.path(figureDir, paste0("tcell_functionality_summary_", cn_column, ".csv")))
+
+print(paste("Epithelial data records:", nrow(epithelial_summary)))
+print(paste("T cell data records:", nrow(tcell_summary)))
+
+# Get CN groups from Task 6
+print("=== MARKERS AVAILABLE FOR VISUALIZATION ===")
+print(paste("Epithelial markers:", paste(epithelial_markers, collapse = ", ")))
+print(paste("T cell markers:", paste(tcell_markers, collapse = ", ")))
+
+
+# TASK 7A: EPITHELIAL CN VIOLIN PLOTS
+print("Task 7A: Creating epithelial CN violin plots")
+if (nrow(epithelial_summary) > 0 && length(epithelial_markers) > 0) {
+  
+  # Create violin plots for epithelial markers across epithelial CNs
+  # Reshape data
+  plotdf <- epithelial_summary
+  plotdf$RFS_status <- as.factor(plotdf$RFS_status)
+  plotdf <- pivot_longer(epithelial_summary, 
+                         cols = (ncol(epithelial_summary) - length(epithelial_markers) + 1):ncol(epithelial_summary),
+                         values_to = "expression",names_to = "marker")
+  
+  plotdf$CN_factor <- factor(plotdf[[cn_column]], levels = epithelial_cns)
+  plotdf$RFS_label <- factor(plotdf$RFS_status, 
+                             levels = c(0, 1), labels = c("No Early Relapse", "Early Relapse"))
+  
+
+  print(paste("  Creating epithelial violin plot for epithelial CNs"))
+  p_cn <- ggplot(plotdf, aes(x = CN_factor, y = expression, fill = CN_factor)) +
+    geom_violin(alpha = 0.7, scale = "width", trim = FALSE) +
+    geom_boxplot(width = 0.2, alpha = 0.8, outlier.shape = NA) +
+    geom_jitter(width = 0.1, alpha = 0.5, size = 0.75, color = "grey75") +
+    scale_fill_manual(values = CN_color) +
     theme_bw() +
     theme(
       plot.title = element_text(size = 14, face = "bold", hjust = 0.5),
       axis.title = element_text(size = 12, face = "bold"),
-      axis.text.x = element_text(angle = 45, hjust = 1, size = 9),
-      axis.text.y = element_text(size = 10),
-      strip.text = element_text(size = 10, face = "bold"),
-      legend.position = "bottom",
-      legend.title = element_text(size = 11, face = "bold")
+      axis.text = element_text(size = 11),
+      legend.position = "top",
+      panel.grid.minor = element_blank()
     ) +
     labs(
-      title = "Effect Sizes of CN Differences",
-      x = "CN", 
-      y = "Absolute Effect Size (Rank-Biserial Correlation)", 
-      fill = "Effect Size"
+      title = paste(marker, "Expression in", celltype, "across CNs"),
+      x = "Cellular Neighborhood", 
+      y = paste(marker, "Expression")
     ) +
-    scale_fill_manual(values = c("Negligible" = "grey80", "Small" = "lightblue", 
-                                 "Medium" = "orange", "Large" = "red")) +
-    geom_hline(yintercept = c(0.1, 0.3, 0.5), linetype = "dashed", alpha = 0.5)
+    stat_compare_means(comparisons = combn(as.character(unique(plotdf$CN_factor)), 2, simplify = FALSE),
+                       method = "wilcox.test", label = "p.signif", hide.ns = TRUE) + 
+    facet_grid(sub_celltype~marker)
   
-  ggsave(file.path(boxplot_dir, paste0("CN_effect_sizes_", cn_column, ".pdf")), 
-         p_effect_size, width = 14, height = 8)
-}
+    ggsave(file.path(figureDir, paste0("epithelial_", marker, "_CN_comparison_", cn_column, ".pdf")), 
+         p_cn, width = 20, height = 16)
+    
+    # RFS comparison plot
+    rfs_groups <- unique(plotdf$RFS_status)
+    plotdf$RFS_status <- as.factor(plotdf$RFS_status)
+    # CN-stratified RFS comparison (if we have multiple CNs)
 
-
-
-
-
-
-
-
-
-
-##### Cellular neighborhood analysis
-# Choose K clusters
-k_clusters <- c(10, 15, 20)
-Pairnames <- colPairNames(spe)
-
-for(pairname_ in Pairnames){
-  
-  ## aggregate neighbor
-  spe <- aggregateNeighbors(
-    spe,
-    colPairName = pairname_,
-    aggregate_by = "metadata",
-    count_by = "sub_celltype"
-  )
-  
-  ## Iterative on number of clusters
-  for(k_cluster_ in k_clusters){
-    ## create folder
-    figureDir_ <- file.path(figureDir,paste0(pairname_," ",k_cluster_))
-    if(!file.exists(figureDir_)){
-      dir.create(figureDir_,recursive = T)
-    }
-    
-    cn <- kmeans(spe$aggregatedNeighbors, centers = k_cluster_)
-    
-    # 创建动态列名避免覆盖
-    cluster_colname <- paste0(pairname_,"_cluster_", k_cluster_)
-    colData(spe)[[cluster_colname]] <- as.factor(cn$cluster)
-    spe$cn_celltypes <- as.factor(colData(spe)[[cluster_colname]])
-    
-    # 绘制热图
-    for_plot <- prop.table(table(as.character(spe$cn_celltypes), spe$sub_celltype), margin = 1)
-    p <- pheatmap(for_plot, 
-                  color = colorRampPalette(c("dark blue", "white", "dark red"))(100),
-                  scale = "column")
-    
-    pdf(file.path(figureDir_, paste0("CN analysis of ",pairname_," in ",k_cluster_," cluster.pdf")),width = 15,height = 10)
-    print(p)
-    dev.off()
-    
-    # 绘制组成条形图 
-    if(T){
-      # get the number of celltypes within different CN
-      countdf_ <- Transform_CellCountMat(
-        spe_ = spe,
-        clinicalFeatures = "cn_celltypes",
-        img_id = img_id_,
-        count_by = "sub_celltype",  # 这里保持使用临时列
-        is.fraction = FALSE
-      )
-      
-      # Identify cell subpopulation columns by excluding "PID" and "cn_celltypes"
-      cell_subpop_cols <- setdiff(names(countdf_), c("PID", "cn_celltypes"))
-      
-      # Sum cell subpopulation counts for each cn_celltypes
-      summed_df <- countdf_ %>%
-        group_by(cn_celltypes) %>%
-        summarise(across(all_of(cell_subpop_cols), sum, na.rm = TRUE)) %>%
-        ungroup()
-      
-      # Convert cn_celltypes to factor for categorical plotting
-      summed_df$cn_celltypes <- factor(summed_df$cn_celltypes)
-      
-      # Transform to long format for ggplot2
-      long_df <- summed_df %>%
-        pivot_longer(cols = all_of(cell_subpop_cols), 
-                     names_to = "cell_subpopulation", 
-                     values_to = "count")
-      
-      long_df <- as.data.frame(long_df)
-      long_df$cell_subpopulation <- as.factor(long_df$cell_subpopulation)
-      
-      # Create the stacked barplot with horizontal bars
-      p <- ggplot(long_df, aes(x = cn_celltypes, y = count, fill = cell_subpopulation)) +
-        geom_bar(stat = "identity", position = "stack") +
-        labs(x = "CN Cell Types", 
-             y = "Total Cell Count", 
-             fill = "Cell Subpopulation") +
-        theme_minimal() +
-        scale_fill_manual(values = metadata(spe)$color_vectors[["sub_celltype"]]) +
-        coord_flip()
-      
-      pdf(file.path(figureDir_, paste0("CNAtype_stacked_barplot_k", k_cluster_, ".pdf")),
-          width = 10,
-          height = 7.5)
-      print(p)
-      dev.off()
-    }
-    
-    # Save Matrix
-    TRG_countdf <- Transform_CellCountMat(spe_ = spe,clinicalFeatures = c(names(compare_groups)),img_id = img_id_,count_by = "cn_celltypes",is.fraction = TRUE)
-    TRG_countdf <- as.data.frame(TRG_countdf)
-    
-    write.csv(TRG_countdf,file.path(figureDir_, paste0("CN analysis of ",pairname_," in ",k_cluster_," cluster.csv")))
-    
-    # Compare within different clinical matrix
-    for(compare_group_ in names(compare_groups)){
-      plotdf <- TRG_countdf[,c(1:k_cluster_,match(compare_group_,colnames(TRG_countdf)))]
-      
-      # Data transform
-      plotdf <- pivot_longer(data = plotdf,cols = 1:k_cluster_,names_to = "CN_type",values_to = "Fraction")
-      plotdf <- as.data.frame(plotdf)
-      plotdf <- na.omit(plotdf)
-      colnames(plotdf)[1] <- "group"
-      
-      plotdf$Fraction <- as.numeric(plotdf$Fraction)
-      plotdf$group <- as.factor(plotdf$group)
-      
-      # Plot boxplot
-      p1 <- ggplot(plotdf, aes(x = group, y = Fraction, fill = group)) +
-        geom_boxplot(alpha = 0.7, color = "black", outlier.shape = NA) +
-        geom_jitter(color = "darkgrey", position = position_jitter(width = 0.2), size = 0.1, alpha = 0.3) +
-        scale_fill_manual(values = ggsci::pal_jco("default")(length(unique(plotdf$group)))) +
-        theme_minimal() +
-        theme(
-          plot.title = element_text(size = 12, face = "bold"),
-          text = element_text(size = 12),
-          axis.title = element_text(face = "bold", size = 14),
-          axis.text.x = element_text(size = 12),
-          strip.background = element_blank()
-        ) +
-        ggtitle(paste0("CN analysis of ", pairname_, " in ", compare_group_)) +
-        facet_wrap(~CN_type,scales = "free_y") +
-        stat_compare_means(
-          comparisons = compare_groups[[clinical.info]], 
-          method = "wilcox.test",        # More robust than t-test
-          p.adjust.method = "fdr",       # Less conservative than Bonferroni
-          label = "p.adj",               # Shows adjusted p-values
-          hide.ns = FALSE                 # Cleaner visualization
-        )
-      
-      pdf(file.path(figureDir_, paste0("CN analysis of ",compare_group_," in ",pairname_," with ",k_cluster_," cluster.pdf")),width = 12,height = 15)
-      print(p1)
-      dev.off()
-    }
-  }
-}
-
-## Visualize the CN types on images
-pairname_ <- "knn_20"
-all_images <- unique(spe$sample_id)
-
-num_figures <- 10
-length_ <- length(all_images) %/% num_figures
-for(i in 1:num_figures){
-  sample_image <- all_images[c((length_*(i-1)):(length_*(i)))]
-  
-  #print(sample_image)
-  spe_subset <- spe[,spe$sample_id %in% sample_image]
-  
-  ## Plot
-  p <- plotSpatial(spe_subset,  # spe
-                   node_color_by = "knn_20_cluster_10", img_id = "sample_id",node_size_fix = 0.15) + 
-    scale_color_brewer(palette = "Set3")
-  
-  pdf(file.path(figureDir, paste0("CN Types on select images of figure id ",i,".pdf")),width = 12,height = 9)
-  print(p)
-  dev.off()
-}
-
-## Cell-cell pairwise interaction analysis
-out <- readRDS(file = file.path(saveDir, "Interaction_analysis_out.rds"))
-out <- out[out$group_by %in% spe$sample_id, ] ## subset tumor interaction
-
-out$group <- spe$patient_id[match(out$group_by, spe$sample_id)]
-head(out)
-
-## overall interaction
-df_ <- out %>% as_tibble() %>%
-  group_by(from_label, to_label) %>%
-  summarize(sum_sigval = sum(sigval, na.rm = TRUE))
-p <- df_ %>%
-  ggplot() +
-  geom_tile(aes(from_label, to_label, fill = sum_sigval)) +
-  geom_text(aes(from_label, to_label, label = sum_sigval), size = 2) +
-  scale_fill_gradient2(low = muted("#7aa6dcff"),
-                       mid = "white",
-                       high = muted("#cd534cff")) +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
-
-pdf(file.path(figureDir, "celltype pair interaction heatmap in all images.pdf"),width = 12,height = 9)
-print(p)
-dev.off()
-
-# Cellular interation between different clinical matrix
-for(clinical_ in names(compare_groups)){
-  clinical_groups <- unique(unlist(compare_groups[[clinical_]]) )
-  
-  for(clinical_group_ in clinical_groups){
-    idx_ <- colData(spe)[,clinical_] %in% clinical_group_
-    select_roi_ <- unique(spe[,idx_]$sample_id)
-    
-    out_ <- out[out$group_by %in% select_roi_, ] %>% 
-      as_tibble() %>%
-      group_by(from_label, to_label) %>%
-      summarize(sum_sigval = sum(sigval, na.rm = TRUE))
-    
-    p <- out_ %>%
-      ggplot() +
-      geom_tile(aes(from_label, to_label, fill = sum_sigval)) +
-      geom_text(aes(from_label, to_label, label = sum_sigval), size = 2) +
-      scale_fill_gradient2(low = muted("#7aa6dcff"),
-                           mid = "white",
-                           high = muted("#cd534cff")) +
-      theme(axis.text.x = element_text(angle = 45, hjust = 1))
-    
-    pdf(file.path(figureDir,paste0("Pair interaction in ",clinical_,"_group_",clinical_group_,".pdf")) ,width = 12,height = 9)
-    print(p)
-    dev.off()
-  }
-}
-
-## Display specific cell-cell interaction
-print(unique(out$from_label))
-sourceType <- "YAP+ Fibro"
-group_ <- "Group_A"
-
-out_ <- out[out$from_label %in% sourceType,]
-out_ <- as.data.frame(out_[out_$group %in% group_,]) 
-
-if(T){
-  # Step 1: Sum sigval for each to_label across all ROIs
-  sum_sigval <- out_ %>%
-    group_by(to_label) %>%
-    summarise(total_sigval = sum(sigval, na.rm = TRUE)) %>%
-    ungroup()
-  
-  # Step 2: Compute the fraction
-  total_rois <- length(unique(out_$group_by))
-  sum_sigval <- sum_sigval %>%
-    mutate(fraction = total_sigval / total_rois)
-  
-  # Step 3: Sort by fraction in decreasing order
-  sum_sigval <- sum_sigval %>%
-    arrange(desc(fraction))
-  
-  # Step 4: Set factor levels and add sign column
-  sum_sigval$to_label <- factor(sum_sigval$to_label, levels = sum_sigval$to_label)
-  sum_sigval <- sum_sigval %>%
-    mutate(sign = ifelse(fraction > 0, "Positive", "Negative"))
-  
-  # Step 5: Create the barplot
-  p <- ggplot(sum_sigval, aes(x = to_label, y = fraction, fill = sign)) +
-    geom_bar(stat = "identity") +
-    scale_fill_manual(values = c("Positive" = "#cd534cff", "Negative" = "#7aa6dcff")) +
-    theme_bw()+
-    theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) +
-    labs(x = "To Label", y = "Fraction", title = "Fraction of Significant Cell-Cell Interactions")
-  
-  pdf(file.path(figureDir,paste0("celltype pair interaction barplot in ",group_,".pdf")) ,width = 8,height = 6)
-  print(p)
-  dev.off()
-}
-
-# ------------------------------------------------------------------------------------------------
-##### Patch Analysis
-colnames(colData(spe)) ## view column of data
-patch_types <- colnames(colData(spe))[endsWith(colnames(colData(spe)),suffix = "_patch")] ## get all patch type
-patch_names <- sapply(patch_types, function(x){
-  return(strsplit(x,"_")[[1]][1])
-})
-all_images <- unique(spe$sample_id)
-
-figureDir <- file.path(workDir, "figures", "4_Patch")
-if(!file.exists(figureDir)){
-  dir.create(figureDir,recursive = T)
-}
-
-## Plot different types of patches
-custom_palette <- c(
-  "EndoMT_patch" = "#A65628",
-  "Endothelial_patch" = "#4DAF4A"
-)
-
-## Plot Patch on spatial
-for(patch_type_ in patch_types){
-  
-  ## Sample for plotting
-  sample_rois_ <- sample(all_images,12)
-  spe_temp <- spe[,spe$sample_id %in% sample_rois_]
-  
-  patch_type_vec_ <- colData(spe_temp)[,patch_type_] ## get correspond patch type
-  colData(spe_temp)[,patch_type_] <- ifelse(is.na(patch_type_vec_),NA,patch_type_)
-  
-  p <- plotSpatial(
-    spe_temp,
-    node_color_by = patch_type_,
-    img_id = "sample_id",
-    node_size_fix = 0.5
-  ) +
-    theme(legend.position = "right") +
-    scale_color_manual(values = custom_palette)
-  
-  rm(spe_temp,sample_rois_,patch_type_vec_)
-  gc()
-  
-  pdf(file.path(figureDir,paste0(patch_type_," in random ROIs.pdf")), width = 24,height = 18)
-  print(p)
-  dev.off()
-}
-
-
-### Analysis configuration in different patch types
-analysisDF <- as.data.frame(colData(spe)[,c("sample_id","sub_celltype",names(compare_groups),patch_types,unname(patch_names))])
-analysisDF_Back <- analysisDF
-
-for(patch_type_ in patch_types){
-  
-  ## Get patch name
-  patch_name_ <- strsplit(patch_type_,"_")[[1]]
-  patch_name_ <- paste(patch_name_[1:length(patch_name_)-1],collapse =  "_")
-  
-  ## Get metadata
-  analysisDF <- analysisDF[,match(c("sample_id","sub_celltype",names(compare_groups),patch_type_,patch_name_),
-                                  colnames(analysisDF))]
-  colnames(analysisDF)[c(11,12)] <- c("patch_type","patch_name")
-  
-  # --- 1. Patch Frequency and Size Analysis ---
-  if(T){
-    # Step 1: Calculate total number of cells per sample_id
-    total_cells <- analysisDF %>%
-      group_by(sample_id) %>%
-      summarise(total_cells = n(), .groups = 'drop')
-    
-    # Step 2: Calculate number of cells with non-NA patch_type per sample_id
-    patch_cells <- analysisDF %>%
-      filter(!is.na(patch_type)) %>%
-      group_by(sample_id) %>%
-      summarise(patch_cells = n(), .groups = 'drop')
-    
-    # Step 3: Combine and calculate the ratio (patch_cells / total_cells)
-    cell_ratio <- total_cells %>%
-      left_join(patch_cells, by = "sample_id") %>%
-      mutate(
-        patch_cells = ifelse(is.na(patch_cells), 0, patch_cells),
-        ratio = patch_cells / total_cells
-      ) %>%
-      arrange(desc(ratio))  # Sort in decreasing order
-    
-    # Print summary statistics
-    cat("Summary of cell counts and ratios:\n")
-    print(head(cell_ratio, 10))
-    cat("\nTotal samples:", nrow(cell_ratio), "\n")
-    cat("Samples with patch_type data:", sum(cell_ratio$patch_cells > 0), "\n")
-    
-    # Step 4 & 5: Create decreasing bar plot with top-5 sample labels
-    # Identify top 5 samples with non-zero ratios for labeling
-    top5_samples <- cell_ratio %>%
-      filter(ratio > 0) %>%
-      slice_head(n = 10) %>%
-      pull(sample_id)
-    
-    # Create the lollipop plot
-    p <- ggplot(cell_ratio, aes(x = reorder(sample_id, ratio), y = ratio)) +
-      # Add the lollipop stick
-      geom_segment(aes(xend = reorder(sample_id, ratio), yend = 0), 
-                   color = "grey85", linewidth = 0.3) +
-      # Add the lollipop circle
-      geom_point(color = "#ffccccff", size = 4) +
-      # Add text labels inside circles for top 5 samples
-      geom_text(
-        data = cell_ratio %>% filter(sample_id %in% top5_samples),
-        #data = cell_ratio,
-        aes(label = round(ratio,digits = 4)),
-        color = "grey30",
-        size = 2.5,
-        fontface = "bold"
-      ) +
-      coord_flip() +  # Flip coordinates for better readability
-      labs(
-        title = "Proportion of Cells with Patch Type Information by Sample",
-        x = "Sample ID",
-        y = "Proportion of Cells with Patch Type",
-        caption = paste("Total samples:", nrow(cell_ratio), "| Total cells:", sum(cell_ratio$total_cells))
-      ) +
-      theme_classic2() +
-      theme(
-        # axis.text.y = element_blank(),  # Hide y-axis labels 
-        axis.ticks.y = element_blank(),
-        plot.title = element_text(hjust = 0.5),
-        plot.subtitle = element_text(hjust = 0.5),
-        panel.grid.major.y = element_blank(),  # Remove horizontal grid lines
-        panel.grid.minor.y = element_blank()
-      )
-    
-    # Display the plot
-    pdf(file = file.path(figureDir,paste0(patch_type_," Patch size distribution.pdf")),width = 6,height = 12)
-    print(p)
-    dev.off()
-    
-  }
-  patch_freq_roi <- analysisDF %>%
-    filter(!is.na(patch_type)) %>%                  # Filter cells in patches
-    group_by(sample_id) %>%
-    summarise(n_patches = n_distinct(patch_type)) %>%  # Count unique patches
-    left_join(analysisDF %>% select(sample_id, names(compare_groups)) %>% distinct(), by = "sample_id")
-  
-  patch_freq_roi$ratio <- cell_ratio[match(patch_freq_roi$sample_id,cell_ratio$sample_id),]$ratio 
-  write.csv(patch_freq_roi,file.path(figureDir,paste0(patch_type_," Patch number distribution(ROI).csv")))
-  
-  # Boxplot by clinical group
-  for(clinical.info in names(compare_groups)){
-    patch_freq_roiTemp <- patch_freq_roi[,c("sample_id","n_patches","ratio",clinical.info)]
-    patch_freq_roiTemp <- as.data.frame(na.omit(patch_freq_roiTemp)) 
-    patch_freq_roiTemp$group <- as.factor(patch_freq_roiTemp[,clinical.info])
-    
-    p1 <- ggplot(patch_freq_roiTemp, aes(x = group, y = n_patches, fill = group)) +
-      geom_boxplot(alpha = 0.7, color = "black", outlier.shape = NA) +
-      geom_jitter(color = "darkgrey", position = position_jitter(width = 0.2), size = 0.1, alpha = 0.3) +
-      theme_minimal() +
-      theme(
-        plot.title = element_text(size = 12, face = "bold"),
-        text = element_text(size = 12),
-        axis.title = element_text(face = "bold", size = 14),
-        axis.text.x = element_text(size = 12),
-        strip.background = element_blank()
-      ) +
-      labs(title = paste0("Number of ",patch_type_," by ",clinical.info), x = "Group", y = "Number of Patches")+
-      scale_fill_manual(values = ggsci::pal_jco("default")(length(unique(patch_freq_roiTemp$group)))) +
-      stat_compare_means(
-        comparisons = compare_groups[[clinical.info]], 
-        method = "wilcox.test",        # More robust than t-test
-        p.adjust.method = "fdr",       # Less conservative than Bonferroni
-        label = "p.adj",               # Shows adjusted p-values
-        hide.ns = FALSE                 # Cleaner visualization
-      )
-    
-    p2 <- ggplot(patch_freq_roiTemp, aes(x = group, y = ratio, fill = group)) +
-      geom_boxplot(alpha = 0.7, color = "black", outlier.shape = NA) +
-      geom_jitter(color = "darkgrey", position = position_jitter(width = 0.2), size = 0.1, alpha = 0.3) +
-      theme_minimal() +
-      theme(
-        plot.title = element_text(size = 12, face = "bold"),
-        text = element_text(size = 12),
-        axis.title = element_text(face = "bold", size = 14),
-        axis.text.x = element_text(size = 12),
-        strip.background = element_blank()
-      ) +
-      labs(title = paste0("Fraction of ",patch_type_," by ",clinical.info), x = "Group", y = "Fraction of Patches")+
-      scale_fill_manual(values = ggsci::pal_jco("default")(length(unique(patch_freq_roiTemp$group)))) +
-      stat_compare_means(
-        comparisons = compare_groups[[clinical.info]], 
-        method = "wilcox.test",        # More robust than t-test
-        p.adjust.method = "fdr",       # Less conservative than Bonferroni
-        label = "p.adj",               # Shows adjusted p-values
-        hide.ns = FALSE                 # Cleaner visualization
-      )
-    
-    pdf(file = file.path(figureDir,paste0(patch_type_," boxplot for Patch number and size comparison in ",clinical.info,".pdf")),width = 10,height = 5)
-    print(p1 + p2)
-    dev.off()
-  }
-  
-  # --- 2. Patch Cellular Composition ---  
-  # Microenvironment composition
-  microenv_comp <- analysisDF %>%
-    filter(!is.na(patch_type) & !patch_name) %>%  # Non-CD45_TC cells in patches
-    group_by(sample_id, patch_type, sub_celltype) %>%
-    summarise(n_cells = n()) %>%
-    group_by(sample_id, patch_type) %>%
-    mutate(prop = n_cells / sum(n_cells)) %>%     # Proportion per patch
-    group_by(sample_id, sub_celltype) %>%
-    summarise(avg_prop = mean(prop)) %>%          # Average across patches
-    left_join(analysisDF %>% select(sample_id, names(compare_groups)) %>% distinct(), by = "sample_id")
-  
-  for(clinical.info in names(compare_groups)){
-    # Aggregate by clinical group
-    microenv_compTemp <- microenv_comp[,c("sample_id","sub_celltype","avg_prop",clinical.info)]
-    colnames(microenv_compTemp)[4] <- "group"
-    microenv_compTemp <- microenv_compTemp[!is.na(microenv_compTemp$group),]
-    
-    microenv_group <- microenv_compTemp %>%
-      group_by(group, sub_celltype) %>%
-      summarise(mean_prop = mean(avg_prop))
-    
-    microenv_group$group <- as.factor(microenv_group$group)
-    
-    # Stacked bar plot for microenvironment composition
-    p <- ggplot(microenv_group, aes(x = group, y = mean_prop, fill = sub_celltype)) +
-      geom_bar(stat = "identity", position = "stack") +
-      theme_classic2()+
-      theme(axis.text.x = element_text(angle = 0, hjust = 0.5, vjust = 0.5)) +
-      labs(title = "Microenvironment Composition in ",patch_name_," Patches", x = "Group", y = "Mean Proportion")+
-      scale_fill_manual(values = metadata(spe)$color_vectors[["sub_celltype"]])
-    
-    pdf(file = file.path(figureDir,paste0(patch_type_," of ",clinical.info," microenvironment composition.pdf")),width = 5,height = 8)
-    print(p)
-    dev.off()
-    
-    #write.csv(microenv_comp,file.path(figureDir,paste0(patch_type_," microenvironment composition.csv")))
-    
-    ## Compare across groups of subpopulation
-    groups <- unique(microenv_compTemp$group)
-    
-    # Loop through each clinical group
-    diff_results <- data.frame()
-    for (grp in groups) {
-      # Create a binary column: 1 if in the group, 0 otherwise
-      microenv_compTemp$in_group <- ifelse(microenv_compTemp$group == grp, 1, 0)
-      
-      # Get unique cell subpopulations
-      cell_types <- unique(microenv_compTemp$sub_celltype)
-      
-      # Perform Wilcoxon test for each cell type
-      for (cell_type in cell_types) {
-        # Filter data for the current cell type
-        cell_data <- microenv_compTemp %>% filter(sub_celltype == cell_type)
-        
-        if(!(grp %in% unique(cell_data$group))){
-          next;
-        }
-        if(length(unique(cell_data$group))==1){
-          next;
-        }
-        # Perform Wilcoxon test (non-parametric test for comparing two groups)
-        test_result <- wilcox.test(avg_prop ~ in_group, data = cell_data)
-        
-        # Calculate fold change (mean in group / mean in others)
-        mean_in_group <- mean(cell_data$avg_prop[cell_data$in_group == 1], na.rm = TRUE)
-        mean_others <- mean(cell_data$avg_prop[cell_data$in_group == 0], na.rm = TRUE)
-        fold_change <- mean_in_group / mean_others
-        log2_fc <- log2(fold_change)  # Log2 fold change for direction and magnitude
-        
-        # Store results
-        diff_results <- rbind(diff_results, data.frame(
-          group = grp,
-          major_celltype = cell_type,
-          p_value = test_result$p.value,
-          fold_change = fold_change,
-          log2_fc = log2_fc
-        ))
-      }
-    }
-    
-    # Adjust p-values for multiple testing using Benjamini-Hochberg correction
-    diff_results <- diff_results %>%
-      group_by(group) %>%
-      mutate(p_adj = p.adjust(p_value, method = "BH")) %>%
-      ungroup()
-    
-    # Determine significance and direction
-    p_sig_cutoff <- 0.05
-    logfc_cutoff <- 1
-    
-    # Create the bubble plot
-    if(T){
-      diff_results <- diff_results %>%
-        mutate(
-          significance = case_when(
-            p_value <= p_sig_cutoff & log2_fc >= logfc_cutoff ~ "Up",
-            p_value <= p_sig_cutoff & log2_fc <= logfc_cutoff ~ "Down",
-            TRUE ~ "NS"  # Not significant
-          )
-        )
-      
-      p <- ggplot(diff_results, aes(x = log2_fc, y = -log10(p_adj))) +
-        # Plot all points in grey as background
-        geom_point(color = "grey", size = 0.8) +
-        # Overlay significant points in color
-        geom_point(data = subset(diff_results, significance %in% c("Up", "Down")), 
-                   aes(color = significance), size = 0.8) +
-        # Set color scale for significant points21
-        scale_color_manual(values = c("Up" = "#cd534cff", "Down" = "#7ca6dcff", "NS" = "grey")) +
-        # Facet by group, one row with multiple columns
-        facet_grid(. ~ group) +
-        # Add threshold lines: vertical for log2_fc, horizontal for p_adj = 0.05
-        geom_vline(xintercept = c(-logfc_cutoff, logfc_cutoff), linetype = "dashed", color = "grey50", size = 0.5) +
-        geom_hline(yintercept = -log10(p_sig_cutoff), linetype = "dashed", color = "grey50", size = 0.5) +
-        # Use a clean theme similar to the new code
+      p_cn_rfs <- ggplot(plotdf, aes(x = CN_factor, y = expression, fill = RFS_status)) +
+        geom_violin(alpha = 0.7, scale = "width", trim = FALSE) +
+        facet_wrap(~ paste("CN", CN_factor), scales = "free_y") +
+        scale_fill_manual(values = RFS_color) +
         theme_bw() +
         theme(
-          panel.grid = element_blank(),           # Remove grid lines
-          axis.text = element_text(size = 10),    # Axis text size from new code
-          strip.text.x = element_text(size = 10, face = "bold"),  # Bold facet titles
-          legend.position = "bottom",             # Legend at bottom, inspired by your code
-          axis.title = element_text(face = "bold", size = 14),    # Bold titles from your code
-          text = element_text(size = 12)          # General text size from your code
+          plot.title = element_text(size = 14, face = "bold", hjust = 0.5),
+          axis.title = element_text(size = 12, face = "bold"),
+          axis.text.x = element_text(angle = 0, vjust = 0.5, hjust = 0.5, size = 10),
+          axis.text.y = element_text(size = 10),
+          strip.text = element_text(size = 11, face = "bold"),
+          legend.position = "bottom",
+          panel.grid.minor = element_blank()
         ) +
-        # Add labels and title
         labs(
-          title = paste0("Differential Abundance of Cell Subpopulations by ",clinical.info),
-          x = "Log2 Fold Change",
-          y = "-Log10 Adjusted P-value",
-          color = "Significance"
+          title = paste(marker, "Expression - CN-Stratified RFS Comparison"),
+          x = "RFS Status", 
+          y = paste(marker, "Expression"),
+          fill = "RFS Status"
         ) +
-        # Add labels for significant points, matching your original approach
-        geom_text_repel(
-          data = subset(diff_results, significance %in% c("Up", "Down")),
-          aes(label = major_celltype),
-          size = 2,
-          box.padding = 0.5,
-          max.overlaps = Inf
-        )
+        stat_compare_means(method = "wilcox.test", label = "p.signif", size = 3, hide.ns = TRUE) +
+        facet_grid(marker~sub_celltype, scales = "free_y")
       
-      pdf(file = file.path(figureDir,paste0(patch_type_," of ",clinical.info," cell subpopulation fraction difference.pdf")),width = 8,height = 6)
-      print(p)
-      dev.off()
-      
-      # write.csv(diff_results,file.path(figureDir,paste0(patch_type_," cell subpopulation fraction difference.csv") ))
-    }
-    
-  }
-    # --- 3. Patch Cellular Expression ---  
-  if(T){
-    # Step 1: Filter cells by patch_type
-    spe_filtered <- spe[,rownames(analysisDF)]
-    
-    # Step 2: Get expression matrix and metadata
-    expr_matrix_all <- assay(spe_filtered)
-    
-    # Step 3: Calculate mean expression per celltype per sample
-    
-    for(clinical.info in names(compare_groups)){
-      
-      ## Get subset expression matrix and metadata
-      cell_meta <- analysisDF[,c("sample_id","sub_celltype",clinical.info,"patch_type","patch_name")]
-      cell_meta <- cell_meta[!is.na(cell_meta$patch_type),]
-      cell_meta <- cell_meta[!is.na(cell_meta[,clinical.info]),]
-      
-      expr_matrix <- expr_matrix_all[,match(rownames(cell_meta),colnames(expr_matrix_all))]
-      
-      # Calculate mean expression for each marker in each group
-      mean_expr_list <- list()
-      
-      for (i in 1:nrow(expr_matrix)) {
-        marker_data <- data.frame(
-          expression = expr_matrix[i, ],
-          sample_id = cell_meta$sample_id,
-          sub_celltype = cell_meta$sub_celltype,
-          clinical_group = cell_meta[[clinical.info]],
-          stringsAsFactors = FALSE
-        )
-        
-        # Calculate mean expression per celltype per sample per clinical group
-        marker_summary <- marker_data %>%
-          group_by(sample_id, sub_celltype, clinical_group) %>%
-          summarise(mean_expr = mean(expression, na.rm = TRUE), .groups = 'drop') %>%
-          mutate(marker = rownames(expr_matrix)[i])
-        
-        mean_expr_list[[i]] <- marker_summary
-      }
-      
-      # Combine all markers
-      all_mean_expr <- do.call(rbind, mean_expr_list)
-      group_vals <- unique(all_mean_expr$clinical_group)
-      n_groups <- length(group_vals)
-      
-      # Step 4: Perform statistical testing and calculate fold change
-      results_list <- list()
-      
-      celltypes <- unique(all_mean_expr$sub_celltype)
-      markers <- unique(all_mean_expr$marker)
-      markers <- markers[!startsWith(markers,prefix = "DNA")]
-      
-      for (celltype in celltypes) {
-        for (marker in markers) {
-          # Get data for this celltype and marker
-          subset_data <- all_mean_expr %>%
-            filter(sub_celltype == celltype, marker == !!marker)
-          
-          if (nrow(subset_data) < n_groups * 3) next  # Need at least 3 samples per group
-          
-          # Check if we have data for all groups
-          groups_present <- unique(subset_data$clinical_group)
-          if (length(groups_present) < 2) next
-          
-          if (n_groups == 2) {
-            # Two groups: use t-test (original logic)
-            group1_data <- subset_data %>% filter(clinical_group == group_vals[1]) %>% pull(mean_expr)
-            group2_data <- subset_data %>% filter(clinical_group == group_vals[2]) %>% pull(mean_expr)
-            
-            if (length(group1_data) == 0 || length(group2_data) == 0) next
-            
-            # Calculate fold change (group1 vs group2)
-            mean_group1 <- mean(group1_data, na.rm = TRUE)
-            mean_group2 <- mean(group2_data, na.rm = TRUE)
-            fold_change <- log2((mean_group1 + 0.001) / (mean_group2 + 0.001))
-            
-            # Perform t-test
-            if (length(group1_data) > 1 && length(group2_data) > 1) {
-              test_result <- t.test(group1_data, group2_data)
-              p_value <- test_result$p.value
-            } else {
-              p_value <- 1
-            }
-            
-            results_list[[paste(celltype, marker, sep = "_")]] <- data.frame(
-              sub_celltype = celltype,
-              marker = marker,
-              fold_change = fold_change,
-              p_value = p_value,
-              mean_group1 = mean_group1,
-              mean_group2 = mean_group2,
-              n_group1 = length(group1_data),
-              n_group2 = length(group2_data),
-              comparison = paste(group_vals[1], "vs", group_vals[2])
-            )
-            
-          } else {
-            # Multiple groups: use "1 vs. remaining" approach
-            
-            # Perform each group vs. all others
-            for (target_group in group_vals) {
-              
-              # Split data into target group vs. all others
-              target_data <- subset_data %>% filter(clinical_group == target_group) %>% pull(mean_expr)
-              other_data <- subset_data %>% filter(clinical_group != target_group) %>% pull(mean_expr)
-              
-              if (length(target_data) == 0 || length(other_data) == 0) next
-              
-              # Calculate fold change (target vs others)
-              mean_target <- mean(target_data, na.rm = TRUE)
-              mean_others <- mean(other_data, na.rm = TRUE)
-              fold_change <- log2((mean_target + 0.001) / (mean_others + 0.001))
-              
-              # Perform t-test: target group vs. all others
-              if (length(target_data) > 1 && length(other_data) > 1) {
-                test_result <- t.test(target_data, other_data)
-                p_value <- test_result$p.value
-              } else {
-                p_value <- 1        
-              }
-              
-              comparison_name <- paste(celltype, marker, target_group, "vs_others", sep = "_")
-              results_list[[comparison_name]] <- data.frame(
-                sub_celltype = celltype,
-                marker = marker,
-                fold_change = fold_change,
-                p_value = p_value,
-                mean_group1 = mean_target,
-                mean_group2 = mean_others,
-                n_group1 = length(target_data),
-                n_group2 = length(other_data),
-                comparison = paste(target_group, "vs Others")
-              )
-            }
-          }
-        }
-      }
-      
-      # Combine results
-      if (length(results_list) == 0) {
-        cat("No valid comparisons found\n")
-        next
-      }
-      
-      results_df <- do.call(rbind, results_list)
-      results_df$p_adj <- p.adjust(results_df$p_value, method = "BH") # Adjust p-values
-      
-      # Classify changes        
-      results_df$change_type <- ifelse(results_df$p_adj <= 0.05 & results_df$fold_change >= logfc_cutoff, "up",
-                                       ifelse(results_df$p_adj <= 0.05 & results_df$fold_change <= -logfc_cutoff, "down", 
-                                              "n.s."))
-      
-      # Calculate transparency (-log10(p_adj))
-      results_df$neg_log_p <- -log10(results_df$p_adj + 1e-10)  # Add small value to avoid infinite
-      
-      # Step 5: Create bubble plot
-      if (n_groups == 2) {
-        # Simple plot for two groups
-        p <- ggplot(results_df, aes(x = sub_celltype, y = marker, 
-                                    size = abs(fold_change), 
-                                    color = change_type,
-                                    alpha = neg_log_p)) +
-          geom_point() +
-          scale_color_manual(values = c("up" = "#cd534cff", "down" = "#7ca6dcff", "n.s." = "gray"),name = "Change") +
-          scale_size_continuous(name = "Abs(log2FC)", range = c(1, 8)) +
-          scale_alpha_continuous(name = "-log10(p.adj)", range = c(0.3, 1)) +
-          theme_classic2() +
-          theme(
-            panel.background = element_blank(),
-            panel.grid.major = element_line(colour = "lightgray"),
-            panel.border = element_rect(colour = "black", fill = NA),
-            axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
-            axis.text.y = element_text(size = 8),
-            plot.title = element_text(hjust = 0.5)
-          ) +
-          labs(title = paste("Differential Expression:",patch_name_ ),x = "Cell Type",y = "Marker") +
-          guides(
-            color = guide_legend(override.aes = list(size = 5, alpha = 1)),
-            size = guide_legend(override.aes = list(alpha = 1)),
-            alpha = guide_legend(override.aes = list(size = 5))
-          )
-        
-        pdf(file = file.path(figureDir,paste0(patch_type_," of ",clinical.info," cellular expression change.pdf")),width = 10,height = 7.5)
-        print(p)
-        dev.off()
-      } 
-      else {
-        # Multiple comparison plot - create faceted plot by comparison
-        p <- ggplot(results_df, aes(x = sub_celltype, y = marker, 
-                                    size = abs(fold_change), 
-                                    color = change_type,
-                                    alpha = neg_log_p)) +
-          geom_point() +
-          facet_wrap(~comparison, scales = "free") +
-          scale_color_manual(values = c("up" = "#cd534cff", "down" = "#7ca6dcff", "n.s." = "gray"),name = "Change") +
-          scale_size_continuous(name = "Abs(log2FC)", range = c(1, 6)) +
-          scale_alpha_continuous(name = "-log10(p.adj)", range = c(0.3, 1)) +
-          theme_classic2() +
-          theme(
-            panel.background = element_blank(),
-            panel.grid.major = element_line(colour = "lightgray"),
-            panel.border = element_rect(colour = "black", fill = NA),
-            axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1, size = 7),
-            axis.text.y = element_text(size = 7),
-            plot.title = element_text(hjust = 0.5),
-            strip.text = element_text(size = 8)
-          ) +
-          labs(title = paste("One vs Others Differential Expression:",patch_name_ ),x = "Cell Type",y = "Marker") +
-          guides(
-            color = guide_legend(override.aes = list(size = 5, alpha = 1)),
-            size = guide_legend(override.aes = list(alpha = 1)),
-            alpha = guide_legend(override.aes = list(size = 5)))
-        
-        pdf(file = file.path(figureDir,paste0(patch_type_," of ",clinical.info," one_vs_others cellular expression change.pdf")),width = 15,height = 7.5)
-        print(p)
-        dev.off()
-      }
-    }
-  }
-
-  analysisDF <- analysisDF_Back
+      ggsave(file.path(figureDir, paste0("epithelial_", marker, "_CN_stratified_RFS_", cn_column, ".pdf")), 
+             p_cn_rfs, width = 24, height = 18)
+  
 }
 
-# --- 3. Overlap and Network Analysis of Patches ---
-# Assuming analysisDF is your data frame
-# Identify patch columns
-patch_cols <- grep("_patch$", names(analysisDF), value = TRUE)
+# TASK 7B: T CELL CN VIOLIN PLOTS
+print("Task 7B: Creating T cell CN violin plots")
 
-# Define short labels for patch types
-patch_labels <- c(
-  "CD45_TC_patch" = "CD45",
-  "YAP_TC_DTC_patch" = "YAP_DTC",
-  "PD1_T_patch" = "PD1_T",
-  "Treg_patch" = "Treg",
-  "PDL1_Macro_patch" = "PDL1_M",
-  "Endo_patch" = "Endo",
-  "MC_2_patch" = "MC_2",
-  "YAP_Fibro_patch" = "YAP_Fibro"
-)
-all_vertices <- unique(patch_labels)
-
-# Get unique clinical groups
-groups <- unique(analysisDF$group)
-
-# Function to create a graph for a given group
-create_group_graph <- function(df_grp, patch_cols, patch_labels) {
-  # Get all pairwise combinations of patch columns
-  pairs <- combn(patch_cols, 2, simplify = FALSE)
+if (nrow(tcell_summary) > 0 && length(tcell_markers) > 0) {
   
-  # Calculate intersection sizes for each pair
-  edge_list <- lapply(pairs, function(pair) {
-    patch1 <- pair[1]
-    patch2 <- pair[2]
-    # Intersection size: count where both patches are non-NA
-    weight <- sum(!is.na(df_grp[[patch1]]) & !is.na(df_grp[[patch2]]))
-    c(patch_labels[patch1], patch_labels[patch2], weight)
-  })
+  # Reshape data
+  plotdf <- tcell_summary
+  plotdf$RFS_status <- as.factor(plotdf$RFS_status)
+  plotdf <- pivot_longer(tcell_summary, 
+                         cols = (ncol(tcell_summary) - length(tcell_markers) + 1):ncol(tcell_summary),
+                         values_to = "expression",names_to = "marker")
   
-  # Convert to data frame
-  edge_df <- do.call(rbind, edge_list)
-  edge_df <- as.data.frame(edge_df)
-  names(edge_df) <- c("from", "to", "weight")
-  edge_df$weight <- as.numeric(edge_df$weight)
+  plotdf$CN_factor <- factor(plotdf[[cn_column]], levels = tcell_cns)
+  plotdf$RFS_label <- factor(plotdf$RFS_status, 
+                                    levels = c(0, 1), labels = c("No Early Relapse", "Early Relapse"))
   
-  # Filter out edges with zero weight
-  edge_df <- edge_df %>% filter(weight > 0)
-  
-  # Create graph, ensuring all vertices are included (even isolates)
-  g <- graph_from_data_frame(edge_df, directed = FALSE, 
-                             vertices = data.frame(name = all_vertices))
-  return(g)
-}
-
-# Create a list of graphs, one for each group
-group_graphs <- lapply(groups, function(grp) {
-  df_grp <- analysisDF %>% filter(group == grp)
-  create_group_graph(df_grp, patch_cols, patch_labels)
-})
-names(group_graphs) <- groups
-saveRDS(groups,file.path(figureDir,paste0("Network Analysis of Patches plot data.rds")))
-
-# Visualize each graph using ggraph
-plot_list <- lapply(groups, function(grp) {
-  g <- group_graphs[[grp]]
-  
-  # Create the ggraph plot
-  ggraph(g, layout = "circle") +
-    # Edges with width proportional to intersection size
-    geom_edge_link(aes(edge_width = weight), edge_colour = "grey50", alpha = 0.7) +
-    # Nodes as points
-    geom_node_point(size = 12, color = "lightblue", alpha = 0.9) +
-    # Node labels
-    geom_node_text(aes(label = name), repel = TRUE, size = 5, fontface = "bold") +
-    # Scale edge width for better visualization
-    scale_edge_width(range = c(0.5, 5), name = "Intersection Size") +
-    # Clean theme
-    theme_void() +
-    # Titles and legend
-    labs(title = paste("Group:", grp)) +
+  # Create violin plots for T cell markers across T cell CNs
+  p_cn <- ggplot(plotdf, aes(x = CN_factor, y = expression, fill = CN_factor)) +
+    geom_violin(alpha = 0.7, scale = "width", trim = FALSE) +
+    geom_boxplot(width = 0.2, alpha = 0.8, outlier.shape = NA) +
+    geom_jitter(width = 0.1, alpha = 0.5, size = 0.75, color = "grey75") +
+    scale_fill_manual(values = CN_color) +
+    theme_bw() +
     theme(
-      legend.position = "bottom",
-      plot.title = element_text(hjust = 0.5, size = 16, face = "bold"),
-      plot.subtitle = element_text(hjust = 0.5, size = 12)
-    )})
+      plot.title = element_text(size = 14, face = "bold", hjust = 0.5),
+      axis.title = element_text(size = 12, face = "bold"),
+      axis.text = element_text(size = 11),
+      legend.position = "top",
+      panel.grid.minor = element_blank()
+    ) +
+    labs(
+      title = paste(marker, "Expression in", celltype, "across CNs"),
+      x = "Cellular Neighborhood", 
+      y = paste(marker, "Expression")
+    ) +
+    stat_compare_means(comparisons = combn(as.character(unique(plotdf$CN_factor)), 2, simplify = FALSE),
+                       method = "wilcox.test", label = "p.signif", hide.ns = TRUE) + 
+    facet_grid(sub_celltype~marker)
+  
+    ggsave(file.path(figureDir, paste0("tcell_", marker, "_CN_comparison_", cn_column, ".pdf")), 
+         p_cn, width = 20, height = 16)
+      
+    # RFS comparison for T cell types
+    p_rfs <- ggplot(plotdf, aes(x = RFS_label, y = expression, fill = RFS_status)) +
+      geom_violin(alpha = 0.7, scale = "width", trim = FALSE) +
+      geom_boxplot(width = 0.2, alpha = 0.8, outlier.shape = NA) +
+      geom_jitter(width = 0.1, alpha = 0.5, size = 0.75, color = "grey75") +
+      scale_fill_manual(values = RFS_color) +
+      theme_bw() +
+      theme(
+        plot.title = element_text(size = 14, face = "bold", hjust = 0.5),
+        axis.title = element_text(size = 12, face = "bold"),
+        axis.text = element_text(size = 11),
+        legend.position = "top",
+        panel.grid.minor = element_blank()
+      ) +
+      labs(
+        title = paste(marker, "in", celltype, "- RFS Comparison"),
+        x = "RFS Status", 
+        y = paste(marker, "Expression")
+      ) +
+      stat_compare_means(method = "wilcox.test", label = "p.format", size = 4) + 
+      facet_grid(sub_celltype~marker)
+      
+      ggsave(file.path(figureDir, paste0("tcell_", marker, "_", celltype, "_RFS_comparison_", cn_column, ".pdf")), 
+             p_rfs, width = 16, height = 12)
+  }
 
-p <- wrap_plots(plot_list) + plot_layout(ncol = 2)
+print("Task 7 completed successfully!")
 
-pdf(file = file.path(figureDir,"Patch Interaction.pdf"),width = 20,height = 16)
-print(p)
-dev.off()
+# ============================================================================
+# Task 8: CN Interaction Analysis using Canonical Correlation Analysis (CCA)
+# ============================================================================
+print("Starting Task 8: CN Interaction Analysis using CCA Networks")
+
+# SETUP AND PARAMETERS FROM PREVIOUS TASKS
+print("Setting up CCA analysis parameters...")
+
+# CN groups
+all_cns_analysis <- unique(meta_df[[cn_column]])
+
+# Combined functional markers for CCA (remove duplicates)
+# Functional markers from Tasks 6-7
+epithelial_markers <- c("Ki67", "GLUT1", "CA_IX", "FASN", "HK2", "PRPS1", "VEGF", "CD274")
+tcell_markers <- c("CD279", "TIGIT", "CD366", "CD127", "CD27", "Ki67", "CD274")
+cca_functional_markers <- unique(c(epithelial_markers,tcell_markers))
+# cca_functional_markers <- rownames(spe_filtered)[rowData(spe_filtered)$use_channel]
+
+# Cell types for CCA
+epithelial_celltypes <- c("EC_CAIX", "EC_EpCAM", "EC_GLUT1", "EC_Ki67", "EC_Ki67_CAIX", "EC_Vimentin")
+tcell_celltypes <- c("CD4T", "CD8T", "Treg", "NK")
+cca_celltypes <- c(epithelial_celltypes, tcell_celltypes)
+# cca_celltypes <- unique(meta_df$sub_celltype)
+
+print("=== CCA ANALYSIS SETUP ===")
+print(paste("CNs for CCA:", paste(all_cns_analysis, collapse = ", ")))
+print(paste("Functional markers:", paste(cca_functional_markers, collapse = ", ")))
+print(paste("Cell types:", paste(cca_celltypes, collapse = ", ")))
+
+# DATA PREPARATION FOR CCA
+print("Preparing data for CCA analysis...")
+
+# Filter metadata for CCA analysis
+cca_meta <- meta_df[
+  meta_df[[cn_column]] %in% all_cns_analysis & 
+    meta_df$sub_celltype %in% cca_celltypes, 
+]
+
+print(paste("Cells for CCA analysis:", nrow(cca_meta)))
+
+# Check available markers in the data
+available_cca_markers <- intersect(cca_functional_markers, rownames(spe_filtered))
+print(paste("Available CCA markers:", paste(available_cca_markers, collapse = ", ")))
+
+if (length(available_cca_markers) == 0) {
+  stop("No CCA markers found in expression data. Please check marker names.")
+}
+
+# Get expression data for CCA cells and markers
+# cca_expr <- assay(spe_filtered)[available_cca_markers, rownames(cca_meta)]
+# cca_expr_df <- as.data.frame(t(cca_expr))
+
+# Combine with metadata
+# cca_data <- cbind(cca_meta, cca_expr_df)
+cca_data <- cca_meta
+print("CCA data preparation completed")
+
+# CALCULATE CN-SPECIFIC PROFILES FOR CCA
+print("Calculating CN-specific profiles for CCA...")
+
+# For each ROI and CN, calculate:
+# 1. Cell type frequencies
+# 2. Mean functional marker expression
+cca_patient_profiles <- cca_data %>%
+  group_by(patient_id, RFS_status, Treatment, !!sym(cn_column), sub_celltype) %>%
+  summarise(cell_count = n()) %>%
+  # summarise(
+  #   cell_count = n(),
+  #   across(all_of(available_cca_markers), mean, na.rm = TRUE, .names = "mean_{.col}"),
+  #   .groups = 'drop'
+  # ) %>%
+  # Calculate cell type frequencies within each CN per patient
+  group_by(patient_id, !!sym(cn_column)) %>%
+  mutate(
+    total_cn_cells = sum(cell_count),
+    celltype_frequency = cell_count / total_cn_cells
+  ) %>%
+  ungroup()
+
+print(paste("CN-specific profiles calculated:", nrow(cca_patient_profiles)))
+
+# Create patient-level CN feature matrices
+# For each patient and CN, combine cell type frequencies and marker expressions
+# cca_features <- cca_patient_profiles %>%
+#   group_by(patient_id, RFS_status, Treatment, !!sym(cn_column)) %>%
+#   summarise(
+#     # Aggregate cell type frequencies
+#     total_cells = sum(cell_count),
+#     epithelial_freq = sum(celltype_frequency[sub_celltype %in% epithelial_celltypes], na.rm = TRUE),
+#     tcell_freq = sum(celltype_frequency[sub_celltype %in% tcell_celltypes], na.rm = TRUE),
+#     # Aggregate functional marker expressions (weighted by cell count)
+#     across(starts_with("mean_"), ~ weighted.mean(.x, cell_count, na.rm = TRUE)),
+#     .groups = 'drop'
+#   )
+
+cca_features <- cca_patient_profiles %>%
+  # Step 1: Remove the specified columns
+  select(-cell_count, -total_cn_cells) %>%
+  
+  # Step 2: Pivot the remaining data
+  pivot_wider(
+    names_from = sub_celltype,
+    values_from = celltype_frequency,
+    values_fill = 0
+  )
+
+print(paste("Patient-level CN features:", nrow(cca_features)))
+feature_cols <- colnames(cca_features)[5:ncol(cca_features)]
+
+# CANONICAL CORRELATION ANALYSIS BETWEEN CN PAIRS
+print("Performing Canonical Correlation Analysis between CN pairs...")
+
+# Initialize results storage
+cca_results <- list()
+
+# OVERALL CCA ANALYSIS (ALL PATIENTS)
+print("CCA Analysis - Overall (all patients)")
+
+cca_results[["overall"]] <- list()
+
+for (i in 1:(length(all_cns_analysis)-1)) {
+  for (j in (i+1):length(all_cns_analysis)) {
+    cn1 <- all_cns_analysis[i]
+    cn2 <- all_cns_analysis[j]
+    pair_name <- paste0("CN", cn1, "_CN", cn2)
+    
+    print(paste("  Analyzing:", pair_name))
+    
+    result <- perform_cca_analysis(data = cca_features, cn1, cn2, cn_column, feature_cols)
+    if (!is.null(result)) {
+      cca_results[["overall"]][[pair_name]] <- result
+      print(paste("    Correlation:", round(result$observed_correlation, 3), 
+                  "| Samples:", result$n_patients))
+    }
+  }
+}
+
+# RFS-STRATIFIED CCA ANALYSIS
+rfs_groups <- c(0, 1)
+rfs_labels <- c("no_relapse", "early_relapse")
+
+for (g in 1:length(rfs_groups)) {
+  rfs_group <- rfs_groups[g]
+  rfs_label <- rfs_labels[g]
+  
+  print(paste("CCA Analysis -", rfs_label))
+  
+  cca_results[[rfs_label]] <- list()
+  
+  for (i in 1:(length(all_cns_analysis)-1)) {
+    for (j in (i+1):length(all_cns_analysis)) {
+      cn1 <- all_cns_analysis[i]
+      cn2 <- all_cns_analysis[j]
+      pair_name <- paste0("CN", cn1, "_CN", cn2)
+      
+      result <- perform_cca_analysis(cca_features, cn1, cn2, cn_column, feature_cols, rfs_group)
+      if (!is.null(result)) {
+        cca_results[[rfs_label]][[pair_name]] <- result
+        print(paste("    ", pair_name, "Correlation:", round(result$observed_correlation, 3)))
+      }
+    }
+  }
+}
+print("CCA analysis completed")
+
+# CREATE CORRELATION MATRICES
+print("Creating correlation matrices...")
+
+# Create correlation matrices for each group
+cor_matrices <- list()
+for (group_name in names(cca_results)) {
+  if (length(cca_results[[group_name]]) > 0) {
+    cor_matrices[[group_name]] <- create_cca_correlation_matrix(cca_results[[group_name]], cn_list = all_cns_analysis, p.adjust = FALSE)
+    print(paste("Correlation matrix created for", group_name))
+  }
+}
+
+# VISUALIZATION: NETWORK GRAPHS
+print("Creating network visualizations...")
+
+# Create network plots for each group
+correlation_threshold <- 0.4  # Adjust as needed
+p_value_threshold <- 0.1
+p_list <- list()
+
+for (group_name in names(cor_matrices)) {
+  if (!is.null(cor_matrices[[group_name]])) {
+    
+    if (group_name == "overall") {
+      title_text <- "CN Interaction Network - Overall"
+    } else if (group_name == "no_relapse") {
+      title_text <- "CN Interaction Network - No Early Relapse"
+    } else {
+      title_text <- "CN Interaction Network - Early Relapse"
+    }
+    
+    p_network <- create_cca_network(
+        matrices_data = cor_matrices[[group_name]], 
+        correlation_threshold = correlation_threshold,
+        p_value_threshold = p_value_threshold,
+        node_colors = CN_color,
+        title = paste("CN Communication Network -", group_name)
+      )
+    
+    p_list[[group_name]] <- p_network
+    
+    if (!is.null(p_network)) {
+      ggsave(file.path(figureDir, paste0("CCA_network_", group_name, "_", cn_column, ".pdf")), 
+             p_network, width = 10, height = 8)
+    }
+  }
+}
+
+# NETWORK COMPARISON BETWEEN RFS GROUPS
+print("Creating network comparison between RFS groups...")
+    if (!is.null(p_list)) {
+      # Combine plots
+      p_combined <- p_list[["early_relapse"]] + p_list[["no_relapse"]]
+      
+      ggsave(file.path(figureDir, paste0("CCA_network_comparison_", cn_column, ".pdf")), 
+             p_combined, width = 20, height = 8)
+    
+}
+
+# ============================================================================
+# SUMMARY STATISTICS AND RESULTS
+# ============================================================================
+
+print("Creating summary statistics...")
+
+# Compile all CCA results into summary table
+cca_summary <- data.frame()
+
+for (group_name in names(cca_results)) {
+  for (pair_name in names(cca_results[[group_name]])) {
+    result <- cca_results[[group_name]][[pair_name]]
+    
+    cca_summary <- rbind(cca_summary, data.frame(
+      group = group_name,
+      cn_pair = pair_name,
+      canonical_correlation = result$observed_correlation,
+      p_value = result$p_value,
+      n_patients = result$n_patients,
+      n_permutations = result$n_permutations
+      ),
+      stringsAsFactors = FALSE
+    )
+  }
+}
+
+# Save CCA summary
+write.csv(cca_summary, 
+          file.path(figureDir, paste0("CCA_summary_statistics_", cn_column, ".csv")), 
+          row.names = FALSE)
