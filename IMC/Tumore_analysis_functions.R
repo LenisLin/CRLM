@@ -10,135 +10,314 @@ library(ggpubr)
 library(ggraph)
 library(viridis)
 library(patchwork)
+library(gridExtra)
 
 library(dplyr)
 library(tidyr)
 
-# Function to compute subtype fraction for each ROI
-compute_subtype_fractions <- function(subtype) {
-  tc_im_mali_cells <- tc_im_cells[startsWith(tc_im_cells$sub_celltype,prefix = "EC"),]
+library(survival)
+library(survminer)
+library(maxstat)
+library(forestplot)
+
+# Function to calculate distances between clusters
+calculate_cluster_distances <- function(cluster1_coords, cluster2_coords) {
+  # Calculate all pairwise distances between cells in two clusters
+  dist_matrix <- as.matrix(dist(rbind(cluster1_coords, cluster2_coords)))
   
-  subtype_summary <- tc_im_mali_cells %>%
-    group_by(sample_id, patient_id, Tissue, Treatment, RFS_status) %>%
+  # Extract the submatrix for cross-cluster distances
+  n1 <- nrow(cluster1_coords)
+  n2 <- nrow(cluster2_coords)
+  cross_distances <- dist_matrix[1:n1, (n1+1):(n1+n2)]
+  
+  # Return different distance metrics
+  list(
+    min_distance = min(cross_distances),
+    mean_distance = mean(cross_distances),
+    median_distance = median(cross_distances),
+    centroid_distance = sqrt(sum((colMeans(cluster1_coords) - colMeans(cluster2_coords))^2))
+  )
+}
+
+# Function to perform Wilcoxon tests with BH adjustment
+perform_wilcox_tests <- function(data, group_name) {
+  # Perform tests for each tissue-subtype combination
+  test_results <- data %>%
+    group_by(Tissue, sub_celltype) %>%
     summarise(
-      total_cells = n(),
-      subtype_cells = sum(sub_celltype == subtype),
-      subtype_fraction = subtype_cells / total_cells,
+      n0 = sum(RFS_status == 0),
+      n1 = sum(RFS_status == 1),
+      .groups = "drop"
+    ) %>%
+    filter(n0 >= 3 & n1 >= 3) %>%  # Only test if sufficient samples
+    rowwise() %>%
+    mutate(
+      p_value = {
+        current_tissue <- Tissue
+        current_subtype <- sub_celltype
+        tissue_data <- data %>% 
+          filter(Tissue == current_tissue, sub_celltype == current_subtype)
+        if(nrow(tissue_data) > 5) {
+          test_result <- wilcox.test(fraction ~ RFS_status, data = tissue_data)
+          test_result$p.value
+        } else {
+          NA_real_
+        }
+      }
+    ) %>%
+    ungroup() %>%
+    filter(!is.na(p_value))
+  
+  # Apply BH adjustment
+  if(nrow(test_results) > 0) {
+    test_results$p_adjusted <- p.adjust(test_results$p_value, method = "BH")
+    test_results$significance <- case_when(
+      test_results$p_adjusted < 0.001 ~ "***",
+      test_results$p_adjusted < 0.01 ~ "**", 
+      test_results$p_adjusted < 0.05 ~ "*",
+      TRUE ~ "ns"
+    )
+    test_results$group <- group_name
+  }
+  
+  return(test_results)
+}
+
+# Function to calculate budding metrics for a single ROI
+calculate_roi_budding_metrics <- function(roi_components) {
+  # Check if roi_components is empty or NULL
+  if (is.null(roi_components) || length(roi_components) == 0) {
+    return(data.frame(
+      budding_number = 0,
+      total_size = 0,
+      mean_size = 0
+    ))
+  }
+  
+  # Calculate budding number (number of components)
+  budding_number <- length(roi_components)
+  
+  # Calculate size of each component
+  component_sizes <- sapply(roi_components, length)
+  
+  # Calculate total size (sum of all elements across all components)
+  total_size <- sum(component_sizes)
+  
+  # Calculate mean size (average elements per component)
+  mean_size <- mean(component_sizes)
+  
+  return(data.frame(
+    budding_number = budding_number,
+    total_size = total_size,
+    mean_size = round(mean_size, 2)
+  ))
+}
+
+# Function to create boxplot with annotations
+create_comparison_plot <- function(data, test_data, title_suffix, group_filter) {
+  
+  # Filter test results for this group
+  filtered_tests <- test_data %>% filter(group == group_filter)
+  
+  # Create significance summary for subtitle
+  sig_summary <- filtered_tests %>%
+    summarise(
+      total_tests = n(),
+      significant = sum(p_adjusted < 0.05),
       .groups = "drop"
     )
   
-  # Add early relapse labels
-  subtype_summary$RFS_group <- ifelse(subtype_summary$RFS_status == 0, "No Early Relapse", "Early Relapse")
+  subtitle_text <- paste0("Wilcoxon tests with BH adjustment: ", 
+                          sig_summary$significant, "/", sig_summary$total_tests, 
+                          " comparisons significant (p < 0.05)")
   
-  return(subtype_summary)
+  p <- ggplot(data, aes(x = factor(RFS_status), y = fraction, fill = factor(RFS_status))) +
+    geom_boxplot(alpha = 0.7, outlier.alpha = 0.6) +
+    geom_point(position = position_jitter(width = 0.2, seed = 123), 
+               alpha = 0.6, size = 1) +
+    facet_grid(sub_celltype ~ Tissue, scales = "free_y") +
+    stat_compare_means(method = "wilcox.test", 
+                       label = "p.format",
+                       size = 3,
+                       vjust = 0.5) +
+    scale_fill_manual(values = c("0" = "#0073c2b2", "1" = "#efc000b2"),
+                      labels = c("0" = "No Early Relapse", "1" = "Early Relapse")) +
+    scale_x_discrete(labels = c("0" = "No\nRelapse", "1" = "Early\nRelapse")) +
+    labs(
+      title = paste0("Malignant Subtype Fractions by RFS Status - ", title_suffix),
+      subtitle = subtitle_text,
+      x = "RFS Status",
+      y = "Fraction",
+      fill = "RFS Status"
+    ) +
+    theme_bw() +
+    theme(
+      plot.title = element_text(hjust = 0.5, size = 12, face = "bold"),
+      plot.subtitle = element_text(hjust = 0.5, size = 10),
+      strip.text = element_text(size = 9, face = "bold"),
+      axis.text.x = element_text(size = 9),
+      axis.text.y = element_text(size = 9),
+      legend.position = "bottom",
+      panel.grid.minor = element_blank()
+    )
+  
+  return(p)
 }
 
-# Function to create plots for each subtype
-create_subtype_plots <- function(subtype, subtype_data, figureDir) {
+# Function to find optimal cutoff using maxstat
+find_optimal_cutoff <- function(data, gene_name, time_var = "RFS_time", event_var = "RFS_status") {
+  clean_data <- data[!is.na(data[[gene_name]]) & !is.na(data[[time_var]]) & !is.na(data[[event_var]]), ]
   
-  # Clean subtype name for file names
-  clean_name <- gsub("[^A-Za-z0-9]", "_", subtype)
+  if(nrow(clean_data) < 10) return(median(data[[gene_name]], na.rm = TRUE))
   
-  cat(paste("Analyzing subtype:", subtype, "\n"))
+  maxstat_formula <- as.formula(paste("Surv(", time_var, ",", event_var, ") ~", gene_name))
   
-  # Step 4: Stacked barplot
-  p1_sub <- ggplot(subtype_data, aes(x = sample_id, y = subtype_fraction)) +
-    geom_col(aes(fill = Tissue), alpha = 0.7) +
-    facet_wrap(~paste(Treatment, "-", RFS_group), scales = "free_x") +
-    theme_minimal() +
-    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1, size = 6)) +
-    labs(title = paste(subtype, "Fraction by ROI"),
-         x = "ROI (sample_id)", 
-         y = paste(subtype, "Fraction"),
-         fill = "Tissue Region") +
-    scale_fill_manual(values = metadata(spe)$color_vectors[["tissue"]])
+  tryCatch({
+    maxstat_result <- maxstat.test(maxstat_formula, data = clean_data, smethod = "LogRank")
+    return(maxstat_result$estimate)
+  }, error = function(e) {
+    return(median(data[[gene_name]], na.rm = TRUE))
+  })
+}
+
+# Function to create forest plot from Cox regression results
+createCoxForestPlot <- function(cox_model, var_display_names = NULL, plot_title = "Multi-variables Cox Regression Forest Plot", 
+                                savePath = NULL, filename = "Cox_forest_plot.pdf") {
   
-  print(p1_sub)
-  ggsave(file.path(figureDir, paste0(clean_name, "_barplot.pdf")), p1_sub, width = 14, height = 8)
+  # Extract coefficients and statistics from Cox model
+  coef_summary <- summary(cox_model)
+  coef_table <- coef_summary$coefficients
+  conf_int <- coef_summary$conf.int
   
-  # Step 5: Boxplot by RFS status
-  comparison_data_sub <- subtype_data %>%
-    select(sample_id, patient_id, Tissue, Treatment, RFS_status, RFS_group, subtype_fraction)
+  # Get variable names (remove reference levels if factor)
+  var_names <- rownames(coef_table)
   
-  p2_sub <- ggplot(comparison_data_sub, aes(x = RFS_group, y = subtype_fraction)) +
-    geom_boxplot(aes(fill = RFS_group), alpha = 0.7) +
-    geom_jitter(width = 0.2, alpha = 0.6) +
-    facet_wrap(~Tissue) +
-    stat_compare_means(method = "wilcox.test", label = "p.format") +
-    theme_minimal() +
-    labs(title = paste(subtype, "Fraction by Recurrence Status"),
-         x = "Recurrence Status",
-         y = paste(subtype, "Fraction"),
-         fill = "RFS Status") +
-    scale_fill_manual(values = c("No Early Relapse" = "#0073c2b2", "Early Relapse" = "#efc000b2"))
-  
-  print(p2_sub)
-  ggsave(file.path(figureDir, paste0(clean_name, "_boxplot_rfs.pdf")), p2_sub, width = 10, height = 6)
-  
-  # Step 6: Boxplot by treatment and RFS status
-  p3_sub <- ggplot(comparison_data_sub, aes(x = RFS_group, y = subtype_fraction)) +
-    geom_boxplot(aes(fill = RFS_group), alpha = 0.7) +
-    geom_jitter(width = 0.2, alpha = 0.6) +
-    facet_grid(Treatment ~ Tissue) +
-    stat_compare_means(method = "wilcox.test", label = "p.format", size = 3) +
-    theme_minimal() +
-    labs(title = paste(subtype, "Fraction by Treatment and Recurrence Status"),
-         x = "Recurrence Status",
-         y = paste(subtype, "Fraction"),
-         fill = "RFS Status") +
-    scale_fill_manual(values = c("No Early Relapse" = "#0073c2b2", "Early Relapse" = "#efc000b2"))
-  
-  print(p3_sub)
-  ggsave(file.path(figureDir, paste0(clean_name, "_boxplot_treatment.pdf")), p3_sub, width = 10, height = 8)
-  
-  # Step 7: Sankey diagram
-  # Get paired TC-IM data for this subtype
-  patient_summary_sub <- subtype_data %>%
-    group_by(patient_id, Tissue, Treatment, RFS_status, RFS_group) %>%
-    summarise(mean_subtype_fraction = mean(subtype_fraction, na.rm = TRUE), .groups = "drop")
-  
-  paired_data_sub <- patient_summary_sub %>%
-    select(patient_id, Tissue, Treatment, RFS_status, RFS_group, mean_subtype_fraction) %>%
-    pivot_wider(names_from = Tissue, values_from = mean_subtype_fraction, 
-                names_prefix = "fraction_") %>%
-    filter(!is.na(fraction_TC) & !is.na(fraction_IM))
-  
-  if(nrow(paired_data_sub) > 0) {
-    paired_data_sub$TC_bin <- create_fraction_bins(paired_data_sub$fraction_TC)
-    paired_data_sub$IM_bin <- create_fraction_bins(paired_data_sub$fraction_IM)
-    
-    # Prepare data for alluvial plot
-    sankey_data_sub <- paired_data_sub %>%
-      count(RFS_group, TC_bin, IM_bin) %>%
-      rename(freq = n)
-    
-    # Create Sankey/Alluvial plot
-    p4_sub <- ggplot(sankey_data_sub, aes(axis1 = TC_bin, axis2 = IM_bin, y = freq)) +
-      geom_alluvium(aes(fill = RFS_group), alpha = 0.7) +
-      geom_stratum() +
-      geom_text(stat = "stratum", aes(label = after_stat(stratum)), size = 3) +
-      scale_x_discrete(limits = c("TC", "IM"), expand = c(0.1, 0.1)) +
-      facet_wrap(~RFS_group) +
-      theme_minimal() +
-      labs(title = paste(subtype, "Fraction Changes from TC to IM"),
-           subtitle = "Flow shows transition patterns by recurrence status",
-           x = "Tissue Region",
-           y = "Number of Patients",
-           fill = "RFS Status") +
-      scale_fill_manual(values = c("No Early Relapse" = "#0073c2b2", "Early Relapse" = "#efc000b2"))
-    
-    print(p4_sub)
-    ggsave(file.path(figureDir, paste0(clean_name, "_sankey.pdf")), p4_sub, width = 12, height = 8)
-  } else {
-    cat(paste("No paired TC-IM data for", subtype, "- skipping Sankey plot\n"))
+  # Create formatted variable names for display
+  if(is.null(var_display_names)){
+    var_display_names <- c(
+      "Treatment (Combo vs Chemo)",
+      "FASN", "GLUT1", "EpCAM", 
+      "Age", "Fong Score", "TBS", "CEA (log)", "CA199 (log)", "CRLM Size", "KRAS Mutation"
+    )
   }
   
-  return(list(
-    barplot = p1_sub,
-    boxplot_rfs = p2_sub,
-    boxplot_treatment = p3_sub,
-    sankey = if(exists("p4_sub")) p4_sub else NULL,
-    data = subtype_data,
-    paired_data = if(exists("paired_data_sub")) paired_data_sub else NULL
-  ))
+  # Extract key statistics
+  HR <- coef_table[, "exp(coef)"]
+  lower_CI <- conf_int[, "lower .95"]
+  upper_CI <- conf_int[, "upper .95"]
+  p_values <- coef_table[, "Pr(>|z|)"]
+  
+  # Format HR(95%CI) for display
+  HR_CI_text <- paste0(sprintf("%.2f", HR), " (", 
+                       sprintf("%.2f", lower_CI), "-", 
+                       sprintf("%.2f", upper_CI), ")")
+  
+  # Format p-values for display
+  p_display <- ifelse(p_values < 0.001, "<0.001", 
+                      ifelse(p_values < 0.01, sprintf("%.3f", p_values),
+                             sprintf("%.3f", p_values)))
+  
+  # Create result matrix similar to original function
+  # Separate biomarkers from clinical variables
+  biomarker_indices <- c(2, 3, 4)  # FASN, GLUT1, EpCAM
+  clinical_indices <- c(1, 5:11)   # Treatment, Age, fong_score, etc.
+  
+  # Helper function to insert section headers
+  ins <- function(x) {
+    c(as.character(x), NA, NA)
+  }
+  
+  # Build result matrix with sections
+  result_df <- rbind(
+    c("Features", "HR(95%CI)", "p-value"),
+    ins("Biomarkers"),
+    cbind(var_display_names[biomarker_indices], 
+          HR_CI_text[biomarker_indices], 
+          p_display[biomarker_indices]),
+    ins("Clinical Variables"),
+    cbind(var_display_names[clinical_indices], 
+          HR_CI_text[clinical_indices], 
+          p_display[clinical_indices]),
+    c(NA, NA, NA)
+  )
+  
+  # Ensure all entries are characters
+  result_df <- apply(result_df, 2, as.character)
+  
+  # Create vectors for forestplot function
+  mean_values <- c(NA, NA, HR[biomarker_indices], NA, HR[clinical_indices], NA)
+  lower_values <- c(NA, NA, lower_CI[biomarker_indices], NA, lower_CI[clinical_indices], NA)
+  upper_values <- c(NA, NA, upper_CI[biomarker_indices], NA, upper_CI[clinical_indices], NA)
+  
+  # Create is_summary vector (TRUE for section headers, FALSE for data rows)
+  is_summary_vector <- c(TRUE, TRUE, rep(FALSE, length(biomarker_indices)), 
+                         TRUE, rep(FALSE, length(clinical_indices)), TRUE)
+  
+  # Create the forest plot
+  p <- forestplot(result_df,
+                  mean = mean_values,
+                  lower = lower_values,
+                  upper = upper_values,
+                  zero = 1,
+                  boxsize = 0.4,
+                  graph.pos = "right",
+                  hrzl_lines = list(
+                    "1" = gpar(lty = 1, lwd = 2),
+                    "2" = gpar(lty = 2)
+                  ),
+                  graphwidth = unit(.3, "npc"),
+                  xlab = "Hazard Ratio",
+                  xticks = c(0.1, 0.2, 0.5, 1, 2, 5, 10),
+                  is.summary = is_summary_vector,
+                  txt_gp = fpTxtGp(
+                    label = gpar(cex = 0.9),
+                    ticks = gpar(cex = 0.8),
+                    xlab = gpar(cex = 1.2),
+                    title = gpar(cex = 1.4)
+                  ),
+                  lwd.zero = 2,
+                  lwd.ci = 1.5,
+                  lwd.xaxis = 2,
+                  lty.ci = 1,
+                  ci.vertices = TRUE,
+                  ci.vertices.height = 0.15,
+                  clip = c(0.05, 15),
+                  lineheight = unit(8, "mm"),
+                  line.margin = unit(5, "mm"),
+                  colgap = unit(4, "mm"),
+                  fn.ci_norm = "fpDrawNormalCI",
+                  title = plot_title,
+                  col = fpColors(
+                    box = "#D32F2F",        # Red for significant
+                    lines = "#D32F2F",      # Red lines
+                    zero = "black",         # Black reference line
+                    text = "black",
+                    summary = "black"
+                  )
+  )
+  
+  # Save plot if path provided
+  if (!is.null(savePath)) {
+    pdf(file.path(savePath, filename), width = 10, height = 7.5)
+    print(p)
+    dev.off()
+    cat("Forest plot saved to:", file.path(savePath, filename), "\n")
+  }
+  
+  # Display plot
+  print(p)
+  
+  # Return summary data for reference
+  summary_data <- data.frame(
+    Variable = var_display_names,
+    HR = HR,
+    Lower_CI = lower_CI,
+    Upper_CI = upper_CI,
+    P_value = p_values,
+    Significance = ifelse(p_values < 0.001, "***",
+                          ifelse(p_values < 0.01, "**",
+                                 ifelse(p_values < 0.05, "*", "")))
+  )
+  
+  return(summary_data)
 }

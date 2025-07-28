@@ -45,13 +45,14 @@ if(!dir.exists(figureDir)){
 }
 
 # Load your SpatialExperiment object
-date_time <- "0722"
+date_time <- "0724"
 spe <- readRDS(file.path(saveDir,paste0("spatial_spe_",date_time,".rds")))
 img_id_ <- "sample_id"
 
 # ============================================================================
 # Task 1: CN-Celltype Composition Heatmap with Significance Testing
 # ============================================================================
+print(colPairNames(spe))
 
 # Choose CN parameter to analyze
 cn_column <- "CN_knn_20_cluster_10"  # CHANGE THIS - choose your CN parameter
@@ -104,7 +105,7 @@ print(colSums(contingency_table))
 # Calculate proportions within each CN (row proportions)
 prop_table <- prop.table(contingency_table, margin = 1)
 
-pvalue_adj <- perform_test_for_CN_enrichment(contingency_table)
+pvalue_adj <- perform_test_for_CN_enrichment(contingency_table, method = "hypergeometric")
 sig_matrix <- creat_sig_anno_matrix(pvalue_adj)
 
 # CREATE HEATMAPS
@@ -123,6 +124,23 @@ p <- pheatmap(prop_table,
          border_color = "grey60")
 
 pdf(file.path(figureDir, paste0("CN_celltype_composition_heatmap_", cn_column, ".pdf")), 
+    width = 14, height = 8)
+print(p)
+dev.off()
+
+p <- pheatmap(prop_table,
+              color = colorRampPalette(c("darkblue","white", "darkred"))(200),
+              scale = "column",
+              cluster_rows = TRUE,
+              cluster_cols = TRUE,
+              number_color = "black",
+              fontsize_number = 12,
+              fontsize_row = 10,
+              fontsize_col = 9,
+              main = paste("CN-Celltype Composition Proportions (", cn_column, ")"),
+              border_color = "grey60")
+
+pdf(file.path(figureDir, paste0("CN_celltype_composition_heatmap_", cn_column, "_no_start_version.pdf")), 
     width = 14, height = 8)
 print(p)
 dev.off()
@@ -724,10 +742,10 @@ print("Starting Task 6: Functionality Analysis - Epithelial vs T cell CNs")
 
 # CN GROUP SELECTIONS BASED ON PROPORTION TABLE ANALYSIS
 # Epithelial-enriched CNs (based on EC_* cell enrichment)
-epithelial_cns <- c("3", "5", "7", "8")
+epithelial_cns <- c("9", "5", "7", "8")
 
 # T cell-enriched CNs (based on CD4T, CD8T, Treg enrichment)
-tcell_cns <- c("1", "5", "6", "8", "9")
+tcell_cns <- c("1", "3", "6", "2", "10")
 
 # Note: CN5 and CN8 appear in both groups (mixed epithelial-immune neighborhoods)
 print("=== CN GROUP SELECTIONS ===")
@@ -745,6 +763,7 @@ epithelial_markers <- c(
   "HK2",       # Glycolysis
   "PRPS1",     # Nucleotide synthesis
   "VEGF",      # Angiogenesis
+  "Vimentin",
   "CD274"      # PD-L1 (immune evasion)
 )
 
@@ -766,8 +785,7 @@ print(paste("T cell markers:", paste(tcell_markers, collapse = ", ")))
 # CELL TYPE SELECTIONS FOR ANALYSIS
 # Epithelial cell types (from proportion table)
 epithelial_celltypes <- c(
-  "EC_CAIX", "EC_EpCAM", "EC_GLUT1", "EC_Ki67", 
-  "EC_Ki67_CAIX", "EC_Vimentin"
+  "EC_CAIX", "EC_EpCAM", "EC_GLUT1", "EC_Ki67", "EC_Vimentin"
 )
 
 # T cell types
@@ -924,15 +942,15 @@ if (nrow(epithelial_summary) > 0 && length(epithelial_markers) > 0) {
       panel.grid.minor = element_blank()
     ) +
     labs(
-      title = paste(marker, "Expression in", celltype, "across CNs"),
+      title = paste("Expression across CNs"),
       x = "Cellular Neighborhood", 
-      y = paste(marker, "Expression")
+      y = paste("Expression")
     ) +
     stat_compare_means(comparisons = combn(as.character(unique(plotdf$CN_factor)), 2, simplify = FALSE),
                        method = "wilcox.test", label = "p.signif", hide.ns = TRUE) + 
     facet_grid(sub_celltype~marker)
   
-    ggsave(file.path(figureDir, paste0("epithelial_", marker, "_CN_comparison_", cn_column, ".pdf")), 
+    ggsave(file.path(figureDir, paste0("epithelial_CN_comparison_", cn_column, ".pdf")), 
          p_cn, width = 20, height = 16)
     
     # RFS comparison plot
@@ -955,15 +973,15 @@ if (nrow(epithelial_summary) > 0 && length(epithelial_markers) > 0) {
           panel.grid.minor = element_blank()
         ) +
         labs(
-          title = paste(marker, "Expression - CN-Stratified RFS Comparison"),
+          title = paste("Expression - CN-Stratified RFS Comparison"),
           x = "RFS Status", 
-          y = paste(marker, "Expression"),
+          y = paste("Expression"),
           fill = "RFS Status"
         ) +
         stat_compare_means(method = "wilcox.test", label = "p.signif", size = 3, hide.ns = TRUE) +
         facet_grid(marker~sub_celltype, scales = "free_y")
       
-      ggsave(file.path(figureDir, paste0("epithelial_", marker, "_CN_stratified_RFS_", cn_column, ".pdf")), 
+      ggsave(file.path(figureDir, paste0("epithelial_CN_stratified_RFS_", cn_column, ".pdf")), 
              p_cn_rfs, width = 24, height = 18)
   
 }
@@ -999,18 +1017,19 @@ if (nrow(tcell_summary) > 0 && length(tcell_markers) > 0) {
       panel.grid.minor = element_blank()
     ) +
     labs(
-      title = paste(marker, "Expression in", celltype, "across CNs"),
+      title = paste("Expression in across CNs"),
       x = "Cellular Neighborhood", 
-      y = paste(marker, "Expression")
+      y = paste("Expression")
     ) +
     stat_compare_means(comparisons = combn(as.character(unique(plotdf$CN_factor)), 2, simplify = FALSE),
                        method = "wilcox.test", label = "p.signif", hide.ns = TRUE) + 
     facet_grid(sub_celltype~marker)
   
-    ggsave(file.path(figureDir, paste0("tcell_", marker, "_CN_comparison_", cn_column, ".pdf")), 
+    ggsave(file.path(figureDir, paste0("tcell_CN_comparison_", cn_column, ".pdf")), 
          p_cn, width = 20, height = 16)
       
     # RFS comparison for T cell types
+    plotdf$RFS_status <- as.factor(plotdf$RFS_status)
     p_rfs <- ggplot(plotdf, aes(x = RFS_label, y = expression, fill = RFS_status)) +
       geom_violin(alpha = 0.7, scale = "width", trim = FALSE) +
       geom_boxplot(width = 0.2, alpha = 0.8, outlier.shape = NA) +
@@ -1025,14 +1044,14 @@ if (nrow(tcell_summary) > 0 && length(tcell_markers) > 0) {
         panel.grid.minor = element_blank()
       ) +
       labs(
-        title = paste(marker, "in", celltype, "- RFS Comparison"),
+        title = paste("RFS Comparison"),
         x = "RFS Status", 
-        y = paste(marker, "Expression")
+        y = paste("Expression")
       ) +
       stat_compare_means(method = "wilcox.test", label = "p.format", size = 4) + 
       facet_grid(sub_celltype~marker)
       
-      ggsave(file.path(figureDir, paste0("tcell_", marker, "_", celltype, "_RFS_comparison_", cn_column, ".pdf")), 
+      ggsave(file.path(figureDir, paste0("tcell_RFS_comparison_", cn_column, ".pdf")), 
              p_rfs, width = 16, height = 12)
   }
 
@@ -1051,8 +1070,8 @@ all_cns_analysis <- unique(meta_df[[cn_column]])
 
 # Combined functional markers for CCA (remove duplicates)
 # Functional markers from Tasks 6-7
-epithelial_markers <- c("Ki67", "GLUT1", "CA_IX", "FASN", "HK2", "PRPS1", "VEGF", "CD274")
-tcell_markers <- c("CD279", "TIGIT", "CD366", "CD127", "CD27", "Ki67", "CD274")
+epithelial_markers <- c("Ki67", "GLUT1", "CA_IX", "FASN", "HK2", "PRPS1", "VEGF", "Vimentin", "CD274")
+tcell_markers <- c("CD279", "TIGIT", "CD366", "CD127", "CD27", "Ki67")
 cca_functional_markers <- unique(c(epithelial_markers,tcell_markers))
 # cca_functional_markers <- rownames(spe_filtered)[rowData(spe_filtered)$use_channel]
 

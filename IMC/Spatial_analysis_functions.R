@@ -520,3 +520,788 @@ create_cca_network <- function(matrices_data, correlation_threshold = 0.3,
   
   return(p)
 }
+
+# =============================================================================
+## Interaction analysis
+# =============================================================================
+
+# =============================================================================
+# Create interaction matrices for each tissue
+# =============================================================================
+create_interaction_matrix <- function(data, tissue_type, value_col = "mean_sigval") {
+  tissue_data <- data %>% filter(Tissue == tissue_type)
+  
+  # Get all unique cell types
+  all_celltypes <- unique(c(tissue_data$from_label, tissue_data$to_label))
+  
+  # Create matrix
+  interaction_mat <- matrix(0, nrow = length(all_celltypes), ncol = length(all_celltypes))
+  rownames(interaction_mat) <- all_celltypes
+  colnames(interaction_mat) <- all_celltypes
+  
+  # Fill matrix
+  for(i in 1:nrow(tissue_data)) {
+    from_idx <- which(all_celltypes == tissue_data$from_label[i])
+    to_idx <- which(all_celltypes == tissue_data$to_label[i])
+    interaction_mat[from_idx, to_idx] <- tissue_data[[value_col]][i]
+  }
+  
+  return(interaction_mat)
+}
+
+# =============================================================================
+# Enhanced function to create appealing combined heatmap
+# =============================================================================
+create_combined_interaction_heatmap <- function(spe, tc_mat, im_mat, pt_mat) {
+  
+  # Ensure all matrices have the same dimensions by getting union of all cell types
+  all_celltypes <- unique(c(rownames(tc_mat), rownames(im_mat), rownames(pt_mat),
+                            colnames(tc_mat), colnames(im_mat), colnames(pt_mat)))
+  all_celltypes <- sort(all_celltypes)
+  
+  # Function to standardize matrix dimensions
+  standardize_matrix <- function(mat, all_types) {
+    std_mat <- matrix(0, nrow = length(all_types), ncol = length(all_types))
+    rownames(std_mat) <- all_types
+    colnames(std_mat) <- all_types
+    
+    # Fill in existing values
+    common_rows <- intersect(rownames(mat), all_types)
+    common_cols <- intersect(colnames(mat), all_types)
+    std_mat[common_rows, common_cols] <- mat[common_rows, common_cols]
+    
+    return(std_mat)
+  }
+  
+  # Standardize all matrices
+  tc_std <- standardize_matrix(tc_matrix, all_celltypes)
+  im_std <- standardize_matrix(im_matrix, all_celltypes)
+  pt_std <- standardize_matrix(pt_matrix, all_celltypes)
+  
+  # Create cell type annotations
+  cell_type_categories <- data.frame(
+    CellType = all_celltypes,
+    Category = case_when(
+      str_detect(all_celltypes, "^EC_") ~ "Epithelial",
+      all_celltypes %in% c("B") ~ "B_cells",
+      all_celltypes %in% c("CD4T", "CD8T", "Treg","Other_Immune") ~ "T_cells",
+      all_celltypes %in% c("NK") ~ "NK_cells",
+      str_detect(all_celltypes, "^DC") ~ "DCs",
+      str_detect(all_celltypes, "^Mono_") ~ "Monocytes",
+      str_detect(all_celltypes, "^Macro_") ~ "Macrophages",
+      str_detect(all_celltypes, "^SC_|^CAF") ~ "Stromal",
+      TRUE ~ "Other"
+    )
+  )
+  
+  # Color scheme for categories
+  category_colors <- metadata(spe)$color_vectors$major_celltype
+  
+  # Row and column annotations
+  row_annotation <- rowAnnotation(
+    Category = cell_type_categories$Category,
+    col = list(Category = category_colors),
+    annotation_name_gp = gpar(fontsize = 10),
+    simple_anno_size = unit(0.3, "cm")
+  )
+  
+  col_annotation <- HeatmapAnnotation(
+    Category = cell_type_categories$Category,
+    col = list(Category = category_colors),
+    annotation_name_gp = gpar(fontsize = 10),
+    simple_anno_size = unit(0.3, "cm")
+  )
+  
+  # Enhanced color scheme with better contrast
+  col_fun <- colorRamp2(
+    c(-1, -0.5, 0, 0.5, 1), 
+    c("#053061", "#67a9cf", "white", "#ef8a62", "#67001f")
+  )
+  
+  # Create individual heatmaps with consistent styling
+  h1 <- Heatmap(tc_std,
+                name = "TC",
+                col = col_fun,
+                column_title = "Tumor Core (TC)",
+                column_title_gp = gpar(fontsize = 12, fontface = "bold"),
+                cluster_rows = FALSE,
+                cluster_columns = FALSE,
+                show_row_names = TRUE,
+                show_column_names = TRUE,
+                row_names_gp = gpar(fontsize = 7),
+                column_names_gp = gpar(fontsize = 7),
+                row_names_rot = 0,
+                column_names_rot = 90,
+                top_annotation = col_annotation,
+                border = TRUE,
+                rect_gp = gpar(col = "white", lwd = 0.5))
+  
+  h2 <- Heatmap(im_std,
+                name = "IM", 
+                col = col_fun,
+                column_title = "Invasive Margin (IM)",
+                column_title_gp = gpar(fontsize = 12, fontface = "bold"),
+                cluster_rows = FALSE,
+                cluster_columns = FALSE,
+                show_row_names = FALSE,  # Hide row names for middle heatmap
+                show_column_names = TRUE,
+                column_names_gp = gpar(fontsize = 7),
+                column_names_rot = 90,
+                top_annotation = col_annotation,
+                border = TRUE,
+                rect_gp = gpar(col = "white", lwd = 0.5))
+  
+  h3 <- Heatmap(pt_std,
+                name = "PT",
+                col = col_fun,
+                column_title = "Peri-Tumor (PT)", 
+                column_title_gp = gpar(fontsize = 12, fontface = "bold"),
+                cluster_rows = FALSE,
+                cluster_columns = FALSE,
+                show_row_names = FALSE,  # Hide row names for right heatmap
+                show_column_names = TRUE,
+                column_names_gp = gpar(fontsize = 7),
+                column_names_rot = 90,
+                top_annotation = col_annotation,
+                border = TRUE,
+                rect_gp = gpar(col = "white", lwd = 0.5),
+                heatmap_legend_param = list(
+                  title = "Interaction\nSignal",
+                  title_gp = gpar(fontsize = 11, fontface = "bold"),
+                  labels_gp = gpar(fontsize = 9),
+                  legend_height = unit(4, "cm"),
+                  at = c(-1, -0.5, 0, 0.5, 1),
+                  labels = c("Strong\nAvoidance", "Weak\nAvoidance", "No\nInteraction", 
+                             "Weak\nAttraction", "Strong\nAttraction")
+                ))
+  
+  # Combine heatmaps horizontally
+  combined_heatmap <- h1 + h2 + h3
+  
+  # Add row annotation only to the first heatmap
+  final_heatmap <- row_annotation + combined_heatmap
+  
+  return(final_heatmap)
+}
+
+# =============================================================================
+# Function to compare interaction counts between groups
+# =============================================================================
+compare_interactions <- function(data, group_var, cell_from, cell_to) {
+  
+  comparison_data <- data %>%
+    filter(from_label == cell_from, to_label == cell_to, !is.na(!!sym(group_var))) %>%
+    select(group_by, ct, !!sym(group_var))
+  
+  # Summary statistics
+  summary_stats <- comparison_data %>%
+    group_by(!!sym(group_var)) %>%
+    summarise(
+      n = n(),
+      mean_ct = mean(ct, na.rm = TRUE),
+      median_ct = median(ct, na.rm = TRUE),
+      sd_ct = sd(ct, na.rm = TRUE),
+      se_ct = sd_ct / sqrt(n),
+      .groups = "drop"
+    )
+  
+  # Statistical test (Wilcoxon rank-sum test for non-parametric comparison)
+  if(length(unique(comparison_data[[group_var]])) == 2) {
+    groups <- unique(comparison_data[[group_var]])
+    group1_data <- comparison_data[comparison_data[[group_var]] == groups[1], "ct"]
+    group2_data <- comparison_data[comparison_data[[group_var]] == groups[2], "ct"]
+    
+    if(sum(!is.na(group2_data)) == 0 | sum(!is.na(group1_data)) == 0){
+      test_result <- NULL
+      p_value <- 1
+    }
+    else{
+      test_result <- wilcox.test(group1_data, group2_data)
+      p_value <- test_result$p.value
+    }
+  }
+  
+  return(list(
+    summary = summary_stats,
+    p_value = p_value,
+    test_result = test_result,
+    raw_data = comparison_data
+  ))
+}
+
+# =============================================================================
+# Function for tissue-specific and clinically-focused systematic comparison
+# =============================================================================
+focused_systematic_comparison <- function(data, group_var, tissue_type, min_samples = 3) {
+  
+  # Filter for specific tissue
+  tissue_data <- data %>% filter(Tissue == tissue_type, !is.na(!!sym(group_var)))
+  
+  # Define clinically relevant interaction pairs
+  clinical_pairs <- bind_rows(
+    # Tumor-Stromal interactions (barrier mechanisms)
+    expand_grid(from = epithelial_cells, to = stromal_cells) %>%
+      mutate(interaction_type = "Tumor_Stromal"),
+    expand_grid(from = stromal_cells, to = epithelial_cells) %>%
+      mutate(interaction_type = "Stromal_Tumor"),
+    
+    # Tumor-Immune interactions (immunotherapy potential)  
+    expand_grid(from = epithelial_cells, to = immune_cells) %>%
+      mutate(interaction_type = "Tumor_Immune"),
+    expand_grid(from = immune_cells, to = epithelial_cells) %>%
+      mutate(interaction_type = "Immune_Tumor"),
+    
+    # # Stromal-Immune interactions (microenvironment modulation)
+    # expand_grid(from = stromal_cells, to = immune_cells) %>%
+    #   mutate(interaction_type = "Stromal_Immune"),
+    # expand_grid(from = immune_cells, to = stromal_cells) %>%
+    #   mutate(interaction_type = "Immune_Stromal")
+  )
+  
+  # Check which pairs have sufficient data
+  valid_pairs <- tissue_data %>%
+    group_by(from_label, to_label) %>%
+    summarise(n_samples = n(), .groups = "drop") %>%
+    filter(n_samples >= min_samples) %>%
+    inner_join(clinical_pairs, by = c("from_label" = "from", "to_label" = "to"))
+  
+  if(nrow(valid_pairs) == 0) {
+    cat("No valid clinical interaction pairs found for", tissue_type, "\n")
+    return(NULL)
+  }
+  
+  results <- list()
+  
+  for(i in 1:nrow(valid_pairs)) {
+    from_cell <- valid_pairs$from_label[i]
+    to_cell <- valid_pairs$to_label[i]
+    int_type <- valid_pairs$interaction_type[i]
+    
+    comparison <- compare_interactions(tissue_data, group_var, from_cell, to_cell)
+    
+    results[[paste(from_cell, to_cell, sep = "_")]] <- list(
+      from = from_cell,
+      to = to_cell,
+      interaction_type = int_type,
+      tissue = tissue_type,
+      p_value = comparison$p_value,
+      summary = comparison$summary
+    )
+  }
+  
+  # Extract p-values and apply multiple testing correction
+  p_values <- sapply(results, function(x) x$p_value)
+  adj_p_values <- p.adjust(p_values, method = "BH")
+  
+  # Create results summary
+  results_df <- data.frame(
+    tissue = tissue_type,
+    from_label = sapply(results, function(x) x$from),
+    to_label = sapply(results, function(x) x$to),
+    interaction_type = sapply(results, function(x) x$interaction_type),
+    p_value = p_values,
+    adj_p_value = adj_p_values,
+    significant = adj_p_values < 0.05
+  ) %>%
+    arrange(p_value)
+  
+  return(list(
+    results_table = results_df,
+    detailed_results = results
+  ))
+}
+
+# =============================================================================
+# Function for treatment-stratified systematic comparison
+# =============================================================================
+treatment_stratified_comparison <- function(data, treatment_type, min_samples = 3) {
+  
+  # Filter for specific treatment (pooling across all tissues)
+  treatment_data <- data %>% 
+    filter(Treatment == treatment_type, !is.na(RFS_status)) %>%
+    # Add tissue information to track which tissues contribute to each interaction
+    mutate(interaction_id = paste(from_label, to_label, sep = "_"))
+  
+  cat("Analyzing", treatment_type, "treatment group...\n")
+  cat("Total samples:", length(unique(treatment_data$group_by)), "\n")
+  cat("RFS status distribution:\n")
+  print(table(treatment_data$RFS_status))
+  cat("\n")
+  
+  # Define clinically relevant interaction pairs
+  clinical_pairs <- bind_rows(
+    # Tumor-Stromal interactions (barrier mechanisms)
+    expand_grid(from = epithelial_cells, to = stromal_cells) %>%
+      mutate(interaction_type = "Tumor_Stromal"),
+    expand_grid(from = stromal_cells, to = epithelial_cells) %>%
+      mutate(interaction_type = "Stromal_Tumor"),
+    
+    # Tumor-Immune interactions (immunotherapy potential)  
+    expand_grid(from = epithelial_cells, to = immune_cells) %>%
+      mutate(interaction_type = "Tumor_Immune"),
+    expand_grid(from = immune_cells, to = epithelial_cells) %>%
+      mutate(interaction_type = "Immune_Tumor"),
+    
+    # Stromal-Immune interactions (microenvironment modulation)
+    expand_grid(from = stromal_cells, to = immune_cells) %>%
+      mutate(interaction_type = "Stromal_Immune"),
+    expand_grid(from = immune_cells, to = stromal_cells) %>%
+      mutate(interaction_type = "Immune_Stromal")
+  )
+  
+  # Check which pairs have sufficient data
+  valid_pairs <- treatment_data %>%
+    group_by(from_label, to_label) %>%
+    summarise(
+      n_samples = n(),
+      n_tissues = length(unique(Tissue)),
+      tissues = paste(unique(Tissue), collapse = ","),
+      rfs_0 = sum(RFS_status == 0),
+      rfs_1 = sum(RFS_status == 1),
+      .groups = "drop"
+    ) %>%
+    filter(n_samples >= min_samples, rfs_0 >= 1, rfs_1 >= 1) %>%  # Need both RFS groups
+    inner_join(clinical_pairs, by = c("from_label" = "from", "to_label" = "to"))
+  
+  cat("Valid clinical interaction pairs:", nrow(valid_pairs), "\n")
+  
+  if(nrow(valid_pairs) == 0) {
+    cat("No valid clinical interaction pairs found for", treatment_type, "\n")
+    return(NULL)
+  }
+  
+  results <- list()
+  
+  for(i in 1:nrow(valid_pairs)) {
+    from_cell <- valid_pairs$from_label[i]
+    to_cell <- valid_pairs$to_label[i]
+    int_type <- valid_pairs$interaction_type[i]
+    
+    comparison <- compare_interactions(treatment_data, "RFS_status", from_cell, to_cell)
+    
+    results[[paste(from_cell, to_cell, sep = "_")]] <- list(
+      from = from_cell,
+      to = to_cell,
+      interaction_type = int_type,
+      treatment = treatment_type,
+      tissues_present = valid_pairs$tissues[i],
+      n_tissues = valid_pairs$n_tissues[i],
+      p_value = comparison$p_value,
+      summary = comparison$summary
+    )
+  }
+  
+  # Extract p-values and apply multiple testing correction
+  p_values <- sapply(results, function(x) x$p_value)
+  adj_p_values <- p.adjust(p_values, method = "BH")
+  
+  # Create results summary
+  results_df <- data.frame(
+    treatment = treatment_type,
+    from_label = sapply(results, function(x) x$from),
+    to_label = sapply(results, function(x) x$to),
+    interaction_type = sapply(results, function(x) x$interaction_type),
+    tissues_present = sapply(results, function(x) x$tissues_present),
+    n_tissues = sapply(results, function(x) x$n_tissues),
+    p_value = p_values,
+    adj_p_value = adj_p_values,
+    significant = adj_p_values < 0.05
+  ) %>%
+    arrange(p_value)
+  
+  return(list(
+    results_table = results_df,
+    detailed_results = results
+  ))
+}
+
+# =============================================================================
+# EC interaction analysis
+# =============================================================================
+ec_interaction_analysis <- function(data) {
+  
+  # Filter for IM regions only (as specified)
+  tc_im_data <- data %>%
+    filter(Tissue %in% c("IM"), !is.na(mean_sigval))
+  
+  cat("Analyzing EC interaction patterns in IM regions...\n")
+  cat("Total interactions:", nrow(tc_im_data), "\n")
+  
+  # Get all other cell types (excluding the two ECs of interest)
+  all_celltypes <- unique(c(tc_im_data$from_label, tc_im_data$to_label))
+  other_celltypes <- setdiff(all_celltypes, c("EC_GLUT1", "EC_EpCAM"))
+  
+  cat("Other cell types:", length(other_celltypes), "\n")
+  
+  # Function to extract undirected interactions for a specific EC type
+  extract_ec_interactions <- function(ec_type) {
+    
+    # Get both directions: EC ↔ Other
+    ec_interactions <- tc_im_data %>%
+      filter(
+        (from_label == ec_type & to_label %in% other_celltypes) |
+          (from_label %in% other_celltypes & to_label == ec_type)
+      ) %>%
+      mutate(
+        # Standardize interaction pairs (always put EC first for consistency)
+        partner = ifelse(from_label == ec_type, to_label, from_label),
+        interaction_pair = paste(ec_type, partner, sep = "_")
+      )
+    
+    # Combine bidirectional interactions by averaging
+    combined_interactions <- ec_interactions %>%
+      group_by(partner) %>%
+      summarise(
+        # Average the interaction values from both directions
+        mean_sigval = mean(mean_sigval, na.rm = TRUE),
+        # Count how many samples contributed (from both directions)
+        n_samples = n(),
+        # Track if we have both directions
+        n_directions = length(unique(paste(from_label, to_label, sep = "→"))),
+        # Get the raw values for transparency
+        raw_values = paste(round(mean_sigval, 3), collapse = ", "),
+        .groups = "drop"
+      ) %>%
+      mutate(
+        ec_focus = ec_type,
+        abs_sigval = abs(mean_sigval),
+        interaction_type = paste(ec_type, "↔", partner),  # Use ↔ for undirected
+        interaction_strength = case_when(
+          mean_sigval > 0.5 ~ "Strong Attraction",
+          mean_sigval > 0 ~ "Weak Attraction", 
+          mean_sigval > -0.5 ~ "Weak Avoidance",
+          TRUE ~ "Strong Avoidance"
+        ),
+        data_completeness = case_when(
+          n_directions == 2 ~ "Bidirectional",
+          n_directions == 1 ~ "Unidirectional"
+        )
+      )
+    
+    return(combined_interactions)
+  }
+  
+  # Extract interactions for both EC types
+  glut1_interactions <- extract_ec_interactions("EC_GLUT1")
+  epcam_interactions <- extract_ec_interactions("EC_EpCAM")
+  
+  return(list(
+    glut1_data = glut1_interactions,
+    epcam_data = epcam_interactions,
+    combined_data = bind_rows(glut1_interactions, epcam_interactions)
+  ))
+}
+
+# =============================================================================
+# Function to create ordered bidirectional barplot
+# =============================================================================
+create_ec_barplot <- function(ec_data, ec_name, clinical_context) {
+  
+  # Prepare data with proper ordering
+  plot_data <- ec_data %>%
+    arrange(desc(mean_sigval)) %>%  # Order by actual signal value (decreasing)
+    mutate(
+      # Create clean labels
+      partner_clean = str_replace_all(partner, "_", " "),
+      # Color based on interaction strength and direction
+      fill_color = case_when(
+        mean_sigval > 0.3 ~ "Strong Attraction",
+        mean_sigval > 0 ~ "Weak Attraction", 
+        mean_sigval > -0.3 ~ "Weak Avoidance",
+        TRUE ~ "Strong Avoidance"
+      ),
+      # Add data quality indicator
+      label_text = paste0(sprintf("%.2f", mean_sigval), 
+                          ifelse(data_completeness == "Unidirectional", "*", ""))
+    )
+  
+  # Define colors for interaction strength
+  colors <- c(
+    "Strong Attraction" = "#d62728",     # Red
+    "Weak Attraction" = "#ff7f0e",       # Orange  
+    "Weak Avoidance" = "#2ca02c",        # Green
+    "Strong Avoidance" = "#1f77b4"       # Blue
+  )
+  
+  # Create the plot
+  p <- ggplot(plot_data, aes(x = reorder(partner_clean, mean_sigval), 
+                             y = mean_sigval, fill = fill_color)) +
+    geom_hline(yintercept = 0, linetype = "dashed", color = "black", alpha = 0.5) +
+    geom_bar(stat = "identity", alpha = 0.8, width = 0.7) +
+    geom_text(aes(label = label_text,
+                  y = mean_sigval + ifelse(mean_sigval > 0, 0.05, -0.05)),
+              size = 2.5, color = "black") +
+    labs(
+      title = paste0(str_replace(ec_name, "_", " "), " Undirected Interaction Profile"),
+      subtitle = paste0("Clinical Context: ", clinical_context, " | IM Regions | *Unidirectional data"),
+      x = "Interaction Partner Cell Type",
+      y = "Mean Interaction Signal (-1: Avoidance, +1: Attraction)",
+      fill = "Interaction Strength"
+    ) +
+    theme_classic() +
+    theme(
+      plot.title = element_text(size = 12, face = "bold"),
+      plot.subtitle = element_text(size = 9, color = "darkblue"),
+      axis.text.y = element_text(size = 8),
+      axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5, size = 8),
+      axis.title = element_text(size = 10),
+      legend.position = "bottom",
+      legend.title = element_text(size = 9),
+      legend.text = element_text(size = 8)
+    ) +
+    scale_fill_manual(values = colors) +
+    scale_y_continuous(limits = c(-1.1, 1.1), breaks = seq(-1, 1, 0.5))
+  
+  return(p)
+}
+
+# ============================================================================
+# CHORD PLOT FOR EC INTERACTIONS
+# ============================================================================
+
+create_ec_chord_plot <- function(interaction_data, tissue_type = "IM", 
+                                 min_prop_significant = 0.3, ec_cells = NULL, selected_targets = NULL, savePath) {
+  
+  # Default target selection if not specified
+  if(is.null(selected_targets)) {
+    selected_targets <- c(stromal_cells, immune_cells[1:8])  # Select key immune cells
+  }
+  
+  # Filter data for EC interactions with selected targets
+  chord_data <- interaction_data %>%
+    filter(
+      Tissue == tissue_type,
+      from_label %in% ec_cells,
+      to_label %in% selected_targets,
+      prop_significant >= min_prop_significant  # Filter for meaningful interactions
+    ) %>%
+    select(from_label, to_label, mean_sigval, prop_significant, mean_ct) %>%
+    mutate(
+      # Use interaction strength as weight
+      interaction_weight = abs(mean_sigval) * mean_ct * 10,  # Scale for visualization
+      interaction_direction = ifelse(mean_sigval > 0, "Attractive", "Avoidance")
+    )
+  
+  if(nrow(chord_data) == 0) {
+    cat("No significant EC interactions found for", tissue_type, "\n")
+    return(NULL)
+  }
+  
+  # Create adjacency matrix
+  all_cells <- unique(c(chord_data$from_label, chord_data$to_label))
+  adj_matrix <- matrix(0, nrow = length(all_cells), ncol = length(all_cells))
+  rownames(adj_matrix) <- all_cells
+  colnames(adj_matrix) <- all_cells
+  
+  # Fill matrix with interaction weights
+  for(i in 1:nrow(chord_data)) {
+    from_idx <- which(all_cells == chord_data$from_label[i])
+    to_idx <- which(all_cells == chord_data$to_label[i])
+    adj_matrix[from_idx, to_idx] <- chord_data$interaction_weight[i]
+  }
+  
+  # Color scheme
+  cell_colors <- metadata(spe)$color_vectors$sub_celltype
+  
+  # Set colors for present cells
+  present_cells <- intersect(names(cell_colors), all_cells)
+  colors <- cell_colors[present_cells]
+  
+  # Create chord diagram
+  circos.clear()
+  
+  pdf(savePath,width = 12,height = 9)
+  circos.par(start.degree = 90, gap.degree = 4)
+  chordDiagram(t(adj_matrix),
+               grid.col = colors,
+               transparency = 0.3,
+               directional = 1,
+               direction.type = "arrows",
+               link.arr.type = "big.arrow",
+               annotationTrack = "grid",
+               preAllocateTracks = 1,
+               link.border = "grey40")
+  
+  # Add sector labels
+  circos.trackPlotRegion(track.index = 1, panel.fun = function(x, y) {
+    xlim = get.cell.meta.data("xlim")
+    ylim = get.cell.meta.data("ylim")
+    sector.name = get.cell.meta.data("sector.index")
+    
+    # Color-code labels
+    label_color <- if(sector.name %in% ec_cells) "darkred" else
+      if(sector.name %in% immune_cells) "darkblue" else "darkorange"
+    
+    circos.text(mean(xlim), ylim[1] + 0.2, sector.name, 
+                facing = "clockwise", niceFacing = TRUE, 
+                adj = c(0, 0.5), cex = 0.8, col = label_color, font = 2)
+  }, bg.border = NA)
+  
+  title(paste("EC Cell Interaction Network -", tissue_type), cex.main = 1.3)
+  
+  # Add legend
+  legend("bottomright", 
+         legend = c("EC Cells", "Immune Cells", "Stromal Cells"),
+         col = c("darkred", "darkblue", "darkorange"),
+         pch = 15, cex = 0.9, bty = "n")
+  dev.off()
+  circos.clear()
+  
+  return(chord_data)
+}
+
+# ============================================================================
+# BARPLOT WITH ERROR BARS FOR GROUP COMPARISONS
+# ============================================================================
+create_interaction_comparison_barplot <- function(raw_data, ec_cell, target_cell, 
+                                                  tissue_type = "IM", comparison_var = "RFS_status") {
+  
+  # Convert comparison variable to factor if needed
+  raw_data <- raw_data %>%
+    mutate(!!sym(comparison_var) := as.factor(!!sym(comparison_var)))
+  
+  # Filter and prepare data
+  filtered_data <- raw_data %>%
+    filter(
+      Tissue == tissue_type,
+      from_label == ec_cell,
+      to_label == target_cell
+    )
+  
+  # Check if we have data
+  if(nrow(filtered_data) == 0) {
+    warning(paste("No data found for", ec_cell, "->", target_cell, "in", tissue_type))
+    return(NULL)
+  }
+  
+  # Calculate summary statistics
+  plot_data <- filtered_data %>%
+    group_by(!!sym(comparison_var)) %>%
+    summarise(
+      mean_interaction = mean(sigval, na.rm = TRUE),
+      se_interaction = sd(sigval, na.rm = TRUE) / sqrt(n()),
+      mean_count = mean(ct, na.rm = TRUE),
+      se_count = sd(ct, na.rm = TRUE) / sqrt(n()),
+      prop_significant = mean(sig, na.rm = TRUE),
+      prop_attractive = mean(interaction, na.rm = TRUE),
+      n_samples = n(),
+      .groups = "drop"
+    ) %>%
+    # Handle cases with small sample sizes
+    mutate(
+      se_interaction = ifelse(is.na(se_interaction) | n_samples < 2, 0, se_interaction),
+      se_count = ifelse(is.na(se_count) | n_samples < 2, 0, se_count)
+    )
+  
+  # Perform statistical test between groups
+  if(length(unique(plot_data[[comparison_var]])) == 2) {
+    # wilcox_test for count
+    group1_ct <- filtered_data %>% filter(!!sym(comparison_var) == unique(plot_data[[comparison_var]])[1]) %>% pull(ct)
+    group2_ct <- filtered_data %>% filter(!!sym(comparison_var) == unique(plot_data[[comparison_var]])[2]) %>% pull(ct)
+    
+    if(length(group1_ct) > 1 && length(group2_ct) > 1) {
+      wilcox_test_result_ct <- wilcox.test(group1_ct, group2_ct)
+      p_value_count <- wilcox_test_result_ct$p.value
+    } else {
+      p_value_count <- NA
+    }
+  } else {
+    p_value_interaction <- NA
+    p_value_count <- NA
+  }
+  
+  # Format p-values for display
+  p_text_count <- if(!is.na(p_value_count)) {
+    if(p_value_count < 0.001) "p < 0.001"
+    else paste0("p = ", round(p_value_count, 3))
+  } else "p = N/A"
+  
+  # Create barplot for interaction count
+  p2 <- ggplot(plot_data, aes(x = !!sym(comparison_var), y = mean_count, 
+                              fill = !!sym(comparison_var))) +
+    geom_bar(stat = "identity", alpha = 0.7, width = 0.6) +
+    geom_errorbar(aes(ymin = pmax(0, mean_count - se_count), 
+                      ymax = mean_count + se_count), 
+                  width = 0.2, color = "black") +
+    # Add sample size labels on bars
+    geom_text(aes(label = paste0("n=", n_samples)), 
+              position = position_dodge(width = 0.6), 
+              vjust = -0.5, size = 3, color = "black") +
+    labs(
+      title = paste0(ec_cell, " → ", target_cell, " (Interaction Count)"),
+      subtitle = paste0(comparison_var, " comparison (", tissue_type, ") | ", p_text_count),
+      x = comparison_var,
+      y = "Mean Interaction Count",
+      fill = comparison_var
+    ) +
+    theme_classic() +
+    theme(
+      plot.title = element_text(size = 11, face = "bold"),
+      plot.subtitle = element_text(size = 9, color = ifelse(!is.na(p_value_count) && p_value_count < 0.05, "red", "black")),
+      axis.text = element_text(size = 9),
+      axis.title = element_text(size = 10),
+      legend.position = "none"
+    ) +
+    scale_fill_manual(values = RFS_color) +
+    scale_y_continuous(limits = c(0, max(plot_data$mean_count + plot_data$se_count) * 1.1))
+  
+  # Create summary statistics table
+  summary_stats <- plot_data %>%
+    mutate(
+      p_value_interaction = p_value_interaction,
+      p_value_count = p_value_count
+    )
+  
+  return(list(
+    interaction_count = p2, 
+    data = summary_stats,
+    raw_data = filtered_data,
+    statistical_tests = list(
+      count_p = p_value_count
+    )
+  ))
+}
+
+# Function to create multiple comparison plots at once
+create_multiple_ec_comparisons <- function(raw_data, ec_cells, target_cells, 
+                                           tissue_type = "IM", comparison_var = "RFS_status") {
+  
+  all_plots <- list()
+  significant_results <- data.frame()
+  
+  for(ec_cell in ec_cells) {
+    for(target_cell in target_cells) {
+      tryCatch({
+        result <- create_interaction_comparison_barplot(raw_data, ec_cell, target_cell, 
+                                                        tissue_type, comparison_var)
+        
+        if(!is.null(result)) {
+          plot_name <- paste0(ec_cell, "_", target_cell)
+          all_plots[[paste0(plot_name, "_count")]] <- result$interaction_count
+          
+          # Collect significant results
+          if(!is.na(result$statistical_tests$count_p) && 
+             result$statistical_tests$count_p < 0.05) {
+            
+            significant_results <- rbind(significant_results, 
+                                         data.frame(
+                                           ec_cell = ec_cell,
+                                           target_cell = target_cell,
+                                           comparison = comparison_var,
+                                           tissue = tissue_type,
+                                           p_value_count = result$statistical_tests$count_p,
+                                           stringsAsFactors = FALSE
+                                         ))
+          }
+        }
+      }, error = function(e) {
+        cat("Error processing", ec_cell, "->", target_cell, ":", e$message, "\n")
+      })
+    }
+  }
+  
+  return(list(
+    plots = all_plots,
+    significant_results = significant_results
+  ))
+}

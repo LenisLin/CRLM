@@ -44,63 +44,39 @@ if(!dir.exists(figureDir)){
 }
 
 # Load your SpatialExperiment object
-spe <- readRDS(file.path(saveDir,paste0("spatial_spe_0722.rds")))
+date_time <- "0728"
+spe <- readRDS(file.path(saveDir,paste0("spatial_spe_","0724",".rds")))
 img_id_ <- "sample_id"
 
-## Rename Subtype
-subtypes_ <- as.character(spe$sub_celltype)
-subtypes_[subtypes_ == "EC_Ki67_CAIX"] <- "EC_CAIX"
-spe$sub_celltype <- subtypes_
+# 4. Patch detection
+## calculate the minimum distance between each cell and tumor patch
+detectPatch_List <- list()
+celltypes <- unique(spe$sub_celltype)
 
-# 2.Cluster CN + Spatial Context + interaction test
-k_clusters <- c(8, 10, 12, 15) # Choose K clusters
-Pairnames <- colPairNames(spe)
+detectPatch_List[["Tumor"]] <- celltypes[startsWith(celltypes,prefix = "EC")]
+detectPatch_List[["Metabolism_activate_Tumor"]] <- c("EC_GLUT1","EC_CAIX","EC_Vimentin")
+detectPatch_List[["Quiescent_Tumor"]] <- "EC_EpCAM"
 
-for(pairname_ in Pairnames){
+for(patch_name_ in names(detectPatch_List)){
   
-  ## aggregate neighbor
-  spe <- aggregateNeighbors(
-    spe, colPairName = pairname_,
-    aggregate_by = "metadata",count_by = "sub_celltype", name = "aggregatedNeighborhood"
-  )
+  ## Assign column
+  colData(spe)[patch_name_] <- FALSE
+  colData(spe)[spe$sub_celltype %in% detectPatch_List[[patch_name_]],patch_name_] <- TRUE
   
-  ## Iterative on number of clusters
-  for(k_cluster_ in k_clusters){
-    
-    cn <- kmeans(spe$aggregatedNeighborhood, centers = k_cluster_)
-    
-    # 创建动态列名避免覆盖
-    cluster_colname <- paste0("CN_", pairname_,"_cluster_", k_cluster_)
-    colData(spe)[[cluster_colname]] <- as.factor(cn$cluster)
-    
-    # Spatial context analysis
-    spe <- aggregateNeighbors(spe, 
-                              colPairName = pairname_,
-                              aggregate_by = "metadata",
-                              count_by = cluster_colname,
-                              name = "aggregatedNeighborhood")
-    
-    context_colname <- paste0("Context_", pairname_,"_cluster_", k_cluster_)
-    spe <- detectSpatialContext(spe, 
-                                entry = "aggregatedNeighborhood",
-                                threshold = 0.90,
-                                name = context_colname)
-    
-    cat("✓ Calculate CN and Spatial Context of", cluster_colname, "done","\n")
-  }
+  ## Patch detection
+  col_name_ = paste0(patch_name_,"_patch")
+  spe <- patchDetection(spe,
+                        patch_cells = colData(spe)[patch_name_][,1],
+                        name = `col_name_`,
+                        img_id = img_id_,
+                        expand_by = 20,
+                        min_patch_size = 5,
+                        colPairName = "knn_20",
+                        BPPARAM = MulticoreParam(workers = 4))
   
-  colData(spe) <- colData(spe)[,-match(c("aggregatedNeighborhood"),colnames(colData(spe)))]
-  
-  # Interaction analysis
-  out <- testInteractions(spe,
-                          group_by = img_id_,
-                          label = "sub_celltype",
-                          colPairName = pairname_,
-                          BPPARAM = SerialParam(RNGseed = 619))
-  
-  cat("✓ Perform permutation test on", pairname_, "done","\n")
-  
-  saveRDS(out,file.path(saveDir,paste0("Interaction_analysis_out_of_",pairname_,".rds")))
+  cat("✓ Perform ", patch_name_, "patch detection on", "knn_20", "done","\n")
 }
 
 saveRDS(spe,file.path(saveDir,paste0("spatial_spe_",date_time,".rds")))
+
+
