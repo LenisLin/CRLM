@@ -181,24 +181,34 @@ find_optimal_cutoff <- function(data, gene_name, time_var = "RFS_time", event_va
 }
 
 # Function to create forest plot from Cox regression results
-createCoxForestPlot <- function(cox_model, var_display_names = NULL, plot_title = "Multi-variables Cox Regression Forest Plot", 
-                                savePath = NULL, filename = "Cox_forest_plot.pdf") {
+createCoxForestPlot <- function(cox_model, 
+                                var_display_names = NULL, 
+                                var_groups = NULL,
+                                plot_title = "Cox Regression Forest Plot", 
+                                savePath = NULL, 
+                                filename = "Cox_forest_plot.pdf") {
   
   # Extract coefficients and statistics from Cox model
   coef_summary <- summary(cox_model)
   coef_table <- coef_summary$coefficients
   conf_int <- coef_summary$conf.int
   
-  # Get variable names (remove reference levels if factor)
+  # Get variable names from the model
   var_names <- rownames(coef_table)
+  n_vars <- length(var_names)
   
-  # Create formatted variable names for display
+  # Create display names if not provided
   if(is.null(var_display_names)){
-    var_display_names <- c(
-      "Treatment (Combo vs Chemo)",
-      "FASN", "GLUT1", "EpCAM", 
-      "Age", "Fong Score", "TBS", "CEA (log)", "CA199 (log)", "CRLM Size", "KRAS Mutation"
-    )
+    var_display_names <- var_names
+    # Try to clean up variable names for better display
+    var_display_names <- gsub("_", " ", var_display_names)
+    var_display_names <- tools::toTitleCase(var_display_names)
+  }
+  
+  # Check if display names match number of variables
+  if(length(var_display_names) != n_vars) {
+    warning("Length of var_display_names doesn't match number of variables. Using original variable names.")
+    var_display_names <- var_names
   }
   
   # Extract key statistics
@@ -217,41 +227,73 @@ createCoxForestPlot <- function(cox_model, var_display_names = NULL, plot_title 
                       ifelse(p_values < 0.01, sprintf("%.3f", p_values),
                              sprintf("%.3f", p_values)))
   
-  # Create result matrix similar to original function
-  # Separate biomarkers from clinical variables
-  biomarker_indices <- c(2, 3, 4)  # FASN, GLUT1, EpCAM
-  clinical_indices <- c(1, 5:11)   # Treatment, Age, fong_score, etc.
-  
   # Helper function to insert section headers
   ins <- function(x) {
     c(as.character(x), NA, NA)
   }
   
-  # Build result matrix with sections
-  result_df <- rbind(
-    c("Features", "HR(95%CI)", "p-value"),
-    ins("Biomarkers"),
-    cbind(var_display_names[biomarker_indices], 
-          HR_CI_text[biomarker_indices], 
-          p_display[biomarker_indices]),
-    ins("Clinical Variables"),
-    cbind(var_display_names[clinical_indices], 
-          HR_CI_text[clinical_indices], 
-          p_display[clinical_indices]),
-    c(NA, NA, NA)
-  )
+  # Build result matrix
+  if(is.null(var_groups)) {
+    # No grouping - show all variables in one section
+    result_df <- rbind(
+      c("Variables", "HR(95%CI)", "p-value"),
+      cbind(var_display_names, HR_CI_text, p_display),
+      c(NA, NA, NA)
+    )
+    
+    # Create vectors for forestplot function
+    mean_values <- c(NA, HR, NA)
+    lower_values <- c(NA, lower_CI, NA)
+    upper_values <- c(NA, upper_CI, NA)
+    
+    # Create is_summary vector
+    is_summary_vector <- c(TRUE, rep(FALSE, n_vars), TRUE)
+    
+  } else {
+    # With grouping
+    result_df <- c("Variables", "HR(95%CI)", "p-value")
+    mean_values <- NA
+    lower_values <- NA
+    upper_values <- NA
+    is_summary_vector <- TRUE
+    
+    # Process each group
+    for(group_name in names(var_groups)) {
+      group_indices <- var_groups[[group_name]]
+      
+      # Validate indices
+      group_indices <- group_indices[group_indices <= n_vars & group_indices > 0]
+      
+      if(length(group_indices) > 0) {
+        # Add group header
+        result_df <- rbind(result_df, ins(group_name))
+        mean_values <- c(mean_values, NA)
+        lower_values <- c(lower_values, NA)
+        upper_values <- c(upper_values, NA)
+        is_summary_vector <- c(is_summary_vector, TRUE)
+        
+        # Add group variables
+        result_df <- rbind(result_df, 
+                           cbind(var_display_names[group_indices], 
+                                 HR_CI_text[group_indices], 
+                                 p_display[group_indices]))
+        mean_values <- c(mean_values, HR[group_indices])
+        lower_values <- c(lower_values, lower_CI[group_indices])
+        upper_values <- c(upper_values, upper_CI[group_indices])
+        is_summary_vector <- c(is_summary_vector, rep(FALSE, length(group_indices)))
+      }
+    }
+    
+    # Add final empty row
+    result_df <- rbind(result_df, c(NA, NA, NA))
+    mean_values <- c(mean_values, NA)
+    lower_values <- c(lower_values, NA)
+    upper_values <- c(upper_values, NA)
+    is_summary_vector <- c(is_summary_vector, TRUE)
+  }
   
   # Ensure all entries are characters
   result_df <- apply(result_df, 2, as.character)
-  
-  # Create vectors for forestplot function
-  mean_values <- c(NA, NA, HR[biomarker_indices], NA, HR[clinical_indices], NA)
-  lower_values <- c(NA, NA, lower_CI[biomarker_indices], NA, lower_CI[clinical_indices], NA)
-  upper_values <- c(NA, NA, upper_CI[biomarker_indices], NA, upper_CI[clinical_indices], NA)
-  
-  # Create is_summary vector (TRUE for section headers, FALSE for data rows)
-  is_summary_vector <- c(TRUE, TRUE, rep(FALSE, length(biomarker_indices)), 
-                         TRUE, rep(FALSE, length(clinical_indices)), TRUE)
   
   # Create the forest plot
   p <- forestplot(result_df,
@@ -288,9 +330,9 @@ createCoxForestPlot <- function(cox_model, var_display_names = NULL, plot_title 
                   fn.ci_norm = "fpDrawNormalCI",
                   title = plot_title,
                   col = fpColors(
-                    box = "#D32F2F",        # Red for significant
-                    lines = "#D32F2F",      # Red lines
-                    zero = "black",         # Black reference line
+                    box = "#D32F2F",
+                    lines = "#D32F2F",
+                    zero = "black",
                     text = "black",
                     summary = "black"
                   )
@@ -307,7 +349,7 @@ createCoxForestPlot <- function(cox_model, var_display_names = NULL, plot_title 
   # Display plot
   print(p)
   
-  # Return summary data for reference
+  # Return summary data
   summary_data <- data.frame(
     Variable = var_display_names,
     HR = HR,
@@ -320,4 +362,183 @@ createCoxForestPlot <- function(cox_model, var_display_names = NULL, plot_title 
   )
   
   return(summary_data)
+}
+
+# Function to calculate correlation matrix with p-values
+calculate_correlation_with_pval <- function(data, method = "spearman") {
+  # Extract only marker columns
+  marker_data <- data[, marker_columns]
+  
+  # Remove rows with any NA values
+  marker_data <- marker_data[complete.cases(marker_data), ]
+  
+  if (nrow(marker_data) < 10) {
+    return(NULL)  # Not enough data for reliable correlation
+  }
+  
+  # Calculate correlation matrix and p-values using Hmisc
+  cor_result <- rcorr(as.matrix(marker_data), type = method)
+  
+  # Return both correlation matrix and p-values
+  return(list(
+    correlations = cor_result$r,
+    p_values = cor_result$P,
+    n_samples = nrow(marker_data)
+  ))
+}
+
+# Function to create significance stars
+get_significance_stars <- function(p_values) {
+  stars <- matrix("", nrow = nrow(p_values), ncol = ncol(p_values))
+  stars[p_values <= 0.001] <- "***"
+  stars[p_values > 0.001 & p_values <= 0.01] <- "**"
+  stars[p_values > 0.01 & p_values <= 0.05] <- "*"
+  stars[p_values > 0.05] <- ""
+  
+  # Set diagonal to empty (self-correlation)
+  diag(stars) <- ""
+  
+  return(stars)
+}
+
+# Function to extract GLUT1 correlations for chord plot
+extract_glut1_correlations <- function(data, tissue_name) {
+  # Extract only marker columns
+  marker_data <- data[, marker_columns]
+  
+  # Remove rows with any NA values
+  marker_data <- marker_data[complete.cases(marker_data), ]
+  
+  if (nrow(marker_data) < 10) {
+    return(NULL)  # Not enough data
+  }
+  
+  # Calculate correlations with GLUT1
+  glut1_cors <- cor(marker_data$GLUT1, marker_data, method = "spearman")
+  
+  # Calculate p-values for GLUT1 correlations
+  glut1_pvals <- sapply(marker_columns, function(marker) {
+    if (marker == "GLUT1") return(NA)  # Self-correlation
+    cor.test(marker_data$GLUT1, marker_data[[marker]], method = "spearman")$p.value
+  })
+  
+  # Create data frame for chord plot
+  chord_data <- data.frame(
+    from = "GLUT1",
+    to = marker_columns[marker_columns != "GLUT1"],
+    correlation = as.numeric(glut1_cors[marker_columns != "GLUT1"]),
+    p_value = glut1_pvals[marker_columns != "GLUT1"],
+    tissue = tissue_name,
+    stringsAsFactors = FALSE
+  )
+  
+  # Add transparency based on p-value (more significant = more opaque)
+  chord_data$transparency <- pmax(0.2, 1 - chord_data$p_value)  # Min transparency of 0.2
+  
+  # Add chord width based on absolute correlation
+  chord_data$width <- abs(chord_data$correlation) * 10  # Scale for visibility
+  
+  # Add direction for color coding
+  chord_data$direction <- ifelse(chord_data$correlation > 0, "positive", "negative")
+  
+  return(list(
+    data = chord_data,
+    n_samples = nrow(marker_data)
+  ))
+}
+
+# Function to create chord plot for GLUT1 correlations
+create_glut1_chord_plot <- function(chord_result, tissue_name) {
+  
+  chord_data <- chord_result$data
+  n_samples <- chord_result$n_samples
+  
+  # Prepare data matrix for circlize
+  # Create adjacency matrix
+  markers <- unique(c(chord_data$from, chord_data$to))
+  n_markers <- length(markers)
+  
+  # Create matrix
+  mat <- matrix(0, nrow = n_markers, ncol = n_markers)
+  rownames(mat) <- markers
+  colnames(mat) <- markers
+  
+  # Fill matrix with correlation values (use absolute values for chord thickness)
+  for (i in 1:nrow(chord_data)) {
+    from_idx <- which(markers == chord_data$from[i])
+    to_idx <- which(markers == chord_data$to[i])
+    mat[from_idx, to_idx] <- abs(chord_data$correlation[i])
+  }
+  
+  # Create color matrix for chords based on correlation direction
+  col_mat <- matrix(NA, nrow = n_markers, ncol = n_markers)
+  rownames(col_mat) <- markers
+  colnames(col_mat) <- markers
+  
+  # Fill color matrix
+  for (i in 1:nrow(chord_data)) {
+    from_idx <- which(markers == chord_data$from[i])
+    to_idx <- which(markers == chord_data$to[i])
+    
+    # Color based on correlation direction
+    if (chord_data$direction[i] == "positive") {
+      col_mat[from_idx, to_idx] <- "#cd534c"  # Red for positive
+    } else {
+      col_mat[from_idx, to_idx] <- "#7ca6dc"  # Blue for negative
+    }
+  }
+  
+  # Set up colors for markers (sector colors)
+  marker_colors <- c(
+    "GLUT1" = "#ff6b35",      # Orange for GLUT1 (central)
+    "EpCAM" = "#4a90e2",      # Blue for epithelial
+    "Vimentin" = "#7b68ee",   # Purple for mesenchymal
+    "Ki67" = "#32cd32",       # Green for proliferation
+    "VEGF" = "#ff69b4",       # Pink for angiogenesis
+    "CA_IX" = "#8b4513",      # Brown for hypoxia
+    "HK2" = "#ffa500",        # Orange for metabolism
+    "FASN" = "#ff8c00",       # Dark orange for metabolism
+    "CD279" = "#dc143c"       # Red for immune
+  )
+  
+  # Start plotting
+  # Clear any existing plots
+  circos.clear()
+  
+  # Set up circos parameters
+  circos.par(start.degree = 90, gap.degree = 4, 
+             track.margin = c(-0.1, 0.1), cell.padding = c(0.02, 0, 0.02, 0))
+  
+  # Create chord diagram with simplified coloring
+  chordDiagram(mat, 
+               grid.col = marker_colors[markers],
+               col = col_mat,
+               transparency = 0.3,
+               annotationTrack = "grid",
+               preAllocateTracks = list(track.height = max(strwidth(unlist(dimnames(mat))))))
+  
+  # Add marker labels
+  circos.track(track.index = 1, panel.fun = function(x, y) {
+    circos.text(CELL_META$xcenter, CELL_META$ylim[1], CELL_META$sector.index,
+                facing = "clockwise", niceFacing = TRUE, adj = c(0, 0.5),
+                cex = 0.8, font = 2)
+  }, bg.border = NA)
+  
+  # Add title
+  title(main = paste("GLUT1 Correlations -", tissue_name), 
+        sub = paste("n =", n_samples, "samples"), 
+        cex.main = 1.2, cex.sub = 0.9)
+  
+  # Add legend for correlation direction
+  legend("bottomleft", 
+         legend = c("Positive correlation", "Negative correlation"),
+         fill = c("#cd534c", "#7ca6dc"),
+         cex = 0.7, bty = "n")
+  
+  # Add legend for chord thickness
+  legend("bottomright",
+         legend = c("Chord thickness = |correlation|"),
+         bty = "n", cex = 0.7)
+  
+  return(chord_data)
 }

@@ -1305,3 +1305,315 @@ create_multiple_ec_comparisons <- function(raw_data, ec_cells, target_cells,
     significant_results = significant_results
   ))
 }
+
+# =============================================================================
+## Patch analysis
+# =============================================================================
+analysis_patch_characteristic <- function(data,patch_column_name,patche_ids,patch_type){
+  # Initialize results dataframe
+  patch_size_results <- data.frame()
+  
+  for (patch_id in patche_ids) {
+    patch_cells_subset <- data[data[`patch_column_name`] == patch_id, ]
+    
+      # Basic metrics
+      n_cells <- nrow(patch_cells_subset)
+      sample_id <- patch_cells_subset$sample_id[1]
+      patient_id <- patch_cells_subset$patient_id[1]
+      RFS_status <- patch_cells_subset$RFS_status[1]
+      Treatment <- patch_cells_subset$Treatment[1]
+      
+      # Spatial coordinates
+      patch_coords <- patch_cells_subset[, c("Pos_X", "Pos_Y")]
+      
+      # Calculate spatial metrics
+      # 1. Bounding box area
+      x_range <- max(patch_coords$Pos_X) - min(patch_coords$Pos_X)
+      y_range <- max(patch_coords$Pos_Y) - min(patch_coords$Pos_Y)
+      bounding_box_area <- x_range * y_range
+      
+      # 2. Convex hull area (if >= 3 points)
+      convex_hull_area <- NA
+      if (nrow(patch_coords) >= 3) {
+        tryCatch({
+          hull_indices <- chull(patch_coords$Pos_X, patch_coords$Pos_Y)
+          hull_coords <- patch_coords[hull_indices, ]
+          # Calculate polygon area using shoelace formula
+          n_hull <- nrow(hull_coords)
+          convex_hull_area <- 0.5 * abs(sum(hull_coords$Pos_X * c(hull_coords$Pos_Y[-1], hull_coords$Pos_Y[1]) - 
+                                              c(hull_coords$Pos_X[-1], hull_coords$Pos_X[1]) * hull_coords$Pos_Y))
+        }, error = function(e) {
+          convex_hull_area <<- NA
+        })
+      }
+      
+      # 3. Within-patch compactness metrics (cells per patch area)
+      within_patch_compactness_bbox <- ifelse(bounding_box_area > 0, n_cells / bounding_box_area, NA)
+      within_patch_compactness_convex <- ifelse(!is.na(convex_hull_area) & convex_hull_area > 0, n_cells / convex_hull_area, NA)
+      
+      # 4. Proper density metrics (relative to total tissue area)
+      sample_tissue_area <- data[1,"width_px"] * data[1,"height_px"]
+      patch_area_density <- ifelse(sample_tissue_area > 0, bounding_box_area / sample_tissue_area, NA)  # Patch coverage
+      patch_convex_density <- ifelse(!is.na(convex_hull_area) & sample_tissue_area > 0, convex_hull_area / sample_tissue_area, NA)
+      
+      # 5. Patch shape metrics
+      aspect_ratio <- ifelse(y_range > 0, x_range / y_range, NA)
+      
+      # 6. Patch compactness (convex hull area / bounding box area)
+      shape_compactness <- ifelse(!is.na(convex_hull_area) & bounding_box_area > 0, convex_hull_area / bounding_box_area, NA)
+      
+      # 7. Average distance from centroid
+      centroid_x <- mean(patch_coords$Pos_X)
+      centroid_y <- mean(patch_coords$Pos_Y)
+      distances_from_centroid <- sqrt((patch_coords$Pos_X - centroid_x)^2 + (patch_coords$Pos_Y - centroid_y)^2)
+      avg_distance_from_centroid <- mean(distances_from_centroid)
+      max_distance_from_centroid <- max(distances_from_centroid)
+      
+      # Store results
+      patch_result <- data.frame(
+        patch_id = paste0(patch_column_name,"_", patch_id),
+        patch_type = patch_type,
+        sample_id = sample_id,
+        patient_id = patient_id,
+        RFS_status = RFS_status,
+        Treatment = Treatment,
+        n_cells = n_cells,
+        bounding_box_area = bounding_box_area,
+        convex_hull_area = convex_hull_area,
+        x_range = x_range,
+        y_range = y_range,
+        within_patch_compactness_bbox = within_patch_compactness_bbox,
+        within_patch_compactness_convex = within_patch_compactness_convex,
+        patch_area_density = patch_area_density,
+        patch_convex_density = patch_convex_density,
+        aspect_ratio = aspect_ratio,
+        shape_compactness = shape_compactness,
+        avg_distance_from_centroid = avg_distance_from_centroid,
+        max_distance_from_centroid = max_distance_from_centroid,
+        total_tissue_area = sample_tissue_area,
+        stringsAsFactors = FALSE
+      )
+      
+      patch_size_results <- rbind(patch_size_results, patch_result)
+    
+  }
+  
+  return(patch_size_results)
+}
+
+analysis_patch_characteristic_with_expression <- function(data,
+                                                          expr_matrix_clean,analysis_markers,
+                                                          patch_column_name,patche_ids,patch_type){
+  # Initialize results dataframe
+  patch_size_expression_data <- data.frame()
+  
+  for (patch_id in patche_ids) {
+    patch_cells_subset <- data[data[`patch_column_name`] == patch_id, ]
+    
+      
+      # Basic patch info
+      sample_id <- patch_cells_subset$sample_id[1]
+      patient_id <- patch_cells_subset$patient_id[1]
+      RFS_status <- patch_cells_subset$RFS_status[1]
+      Treatment <- patch_cells_subset$Treatment[1]
+      n_cells <- nrow(patch_cells_subset)
+      
+      # Calculate spatial size metrics
+      patch_coords <- patch_cells_subset[, c("Pos_X", "Pos_Y")]
+      x_range <- max(patch_coords$Pos_X) - min(patch_coords$Pos_X)
+      y_range <- max(patch_coords$Pos_Y) - min(patch_coords$Pos_Y)
+      bounding_box_area <- x_range * y_range
+      
+      # Calculate convex hull area
+      convex_hull_area <- NA
+      if (nrow(patch_coords) >= 3) {
+        tryCatch({
+          hull_indices <- chull(patch_coords$Pos_X, patch_coords$Pos_Y)
+          hull_coords <- patch_coords[hull_indices, ]
+          convex_hull_area <- 0.5 * abs(sum(hull_coords$Pos_X * c(hull_coords$Pos_Y[-1], hull_coords$Pos_Y[1]) - 
+                                              c(hull_coords$Pos_X[-1], hull_coords$Pos_X[1]) * hull_coords$Pos_Y))
+        }, error = function(e) {
+          convex_hull_area <<- NA
+        })
+      }
+      
+      # Get expression data for this patch
+      patch_expr <- expr_matrix_clean[, match(rownames(patch_cells_subset), colnames(expr_matrix_clean))]
+      
+      # Calculate mean expression per marker for this patch
+      patch_means <- apply(patch_expr, 1, mean, na.rm = TRUE)
+      
+      # Create patch data with size metrics and log-transformed expression
+      patch_data <- data.frame(
+        patch_id = paste0(patch_column_name,"_", patch_id),
+        patch_type = patch_type,
+        sample_id = sample_id,
+        patient_id = patient_id,
+        RFS_status = RFS_status,
+        Treatment = Treatment,
+        n_cells = n_cells,
+        bounding_box_area = bounding_box_area,
+        convex_hull_area = convex_hull_area,
+        log_n_cells = log2(n_cells),
+        log_bounding_box_area = log2(bounding_box_area + 0.001),
+        log_convex_hull_area = log2(ifelse(is.na(convex_hull_area), 0.001, convex_hull_area) + 0.001),
+        stringsAsFactors = FALSE
+      )
+      
+      # Add log-transformed marker expression
+      for (marker in analysis_markers) {
+        patch_data[[paste0("mean_", marker)]] <- patch_means[marker]
+      }
+      
+      patch_size_expression_data <- rbind(patch_size_expression_data, patch_data)
+    
+  }
+  
+  return(patch_size_expression_data)
+}
+
+# Function to process patches and calculate microenvironment composition
+process_patches <- function(cell_data, patch_column, patch_type_label, patch_id_prefix) {
+  
+  # Get cells belonging to patches of this type
+  patch_cells <- cell_data[!is.na(cell_data[[patch_column]]), ]
+  patch_ids <- unique(patch_cells[[patch_column]])
+  sub_celltypes <- unique(patch_cells$sub_celltype)
+  
+  print(paste("Processing", length(patch_ids), patch_type_label, "patches..."))
+  
+  patch_results <- data.frame()
+  
+  for (patch_id in patch_ids) {
+    # Get all cells within this patch (including tumor and microenvironment)
+    patch_all_cells <- patch_cells[patch_cells[[patch_column]] == patch_id, ]
+      
+      # Basic patch info
+      sample_id <- patch_all_cells$sample_id[1]
+      patient_id <- patch_all_cells$patient_id[1]
+      RFS_status <- patch_all_cells$RFS_status[1]
+      Treatment <- patch_all_cells$Treatment[1]
+      
+      # Skip if RFS_status is NA
+      if (is.na(RFS_status)) next
+      
+      # Separate tumor cells from microenvironment cells
+      # Tumor cells are typically epithelial cells (EpCAM+, cytokeratin+)
+      # Microenvironment cells are immune, stromal, endothelial, etc.
+      tumor_cell_types <- sub_celltypes[startsWith(sub_celltypes,prefix = "EC")]   # Adjust based on your data
+      
+      # Get microenvironment cells (non-tumor cells within the patch)
+      microenv_cells <- patch_all_cells[!patch_all_cells$sub_celltype %in% tumor_cell_types, ]
+      
+      # Calculate total cells and microenvironment composition
+      total_cells_in_patch <- nrow(patch_all_cells)
+      tumor_cells_in_patch <- nrow(patch_all_cells[patch_all_cells$sub_celltype %in% tumor_cell_types, ])
+      microenv_cells_in_patch <- nrow(microenv_cells)
+      
+      # Calculate microenvironment cell type proportions
+      if (nrow(microenv_cells) > 0) {
+        cell_type_counts <- table(microenv_cells$sub_celltype)
+        cell_type_proportions <- cell_type_counts / total_cells_in_patch  # Proportion of total patch
+        cell_type_microenv_proportions <- cell_type_counts / nrow(microenv_cells)  # Proportion of microenvironment
+      } else {
+        cell_type_proportions <- numeric(0)
+        cell_type_microenv_proportions <- numeric(0)
+      }
+      
+      # Calculate spatial metrics for the patch
+      patch_coords <- patch_all_cells[, c("Pos_X", "Pos_Y")]
+      x_range <- max(patch_coords$Pos_X) - min(patch_coords$Pos_X)
+      y_range <- max(patch_coords$Pos_Y) - min(patch_coords$Pos_Y)
+      patch_area <- x_range * y_range
+      
+      # Create base patch data
+      patch_data <- data.frame(
+        patch_id = paste0(patch_id_prefix, "_", patch_id),
+        patch_type = patch_type_label,
+        sample_id = sample_id,  
+        patient_id = patient_id,
+        RFS_status = RFS_status,
+        RFS_group = ifelse(RFS_status == 0, "No_Recurrence", "Recurrence"),
+        Treatment = Treatment,
+        total_cells = total_cells_in_patch,
+        tumor_cells = tumor_cells_in_patch,
+        microenv_cells = microenv_cells_in_patch,
+        microenv_fraction = microenv_cells_in_patch / total_cells_in_patch,
+        patch_area = patch_area,
+        microenv_density = microenv_cells_in_patch / patch_area,  # cells per area unit
+        stringsAsFactors = FALSE
+      )
+      
+      # Add cell type proportions (of total patch)
+      all_cell_types <- unique(cell_data$sub_celltype)
+      for (cell_type in all_cell_types) {
+        if (cell_type %in% names(cell_type_proportions)) {
+          patch_data[[paste0("prop_", cell_type)]] <- as.numeric(cell_type_proportions[cell_type])
+          patch_data[[paste0("count_", cell_type)]] <- as.numeric(cell_type_counts[cell_type])
+        } else {
+          patch_data[[paste0("prop_", cell_type)]] <- 0
+          patch_data[[paste0("count_", cell_type)]] <- 0
+        }
+      }
+      
+      # Add microenvironment-specific proportions (of microenvironment only)
+      for (cell_type in all_cell_types) {
+        if (cell_type %in% names(cell_type_microenv_proportions)) {
+          patch_data[[paste0("microenv_prop_", cell_type)]] <- as.numeric(cell_type_microenv_proportions[cell_type])
+        } else {
+          patch_data[[paste0("microenv_prop_", cell_type)]] <- 0
+        }
+      }
+      
+      patch_results <- rbind(patch_results, patch_data)
+    
+  }
+  
+  return(patch_results)
+}
+
+# Function to extract microenvironment cells from patches with their expression data
+extract_microenv_cells_with_expression <- function(cell_data, expr_matrix, patch_column, patch_type_label) {
+  
+  # Get cells belonging to patches of this type
+  patch_cells <- cell_data[!is.na(cell_data[[patch_column]]), ]
+  patch_ids <- unique(patch_cells[[patch_column]])
+  
+  print(paste("Extracting microenvironment cells from", length(patch_ids), patch_type_label, "patches..."))
+  
+  microenv_cells_data <- data.frame()
+  
+  for (patch_id in patch_ids) {
+    # Get all cells within this patch
+    patch_all_cells <- patch_cells[patch_cells[[patch_column]] == patch_id, ]
+    
+    # Require minimum 10 total cells per patch
+    if (nrow(patch_all_cells) >= 10) {
+      
+      # Get microenvironment cells (non-tumor cells within the patch)
+      microenv_cells <- patch_all_cells[!patch_all_cells$sub_celltype %in% tumor_cell_types, ]
+      
+      # Require at least some microenvironment cells
+      if (nrow(microenv_cells) >= 3) {
+        
+        # Add patch information to microenvironment cells
+        microenv_cells$patch_id <- paste0(patch_type_label, "_", patch_id)
+        microenv_cells$patch_type <- patch_type_label
+        microenv_cells$patch_numeric_id <- patch_id
+        
+        # Get expression data for these microenvironment cells
+        cell_indices <- match(rownames(microenv_cells), colnames(expr_matrix))
+        cell_expr <- expr_matrix[, cell_indices, drop = FALSE]
+        
+        # Add expression data to cell metadata
+        for (marker in analysis_markers) {
+          microenv_cells[[paste0("expr_", marker)]] <- as.numeric(cell_expr[marker, ])
+        }
+        
+        microenv_cells_data <- rbind(microenv_cells_data, microenv_cells)
+      }
+    }
+  }
+  
+  return(microenv_cells_data)
+}

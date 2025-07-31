@@ -44,8 +44,8 @@ if(!dir.exists(figureDir)){
 }
 
 # Load your SpatialExperiment object
-date_time <- "0728"
-spe <- readRDS(file.path(saveDir,paste0("spatial_spe_","0724",".rds")))
+date_time <- "0730"
+spe <- readRDS(file.path(saveDir,paste0("spatial_spe_","0728",".rds")))
 img_id_ <- "sample_id"
 
 # 4. Patch detection
@@ -53,9 +53,7 @@ img_id_ <- "sample_id"
 detectPatch_List <- list()
 celltypes <- unique(spe$sub_celltype)
 
-detectPatch_List[["Tumor"]] <- celltypes[startsWith(celltypes,prefix = "EC")]
-detectPatch_List[["Metabolism_activate_Tumor"]] <- c("EC_GLUT1","EC_CAIX","EC_Vimentin")
-detectPatch_List[["Quiescent_Tumor"]] <- "EC_EpCAM"
+detectPatch_List[["Metabolism_activate_Tumor"]] <- c("EC_GLUT1")
 
 for(patch_name_ in names(detectPatch_List)){
   
