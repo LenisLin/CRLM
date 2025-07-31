@@ -6,17 +6,20 @@
 library(SpatialExperiment)
 library(imcRtools)
 library(igraph)
+library(Hmisc)
 
 library(ggplot2)
 library(ggridges)
 library(ggalluvial)
-library(RColorBrewer)
+library(ggcorrplot)
 library(ggpubr)
 library(ggraph)
 library(ggrepel)
+library(RColorBrewer)
 library(viridis)
 library(patchwork)
 library(pheatmap)
+library(corrplot)
 
 library(dplyr)
 library(tidyr)
@@ -42,7 +45,7 @@ if(!dir.exists(figureDir)){
 }
 
 # Load your SpatialExperiment object
-date_time <- "0724"
+date_time <- "0730"
 spe <- readRDS(file.path(saveDir,paste0("spatial_spe_",date_time,".rds")))
 img_id_ <- "sample_id"
 
@@ -120,21 +123,7 @@ p2 <- ggplot(comparison_data, aes(x = RFS_group, y = malignant_fraction, fill = 
 
 ggsave(file.path(figureDir, paste0("all_malignant_boxplot_rfs.pdf")), p2, width = 10, height = 6)
 
-# Step 6: Extend comparison to different treatment subgroups
-p3 <- ggplot(comparison_data, aes(x = RFS_group, y = malignant_fraction)) +
-  geom_boxplot(aes(fill = RFS_group), alpha = 0.7) +
-  geom_jitter(width = 0.2, alpha = 0.6) +
-  facet_grid(Treatment ~ Tissue) +
-  stat_compare_means(method = "wilcox.test", label = "p.format", size = 3) +
-  theme_minimal() +
-  labs(title = "Malignant Cell Fraction by Treatment and Recurrence Status",
-       x = "Recurrence Status",
-       y = "Malignant Cell Fraction",
-       fill = "RFS Status") +
-  scale_fill_manual(values = c("No Early Relapse" = "#0073c2b2", "Early Relapse" = "#efc000b2"))
-
-ggsave(file.path(figureDir, paste0("all_malignant_boxplot_treatment.pdf")), p3, width = 10, height = 8)
-rm(p1,p2,p3,comparison_data)
+rm(p1,p2,comparison_data)
 gc()
 
 # Step 7: Paired Boxplot for fraction changes from TC -> IM
@@ -467,7 +456,7 @@ p <- ggplot(plotdf, aes(x = factor(RFS_status), y = value, fill = factor(RFS_sta
   geom_boxplot(alpha = 0.7, outlier.alpha = 0.6) +
   geom_point(position = position_jitter(width = 0.2, seed = 123), 
              alpha = 0.6, size = 1) +
-  facet_grid(Treatment ~ Budding_features, scales = "free_y") +
+  facet_grid(Budding_features ~ Treatment, scales = "free_y") +
   stat_compare_means(method = "wilcox.test", 
                      label = "p.format",
                      size = 3,
@@ -492,7 +481,7 @@ p <- ggplot(plotdf, aes(x = factor(RFS_status), y = value, fill = factor(RFS_sta
     panel.grid.minor = element_blank()
   )
 
-ggsave(file.path(figureDir, paste0("Boxplot_of_Tumor_Budding_charateristic_across_treatment.pdf")), p, width = 10, height = 7.5)
+ggsave(file.path(figureDir, paste0("Boxplot_of_Tumor_Budding_charateristic_across_treatment.pdf")), p, width = 6, height = 8)
 rm(p, plotdf, results,roi_components,roi_metrics)
 gc()
 
@@ -766,7 +755,7 @@ p_rfs <- ggplot(ribbon_data_rfs, aes(x = tissue_pos)) +
 
 ggsave(file.path(figureDir, paste0("All_malignant_change_acrosse_tissue.pdf")), p_rfs, width = 12, height = 8)
 
-rm(sankey_prep_data,p_rfs,ribbon_data_rfs,theme_data_rfs,sankey_data,p_sankey)
+rm(p_rfs,ribbon_data_rfs,theme_data_rfs,sankey_data,p_sankey)
 gc()
 
 # ================================================================================
@@ -823,7 +812,7 @@ malignant_cell_expression <- assay(spe)[,rownames(malignant_cells)]
 malignant_cells$RFS_group <- ifelse(malignant_cells$RFS_status == 0, 
                                 "No Early Relapse", "Early Relapse")
 
-tumor_markers <- c("EpCAM", "Vimentin", "Ki67", "VEGF", "CA_IX", "GLUT1", "HK2", "FASN")
+tumor_markers <- c("EpCAM", "Vimentin", "Ki67", "VEGF", "CA_IX", "GLUT1", "HK2", "FASN","CD279")
 tissues <- unique(malignant_cells$Tissue)
 
 for(tissue_ in tissues){
@@ -1003,7 +992,219 @@ print(p_volcano)
 
 # Save plots
 ggsave(file.path(figureDir,"marker_volcano_plot.pdf"), plot = p_volcano, width = 10, height = 7.5)
-write.csv(file.path(figureDir,"marker_expression_analysis.csv"), , row.names = FALSE)
+write.csv(results_df, file.path(figureDir,"marker_expression_analysis.csv"), row.names = FALSE)
+
+# ================================================================================
+# The correlation between marker expression
+# ================================================================================
+print("=== MARKER EXPRESSION CORRELATION ANALYSIS ACROSS TISSUES ===")
+
+# Define marker columns (expression data)
+marker_columns <- c("EpCAM", "Vimentin", "Ki67", "VEGF", "CA_IX", "GLUT1", "HK2", "FASN", "CD279")
+
+print("Marker columns for analysis:")
+print(marker_columns)
+
+# Check tissue distribution
+tissue_summary <- table(malignant_roi_expression$Tissue)
+print("\nTissue distribution:")
+print(tissue_summary)
+
+# Calculate correlations for each tissue type
+tissue_correlations <- list()
+tissue_types <- unique(malignant_roi_expression$Tissue)
+
+for (tissue in tissue_types) {
+  print(paste("Calculating correlations for", tissue, "tissue..."))
+  
+  tissue_data <- malignant_roi_expression[malignant_roi_expression$Tissue == tissue, ]
+  
+  cor_result <- calculate_correlation_with_pval(tissue_data, method = "spearman")
+  
+  if (!is.null(cor_result)) {
+    tissue_correlations[[tissue]] <- cor_result
+    print(paste("  - Samples used:", cor_result$n_samples))
+  } else {
+    print(paste("  - Insufficient data for", tissue))
+  }
+}
+
+# Create correlation heatmaps with significance for each tissue
+plot_list <- list()
+
+for (tissue in names(tissue_correlations)) {
+  cor_data <- tissue_correlations[[tissue]]
+  
+  # Prepare data for ggcorrplot
+  cor_matrix <- cor_data$correlations
+  p_matrix <- cor_data$p_values
+  
+  # Get significance stars
+  sig_stars <- get_significance_stars(p_matrix)
+  
+  # Create correlation plot with ggcorrplot
+  p <- ggcorrplot(cor_matrix, 
+                  method = "circle",
+                  hc.order = FALSE,
+                  # p.mat = p_matrix,
+                  type = "lower",
+                  lab = TRUE,
+                  lab_size = 3,
+                  show.diag = FALSE,
+                  colors = c("#7ca6dc", "white", "#cd534c"),
+                  title = paste("Spearman Correlations -", tissue, "Tissue ( n=",cor_data$n_samples,")"),
+                  ggtheme = theme_bw()) +
+    theme(
+      plot.title = element_text(size = 14, face = "bold", hjust = 0.5),
+      plot.subtitle = element_text(size = 11, hjust = 0.5),
+      axis.text.x = element_text(angle = 45, hjust = 1, size = 10),
+      axis.text.y = element_text(size = 10),
+      legend.title = element_text(size = 11, face = "bold"),
+      legend.position = "bottom"
+    )
+  
+  plot_list[[tissue]] <- p
+}
+
+# Create a combined plot
+if (length(plot_list) > 1) {
+  combined_plot <- wrap_plots(plot_list, ncol =3)
+  print(combined_plot)
+  
+  ggsave(file.path(figureDir,"marker expression corretation within different tumor tissue.pdf"), 
+         plot = combined_plot, width = 12, height = 6)
+}
+
+# Create detailed correlation table with significance
+correlation_summary <- data.frame()
+
+for (tissue in names(tissue_correlations)) {
+  cor_data <- tissue_correlations[[tissue]]
+  cor_matrix <- cor_data$correlations
+  p_matrix <- cor_data$p_values
+  
+  # Convert matrices to long format for detailed analysis
+  for (i in 1:(nrow(cor_matrix)-1)) {
+    for (j in (i+1):ncol(cor_matrix)) {
+      marker1 <- rownames(cor_matrix)[i]
+      marker2 <- colnames(cor_matrix)[j]
+      correlation <- cor_matrix[i, j]
+      p_value <- p_matrix[i, j]
+      
+      correlation_summary <- rbind(correlation_summary, data.frame(
+        Tissue = tissue,
+        Marker1 = marker1,
+        Marker2 = marker2,
+        Correlation = round(correlation, 3),
+        P_value = p_value,
+        Significance = case_when(
+          p_value <= 0.001 ~ "***",
+          p_value <= 0.01 ~ "**", 
+          p_value <= 0.05 ~ "*",
+          TRUE ~ "NS"
+        ),
+        Abs_Correlation = abs(correlation),
+        n_samples = cor_data$n_samples,
+        stringsAsFactors = FALSE
+      ))
+    }
+  }
+}
+
+# Apply multiple testing correction within each tissue
+correlation_summary <- correlation_summary %>%
+  group_by(Tissue) %>%
+  mutate(P_adj = p.adjust(P_value, method = "BH")) %>%
+  ungroup() %>%
+  mutate(
+    Significance_raw = case_when(
+      P_value <= 0.001 ~ "***",
+      P_value <= 0.01 ~ "**",
+      P_value <= 0.05 ~ "*",
+      TRUE ~ "NS"
+    ),
+    Significance_adj = case_when(
+      P_adj <= 0.001 ~ "***", 
+      P_adj <= 0.01 ~ "**",
+      P_adj <= 0.05 ~ "*",
+      TRUE ~ "NS"
+    )
+  )
+
+# Sort by absolute correlation strength
+correlation_summary <- correlation_summary %>%
+  arrange(Tissue, desc(Abs_Correlation))
+
+print("\n=== TOP CORRELATIONS BY TISSUE ===")
+for (tissue in tissue_types) {
+  tissue_cors <- correlation_summary %>%
+    filter(Tissue == tissue, Significance_adj != "NS") %>%
+    head(10)
+  
+  if (nrow(tissue_cors) > 0) {
+    print(paste("\nTop significant correlations in", tissue, "tissue:"))
+    print(tissue_cors[, c("Marker1", "Marker2", "Correlation", "P_adj", "Significance_adj")])
+  } else {
+    print(paste("\nNo significant correlations found in", tissue, "tissue"))
+  }
+}
+
+# GLUT1-Focused Chord Plot Visualization
+# Create chord plots showing GLUT1 correlations with other markers across tissues
+library(circlize)
+library(grid)
+library(gridExtra)
+
+print("=== CREATING GLUT1-FOCUSED CHORD PLOTS ===")
+
+# Define marker columns (expression data)
+marker_columns <- c("EpCAM", "Vimentin", "Ki67", "VEGF", "CA_IX", "GLUT1", "HK2", "FASN", "CD279")
+
+# Extract GLUT1 correlations for each tissue
+tissue_types <- unique(malignant_roi_expression$Tissue)
+glut1_correlations <- list()
+
+for (tissue in tissue_types) {
+  print(paste("Extracting GLUT1 correlations for", tissue, "tissue..."))
+  
+  tissue_data <- malignant_roi_expression[malignant_roi_expression$Tissue == tissue, ]
+  
+  cor_result <- extract_glut1_correlations(tissue_data, tissue)
+  
+  if (!is.null(cor_result)) {
+    glut1_correlations[[tissue]] <- cor_result
+    print(paste("  - Samples used:", cor_result$n_samples))
+  } else {
+    print(paste("  - Insufficient data for", tissue))
+  }
+}
+
+# Create individual chord plots and save plot data
+print("\nCreating chord plots for each tissue...")
+
+# Set up for three-column layout
+pdf(file.path(figureDir,"GLUT1_Chord_Plots_Three_Tissues.pdf"), width = 12, height = 6)
+par(mfrow = c(1, 3))
+
+plot_data_list <- list()
+
+for (tissue in names(glut1_correlations)) {
+  print(paste("Creating chord plot for", tissue, "..."))
+  
+  # Create chord plot
+  plot_data <- create_glut1_chord_plot(glut1_correlations[[tissue]], tissue)
+  plot_data_list[[tissue]] <- plot_data
+  
+  # Clear circos for next plot
+  circos.clear()
+}
+
+dev.off()
+
+# Save results
+write.csv(correlation_summary, "Marker_Correlation_Analysis_by_Tissue.csv", row.names = FALSE)
+
+print("\n=== CORRELATION ANALYSIS COMPLETE ===")
 
 # ================================================================================
 # Hypothesis
@@ -1277,6 +1478,313 @@ thresholds_combn <- find_optimal_cutoff(malignant_patient_expression_combo, gene
   pdf(file.path(figureDir_temp,paste0(gene,"_km_comparsion_during_treatment_.pdf")),width = 8,height = 6)
   print(p_all)
   dev.off()
+  
+# ================================================================================
+# Double marker: GLUT1 + FASN
+# ================================================================================
+  # Step 1: Combine the two datasets
+  combined_data <- rbind(malignant_patient_expression_combo, malignant_patient_expression_chemo)
+  
+  # Step 1: Primary stratification by GLUT1 (chemo sufficiency indicator)
+  glut1_cutoff <- median(combined_data$GLUT1)
+  combined_data$GLUT1_group <- ifelse(combined_data$GLUT1 >= glut1_cutoff, "High_GLUT1", "Low_GLUT1")
+  
+  print(paste("GLUT1 median cutoff:", round(glut1_cutoff, 3)))
+  print("Primary stratification by GLUT1:")
+  print(table(combined_data$GLUT1_group, combined_data$Treatment))
+  
+  # Step 2: Secondary stratification by FASN (for high GLUT1 patients only)
+  fasn_cutoff <- median(combined_data$FASN)
+  combined_data$FASN_group <- ifelse(combined_data$FASN >= fasn_cutoff, "High_FASN", "Low_FASN")
+  
+  print(paste("FASN median cutoff:", round(fasn_cutoff, 3)))
+  
+  # Step 3: Create hierarchical treatment recommendation groups
+  combined_data$treatment_recommendation <- case_when(
+    combined_data$GLUT1_group == "Low_GLUT1" ~ "Chemotherapy_Sufficient",
+    combined_data$GLUT1_group == "High_GLUT1" & combined_data$FASN_group == "High_FASN" ~ "Need_Target_Therapy",
+    combined_data$GLUT1_group == "High_GLUT1" & combined_data$FASN_group == "Low_FASN" ~ "Alternative_Combination_Needed",
+    TRUE ~ "Unclassified"
+  )
+  
+  # Create actual treatment-recommendation combinations
+  combined_data$treatment_recommendation_actual <- paste(combined_data$Treatment, combined_data$treatment_recommendation, sep = "_")
+  
+  # Display the hierarchical strategy results
+  hierarchical_summary <- combined_data %>%
+    group_by(treatment_recommendation, Treatment) %>%
+    summarise(
+      n_patients = n(),
+      n_events = sum(RFS_status),
+      event_rate = round(100 * n_events / n_patients, 1),
+      median_rfs = round(median(RFS_time), 1),
+      .groups = 'drop'
+    )
+  
+  print("\n=== HIERARCHICAL STRATEGY RESULTS ===")
+  print(hierarchical_summary)
+  
+  # Calculate treatment appropriateness
+  treatment_appropriateness <- combined_data %>%
+    mutate(
+      appropriate_treatment = case_when(
+        treatment_recommendation == "Chemotherapy_Sufficient" & Treatment == "Chemo" ~ "Appropriate",
+        treatment_recommendation == "Need_Target_Therapy" & Treatment == "Combo" ~ "Appropriate",
+        treatment_recommendation == "Alternative_Combination_Needed" ~ "Needs_Different_Approach",
+        TRUE ~ "Inappropriate"
+      )
+    ) %>%
+    group_by(appropriate_treatment) %>%
+    summarise(
+      n_patients = n(),
+      n_events = sum(RFS_status),
+      event_rate = round(100 * n_events / n_patients, 1),
+      median_rfs = round(median(RFS_time), 1),
+      .groups = 'drop'
+    )
+  
+  print("\n=== TREATMENT APPROPRIATENESS ANALYSIS ===")
+  print(treatment_appropriateness)
+  
+  # Detailed analysis by recommendation group
+  print("\n=== DETAILED ANALYSIS BY RECOMMENDATION GROUP ===")
+  
+  # Group 1: Chemotherapy Sufficient (Low GLUT1)
+  chemo_sufficient <- combined_data[combined_data$treatment_recommendation == "Chemotherapy_Sufficient", ]
+  print(paste("Group 1 - Chemotherapy Sufficient (Low GLUT1):", nrow(chemo_sufficient), "patients"))
+  
+  if (nrow(chemo_sufficient) > 5) {
+    chemo_sufficient_summary <- chemo_sufficient %>%
+      group_by(Treatment) %>%
+      summarise(
+        n = n(),
+        events = sum(RFS_status),
+        event_rate = round(100 * events / n, 1),
+        median_rfs = round(median(RFS_time), 1),
+        .groups = 'drop'
+      )
+    print("Treatment outcomes in Chemotherapy Sufficient group:")
+    print(chemo_sufficient_summary)
+  }
+  
+  # Group 2: Need Target Therapy (High GLUT1 + High FASN)
+  need_target <- combined_data[combined_data$treatment_recommendation == "Need_Target_Therapy", ]
+  print(paste("Group 2 - Need Target Therapy (High GLUT1 + High FASN):", nrow(need_target), "patients"))
+  
+  if (nrow(need_target) > 5) {
+    need_target_summary <- need_target %>%
+      group_by(Treatment) %>%
+      summarise(
+        n = n(),
+        events = sum(RFS_status),
+        event_rate = round(100 * events / n, 1),
+        median_rfs = round(median(RFS_time), 1),
+        .groups = 'drop'
+      )
+    print("Treatment outcomes in Need Target Therapy group:")
+    print(need_target_summary)
+  }
+  
+  # Group 3: Alternative Combination Needed (High GLUT1 + Low FASN)
+  alt_combination <- combined_data[combined_data$treatment_recommendation == "Alternative_Combination_Needed", ]
+  print(paste("Group 3 - Alternative Combination Needed (High GLUT1 + Low FASN):", nrow(alt_combination), "patients"))
+  
+  if (nrow(alt_combination) > 5) {
+    alt_combination_summary <- alt_combination %>%
+      group_by(Treatment) %>%
+      summarise(
+        n = n(),
+        events = sum(RFS_status),
+        event_rate = round(100 * events / n, 1),
+        median_rfs = round(median(RFS_time), 1),
+        .groups = 'drop'
+      )
+    print("Treatment outcomes in Alternative Combination Needed group:")
+    print(alt_combination_summary)
+  }
+  
+  # Statistical testing of the hierarchical strategy
+  print("\n=== STATISTICAL VALIDATION ===")
+  
+  surv_obj <- Surv(time = combined_data$RFS_time, event = combined_data$RFS_status)
+  
+  # Test 1: Overall difference between recommendation groups
+  overall_test <- survdiff(surv_obj ~ treatment_recommendation, data = combined_data)
+  overall_pval <- 1 - pchisq(overall_test$chisq, length(overall_test$n) - 1)
+  print(paste("Overall test across recommendation groups: p =", round(overall_pval, 4)))
+  
+  # Test 2: Treatment benefit in each recommendation group
+  test_results <- data.frame()
+  
+  for (group in unique(combined_data$treatment_recommendation)) {
+    group_data <- combined_data[combined_data$treatment_recommendation == group, ]
+    
+    if (nrow(group_data) > 10 && length(unique(group_data$Treatment)) > 1) {
+      surv_group <- Surv(time = group_data$RFS_time, event = group_data$RFS_status)
+      group_test <- survdiff(surv_group ~ Treatment, data = group_data)
+      group_pval <- 1 - pchisq(group_test$chisq, length(group_test$n) - 1)
+      
+      test_results <- rbind(test_results, data.frame(
+        Group = group,
+        P_value = round(group_pval, 4),
+        N_patients = nrow(group_data),
+        stringsAsFactors = FALSE
+      ))
+    }
+  }
+  
+  print("Treatment effect within each recommendation group:")
+  print(test_results)
+  
+  # Create Kaplan-Meier plots for the hierarchical strategy
+  print("\n=== KAPLAN-MEIER VISUALIZATION ===")
+  
+  # Plot 1: Overall survival by treatment recommendation
+  surv_fit_recommendation <- survfit(surv_obj ~ treatment_recommendation, data = combined_data)
+  
+  recommendation_colors <- c(
+    "Chemotherapy_Sufficient" = "#7ca6dc",           # Blue - chemo OK
+    "Need_Target_Therapy" = "#cd534c",               # Red - needs target therapy
+    "Alternative_Combination_Needed" = "#ff9900"     # Orange - needs alternative
+  )
+  
+  km_recommendation <- ggsurvplot(
+    surv_fit_recommendation,
+    data = combined_data,
+    pval = TRUE,
+    conf.int = TRUE,
+    palette = unname(recommendation_colors),
+    ggtheme = theme_bw(),
+    title = "Hierarchical Biomarker Strategy",
+    subtitle = "GLUT1 (Tier 1) → FASN (Tier 2) Decision Tree",
+    xlab = "Time to Recurrence (months)",
+    ylab = "Recurrence-Free Survival",
+    legend.title = "Treatment Recommendation",
+    risk.table = TRUE,
+    risk.table.height = 0.3
+  )
+  
+  pdf(file.path(figureDir,"Overall survival of treatment strategy.pdf"), width = 8, height = 6)
+  print(km_recommendation)
+  dev.off()
+
+  # Plot 2: Treatment-stratified analysis for key groups
+  key_groups <- c("Chemotherapy_Sufficient", "Need_Target_Therapy")
+  key_group_data <- combined_data[combined_data$treatment_recommendation %in% key_groups, ]
+  key_group_data$treatment_recommendation_actual <- paste(key_group_data$Treatment, key_group_data$treatment_recommendation, sep = "_")
+  
+  surv_obj_key <- Surv(time = key_group_data$RFS_time, event = key_group_data$RFS_status)
+  surv_fit_key <- survfit(surv_obj_key ~ treatment_recommendation_actual, data = key_group_data)
+  
+  key_colors <- c(
+    "Chemo_Chemotherapy_Sufficient" = "#7ca6dc",     # Blue - appropriate match
+    "Combo_Chemotherapy_Sufficient" = "#b3d1ff",     # Light blue - over-treatment
+    "Chemo_Need_Target_Therapy" = "#ffcccc",         # Light red - under-treatment  
+    "Combo_Need_Target_Therapy" = "#cd534c"          # Red - appropriate match
+  )
+  
+  km_key_groups <- ggsurvplot(
+    surv_fit_key,
+    data = key_group_data,
+    pval = TRUE,
+    conf.int = FALSE,
+    palette = unname(key_colors),
+    ggtheme = theme_bw(),
+    title = "Treatment Appropriateness Analysis",
+    subtitle = "Matching biomarker recommendation to actual treatment",
+    xlab = "Time to Recurrence (months)",
+    ylab = "Recurrence-Free Survival",
+    legend.title = "Treatment + Recommendation",
+    risk.table = TRUE,
+    risk.table.height = 0.3
+  )
+  
+  pdf(file.path(figureDir,"Overall survival of Treatment-stratified analysis for key groupsy.pdf"), width = 8, height = 6)
+  print(km_key_groups)
+  dev.off()
+  
+  # Create decision tree visualization
+  print("\n=== CLINICAL DECISION TREE ===")
+  
+  decision_tree_summary <- combined_data %>%
+    group_by(GLUT1_group, FASN_group, treatment_recommendation) %>%
+    summarise(
+      n_patients = n(),
+      event_rate_chemo = round(100 * sum(RFS_status[Treatment == "Chemo"]) / sum(Treatment == "Chemo"), 1),
+      event_rate_combo = round(100 * sum(RFS_status[Treatment == "Combo"]) / sum(Treatment == "Combo"), 1),
+      .groups = 'drop'
+    ) %>%
+    mutate(
+      combo_benefit = event_rate_chemo - event_rate_combo,  # Positive = combo better
+      recommendation_logic = case_when(
+        treatment_recommendation == "Chemotherapy_Sufficient" ~ "Low GLUT1 → Chemo OK",
+        treatment_recommendation == "Need_Target_Therapy" ~ "High GLUT1 + High FASN → Add Target",
+        treatment_recommendation == "Alternative_Combination_Needed" ~ "High GLUT1 + Low FASN → Try Alternative",
+        TRUE ~ "Other"
+      )
+    )
+  
+  print("Decision tree with clinical outcomes:")
+  print(decision_tree_summary[, c("GLUT1_group", "FASN_group", "recommendation_logic", "n_patients", "combo_benefit")])
+  
+  # Recreate the key summary data for visualization
+  hierarchical_viz_data <- hierarchical_summary
+  
+  # Prepare data for enhanced visualization
+  outcome_comparison_data <- hierarchical_viz_data %>%
+    mutate(
+      treatment_recommendation = factor(treatment_recommendation,
+                                        levels = c("Chemotherapy_Sufficient", "Need_Target_Therapy", "Alternative_Combination_Needed"),
+                                        labels = c("Chemotherapy Sufficient\n(Low GLUT1)", 
+                                                   "Need Target Therapy\n(High GLUT1 + High FASN)", 
+                                                   "Alternative Needed\n(High GLUT1 + Low FASN)")),
+      Treatment = factor(Treatment, levels = c("Chemo", "Combo")),
+      # Create enhanced label with both event rate and median survival
+      enhanced_label = paste0(event_rate, "% events\n", 
+                              median_rfs, " mo\n", 
+                              "(n=", n_patients, ")")
+    )
+  
+  # Create enhanced side-by-side bar plot
+  enhanced_outcome_plot <- ggplot(outcome_comparison_data, aes(x = treatment_recommendation, y = event_rate, fill = Treatment)) +
+    geom_col(position = "dodge", alpha = 0.8, width = 0.7) +
+    geom_text(aes(label = enhanced_label), 
+              position = position_dodge(width = 0.7), vjust = -0.5, size = 3.5, fontface = "bold") +
+    scale_fill_manual(values = c("Chemo" = "#7ca6dc", "Combo" = "#cd534c"),
+                      labels = c("Chemotherapy Only", "Combination Therapy")) +
+    scale_y_continuous(limits = c(0, 120), breaks = seq(0, 100, 20)) +
+    labs(
+      title = "Hierarchical Biomarker Strategy: Treatment Outcomes",
+      subtitle = "Event rates and median survival by biomarker recommendation and treatment",
+      x = "Biomarker-Based Treatment Recommendation",
+      y = "Early Recurrence Rate (%)",
+      fill = "Treatment Received",
+      caption = "Lower event rates and longer survival times indicate better outcomes"
+    ) +
+    theme_bw() +
+    theme(
+      plot.title = element_text(size = 16, face = "bold", hjust = 0.5),
+      plot.subtitle = element_text(size = 12, hjust = 0.5),
+      plot.caption = element_text(size = 10, hjust = 0.5),
+      axis.text.x = element_text(size = 11, face = "bold"),
+      axis.text.y = element_text(size = 11),
+      axis.title = element_text(size = 13, face = "bold"),
+      legend.title = element_text(size = 12, face = "bold"),
+      legend.text = element_text(size = 11),
+      legend.position = "bottom",
+      panel.grid.minor = element_blank(),
+      panel.grid.major.x = element_blank()
+    )
+  
+  pdf(file.path(figureDir,"Treatment-stratified comprasion analysis.pdf"), width = 8, height = 6)
+  print(enhanced_outcome_plot)
+  dev.off()
+  
+  # Save all results
+  write.csv(combined_data, "Hierarchical_Biomarker_Data.csv", row.names = FALSE)
+  write.csv(hierarchical_summary, "Hierarchical_Strategy_Summary.csv", row.names = FALSE)
+  write.csv(treatment_appropriateness, "Treatment_Appropriateness_Analysis.csv", row.names = FALSE)
+  write.csv(decision_tree_summary, "Clinical_Decision_Tree_Summary.csv", row.names = FALSE)
 
 # ================================================================================
 # Multivariable Cox regression of malignant gene expression
@@ -1308,7 +1816,7 @@ malignant_patient_expression_scaled <- malignant_patient_expression %>% ## log f
 
 # Identify continuous variables to standardize
 continuous_vars <- c("EpCAM", "Vimentin", "Ki67", "VEGF", "CA_IX", 
-                     "GLUT1", "HK2", "FASN", "Age", "TBS", "CEA", 
+                     "GLUT1", "HK2", "FASN", "Age", "TBS", "CEA", "CA199",
                      "CEA_log", "CA199_log", "CRLM_size", "CRLM_number")
 
 # Standardize continuous variables (mean=0, sd=1)
@@ -1320,500 +1828,49 @@ categorical_vars <- c("Treatment", "Gender", "fong_score",
                       "T_stage", "Differential_grade", "Lymph_positive", 
                       "KRAS_mutation")
 
-multicox <- coxph(Surv(RFS_time, RFS_status) ~ 
-                     Treatment + FASN + GLUT1 + EpCAM +
-                     Age + fong_score + TBS + CEA_log + CA199_log + CRLM_size + KRAS_mutation,
+clinical_cox_model <- coxph(Surv(RFS_time, RFS_status) ~ 
+                              Treatment +
+                              Age + fong_score + TBS + CEA + CA199 + CRLM_size + Lymph_positive +
+                              GLUT1 + FASN,
+                            data = malignant_patient_expression_scaled)
+
+custom_names <- c("Treatment (Combo vs Chemo)", "Age", "Fong Score", "TBS",
+                  "CEA", "CA199", "CRLM Size","Lymph Node Positive",
+                  "GLUT1","FASN")
+
+var_groups <- list(
+  "Treatment" = 1,
+  "Patient Factors" = 2:8,  # Age, fong_score, TBS, CEA_log
+  "Tumor Characteristics" = 9:10
+)
+result <- createCoxForestPlot(clinical_cox_model,
+                              var_display_names = custom_names,
+                              var_groups = var_groups,
+                              savePath = figureDir,
+                              filename = "Multi-cox of clinical variables.pdf",
+                              plot_title = "Clinical Variables Cox Regression")
+
+multicox_with_interaction <- coxph(Surv(RFS_time, RFS_status) ~ 
+                                     Age + fong_score + TBS + CEA + CA199 + 
+                                     Treatment*FASN + Treatment*GLUT1,
                    data = malignant_patient_expression_scaled)
 
-createCoxForestPlot(multicox,
-                   savePath = figureDir,
-                   filename = "Multi-cox of malignant markers.pdf")
+custom_names <- c("Age", "Fong Score", "TBS",
+                  "CEA", "CA199", "Treatment (Combo vs Chemo)",
+                  "FASN","GLUT1",
+                  "Combo:FASN","Combo:GLUT1")
 
-# Only for chemotherapy
-malignant_patient_expression_scaled_chemo <- malignant_patient_expression_scaled[malignant_patient_expression_scaled$Treatment=="Chemo",]
-multicox <- coxph(Surv(RFS_time, RFS_status) ~ 
-                    FASN + GLUT1 + EpCAM +
-                    Age + fong_score + TBS + CEA_log + CA199_log + CRLM_size + KRAS_mutation,
-                  data = malignant_patient_expression_scaled_chemo)
-
-var_display_names <- c(
-  "FASN", "GLUT1", "EpCAM", 
-  "Age", "Fong Score", "TBS", "CEA (log)", "CA199 (log)", "CRLM Size", "KRAS Mutation"
+var_groups <- list(
+  "Treatment" = 6,
+  "Patient Factors" = 1:5,  # Age, fong_score, TBS, CEA_log
+  "Tumor Characteristics" = 7:10
 )
-createCoxForestPlot(multicox, var_display_names = var_display_names,
-                    savePath = figureDir,
-                    filename = "Multi-cox of malignant markers for chemotherapy.pdf")
-
-# Only for combination therapy
-malignant_patient_expression_scaled_combon <- malignant_patient_expression_scaled[malignant_patient_expression_scaled$Treatment=="Combo",]
-multicox <- coxph(Surv(RFS_time, RFS_status) ~ 
-                    FASN + GLUT1 +
-                    fong_score + TBS + CEA_log + CA199_log,
-                  data = malignant_patient_expression_scaled_combon)
-
-var_display_names <- c(
-  "FASN", "GLUT1",
-  "Fong Score", "TBS", "CEA (log)", "CA199 (log)"
-)
-createCoxForestPlot(multicox, var_display_names = var_display_names,
-                    savePath = figureDir,
-                    filename = "Multi-cox of malignant markers for combination therapy")
-
-# ================================================================================
-# GLUT1:EpCAM RATIO BIOMARKER
-# ================================================================================
-cat("\n=== CREATING GLUT1:EpCAM BIOMARKER ===\n")
-
-# Calculate GLUT1:EpCAM ratio
-malignant_patient_expression_biomarker <- malignant_patient_expression
-
-# Add small constant to avoid division by zero
-malignant_patient_expression_biomarker$GLUT1_EpCAM_ratio <- (malignant_patient_expression_biomarker$GLUT1 + 0.001) /
-  (malignant_patient_expression_biomarker$EpCAM + 0.001)
-
-# Log transform ratio for better distribution
-# budding_cell_data$GLUT1_EpCAM_ratio <- budding_cell_data$GLUT1_EpCAM_ratio
-
-# Add clinical variables
-malignant_patient_expression_biomarker$RFS_group <- ifelse(malignant_patient_expression_biomarker$RFS_status == 0, 
-                                      "No Early Relapse", "Early Relapse")
-
-# Visualize biomarker
-p_biomarker <- ggplot(malignant_patient_expression_biomarker, aes(x = RFS_group, y = GLUT1_EpCAM_ratio)) +
-  geom_boxplot(aes(fill = RFS_group), alpha = 0.7) +
-  geom_jitter(width = 0.2, alpha = 0.6) +
-  stat_compare_means(method = "wilcox.test", label = "p.format") +
-  theme_minimal() +
-  labs(title = "GLUT1:EpCAM Ratio Biomarker in Tumor Budding",
-       subtitle = "Scaling Log2(GLUT1/EpCAM) ratio by treatment and RFS status",
-       x = "RFS Status",
-       y = "Scaling Log2(GLUT1:EpCAM Ratio)",
-       fill = "RFS Status") +
-  scale_fill_manual(values = c("No Early Relapse" = "#0073c2b2", "Early Relapse" = "#efc000b2"))
-
-p_biomarker_treatment <- ggplot(malignant_patient_expression_biomarker, aes(x = RFS_group, y = GLUT1_EpCAM_ratio)) +
-  geom_boxplot(aes(fill = RFS_group), alpha = 0.7) +
-  geom_jitter(width = 0.2, alpha = 0.6) +
-  facet_wrap(~Treatment) +
-  stat_compare_means(method = "wilcox.test", label = "p.format") +
-  theme_minimal() +
-  labs(title = "GLUT1:EpCAM Ratio Biomarker in Tumor Budding",
-       subtitle = "Scaling Log2(GLUT1/EpCAM) ratio by RFS status",
-       x = "RFS Status",
-       y = "Scaling Log2(GLUT1:EpCAM Ratio)",
-       fill = "RFS Status") +
-  scale_fill_manual(values = c("No Early Relapse" = "#0073c2b2", "Early Relapse" = "#efc000b2"))
-
-ggsave("figures/tb_spatial/EpCAM_GLUT1_biomarker.pdf", (p_biomarker / p_biomarker_treatment), width = 8, height = 10)
-
-# Create scatter plot showing individual components
-p_scatter <- ggplot(malignant_patient_expression_biomarker, aes(x = GLUT1, y = EpCAM)) +
-  geom_point(aes(color = RFS_group, shape = Treatment), size = 3, alpha = 0.7) +
-  geom_smooth(method = "lm", se = FALSE, color = "gray50", linetype = "dashed") +
-  theme_minimal() +
-  labs(title = "EpCAM vs GLUT1 Expression in Tumor Budding",
-       x = "Mean GLUT1 Expression",
-       y = "Mean EpCAM Expression",
-       color = "RFS Status",
-       shape = "Treatment") +
-  scale_color_manual(values = c("No Early Relapse" = "#0073c2b2", "Early Relapse" = "#efc000b2"))
-
-print(p_scatter)
-ggsave("figures/tb_spatial/EpCAM_vs_GLUT1_scatter.pdf", p_scatter, width = 10, height = 6)
-
-# ================================================================================
-# KAPLAN-MEIER ANALYSIS
-# ================================================================================
-
-cat("\n=== KAPLAN-MEIER SURVIVAL ANALYSIS ===\n")
-
-# Create biomarker categories (high vs low)
-biomarker_cutoff <- surv_cutpoint(malignant_patient_expression_biomarker,time = "RFS_time",event = "RFS_status","GLUT1_EpCAM_ratio",minprop = 0.15)
-biomarker_cutoff <- biomarker_cutoff[["cutpoint"]]$cutpoint
-
-# biomarker_cutoff <- median(patient_survival_data$mean_biomarker)
-malignant_patient_expression_biomarker$biomarker_group <- ifelse(malignant_patient_expression_biomarker$GLUT1_EpCAM_ratio >= biomarker_cutoff,
-                                                "High GLUT1:EpCAM", "Low GLUT1:EpCAM")
-
-cat("Survival analysis cohort:", nrow(malignant_patient_expression_biomarker), "patients\n")
-cat("Biomarker cutoff (median):", round(biomarker_cutoff, 3), "\n")
-
-# Overall survival analysis
-surv_obj <- Surv(malignant_patient_expression_biomarker$RFS_time, malignant_patient_expression_biomarker$RFS_status)
-surv_fit <- survfit(surv_obj ~ biomarker_group, data = malignant_patient_expression_biomarker)
-
-p_km_overall <- ggsurvplot(
-  surv_fit,
-  data = malignant_patient_expression_biomarker,
-  pval = TRUE,
-  conf.int = TRUE,
-  risk.table = TRUE,
-  risk.table.col = "strata",
-  linetype = "strata",
-  surv.median.line = "hv",
-  ggtheme = theme_minimal(),
-  palette = c("#E31A1C", "#1F78B4"),
-  title = "Kaplan-Meier: GLUT1:EpCAM Ratio in All patients",
-  xlab = "Time to Recurrence (months)",
-  ylab = "Recurrence-Free Survival Probability",
-  legend.title = "Biomarker Status",
-  legend.labs = c("High GLUT1:EpCAM", "Low GLUT1:EpCAM")
-)
-
-# Combination therapy survival analysis
-data_ <- malignant_patient_expression_biomarker
-data_ <- data_[data_$Treatment == "Combo",]
-
-biomarker_cutoff <- surv_cutpoint(data_,time = "RFS_time",event = "RFS_status","GLUT1_EpCAM_ratio",minprop = 0.1)[["cutpoint"]]$cutpoint
-data_$biomarker_group <- ifelse(data_$GLUT1_EpCAM_ratio >= biomarker_cutoff, "High GLUT1:EpCAM", "Low GLUT1:EpCAM")
-
-surv_obj <- Surv(data_$RFS_time, data_$RFS_status)
-surv_fit <- survfit(surv_obj ~ biomarker_group, data = data_)
-
-p_km_combn <- ggsurvplot(
-  surv_fit,
-  data = data_,
-  pval = TRUE,
-  conf.int = TRUE,
-  risk.table = TRUE,
-  risk.table.col = "strata",
-  linetype = "strata",
-  surv.median.line = "hv",
-  ggtheme = theme_minimal(),
-  palette = c("#E31A1C", "#1F78B4"),
-  title = "Kaplan-Meier: GLUT1:EpCAM Ratio in Combination therapy",
-  xlab = "Time to Recurrence (months)",
-  ylab = "Recurrence-Free Survival Probability",
-  legend.title = "Biomarker Status",
-  legend.labs = c("High GLUT1:EpCAM", "Low GLUT1:EpCAM")
-)
-
-# Chemotherapy survival analysis
-data_ <- malignant_patient_expression_biomarker
-data_ <- data_[data_$Treatment == "Chemo",]
-
-biomarker_cutoff <- surv_cutpoint(data_,time = "RFS_time",event = "RFS_status","GLUT1_EpCAM_ratio",minprop = 0.1)[["cutpoint"]]$cutpoint
-data_$biomarker_group <- ifelse(data_$GLUT1_EpCAM_ratio >= biomarker_cutoff, "High GLUT1:EpCAM", "Low GLUT1:EpCAM")
-
-surv_obj <- Surv(data_$RFS_time, data_$RFS_status)
-surv_fit <- survfit(surv_obj ~ biomarker_group, data = data_)
-
-p_km_chemo <- ggsurvplot(
-  surv_fit,
-  data = data_,
-  pval = TRUE,
-  conf.int = TRUE,
-  risk.table = TRUE,
-  risk.table.col = "strata",
-  linetype = "strata",
-  surv.median.line = "hv",
-  ggtheme = theme_minimal(),
-  palette = c("#E31A1C", "#1F78B4"),
-  title = "Kaplan-Meier: GLUT1:EpCAM Ratio in Cheomtherapy Only",
-  xlab = "Time to Recurrence (months)",
-  ylab = "Recurrence-Free Survival Probability",
-  legend.title = "Biomarker Status",
-  legend.labs = c("High GLUT1:EpCAM", "Low GLUT1:EpCAM")
-)
-
-combined_plot <- arrange_ggsurvplots(list(p_km_overall, p_km_chemo, p_km_combn), ncol = 3, nrow = 1)
-
-pdf(file.path(figureDir,paste0("GLUT1:EpCAM_km_.pdf")),width = 16,height = 5)
-print(combined_plot)
-dev.off()
-
-
-# Cox proportional hazards model
-cox_model <- coxph(surv_obj ~ biomarker_group + Treatment, data = patient_survival_data)
-cox_summary <- summary(cox_model)
-
-cat("Cox Proportional Hazards Model:\n")
-print(cox_summary)
-
-# Cox model with interaction
-cox_model_interaction <- coxph(surv_obj ~ biomarker_group * Treatment, data = patient_survival_data)
-cox_interaction_summary <- summary(cox_model_interaction)
-
-cat("Cox Model with Interaction:\n")
-print(cox_interaction_summary)
-
-# Create summary table
-survival_summary <- patient_survival_data %>%
-  group_by(Treatment, biomarker_group) %>%
-  summarise(
-    n_patients = n(),
-    events = sum(RFS_status),
-    median_rfs = median(RFS_time),
-    event_rate = round(100 * events / n_patients, 1),
-    .groups = "drop"
-  )
-
-cat("Survival summary by treatment and biomarker:\n")
-print(survival_summary)
-
-# # ================================================================================
-# # STEP 4: COLLECT MARKER EXPRESSION FOR TUMOR BUDDING
-# # ================================================================================
-# 
-# cat("\n=== COLLECTING BUDDING MARKER EXPRESSION ===\n")
-# 
-# # Get all budding cells
-# all_budding_cells <- c()
-# budding_metadata <- data.frame()
-# 
-# for(roi in names(budding_results)) {
-#   roi_budding <- budding_results[[roi]]$budding_components
-#   
-#   for(comp_name in names(roi_budding)) {
-#     comp_cells <- roi_budding[[comp_name]]
-#     comp_size <- length(comp_cells)
-#     
-#     if(comp_size < cluster_size_threshold_min | comp_size > cluster_size_threshold_max){next;}
-#     
-#     # Add to overall list
-#     all_budding_cells <- c(all_budding_cells, comp_cells)
-#     
-#     # Create metadata for these cells
-#     comp_meta <- data.frame(
-#       cell_idx = comp_cells,
-#       roi = roi,
-#       component = comp_name,
-#       cluster_size = comp_size,
-#       budding_type = ifelse(comp_size == 1, "single_cell", "small_cluster")
-#     )
-#     
-#     budding_metadata <- rbind(budding_metadata, comp_meta)
-#   }
-# }
-# 
-# cat("Total budding cells:", length(all_budding_cells), "\n")
-# cat("Single cell budding:", sum(budding_metadata$cluster_size == 1), "\n")
-# cat("Small cluster budding:", sum(budding_metadata$cluster_size > 1), "\n")
-# 
-# # Extract expression data for budding cells
-# budding_expression <- assay(spe_malignant_IM)[, all_budding_cells]
-# budding_cell_data <- as.data.frame(colData(spe_malignant_IM)[all_budding_cells, ])
-# 
-# # Merge with budding metadata
-# budding_metadata$cell_id <- rownames(budding_cell_data)
-# budding_cell_data <- merge(budding_cell_data, budding_metadata, by.x = "row.names", by.y = "cell_id")
-# 
-# # Add clinical metadata
-# budding_cell_data$RFS_group <- ifelse(budding_cell_data$RFS_status == 0, "No Early Relapse", "Early Relapse")
-# 
-# # Only keep small_cluster
-# cat("Budding cells by cluster size:\n")
-# print(table(budding_cell_data$cluster_size))
-# 
-# # ================================================================================
-# # STEP 5: ANALYZE MARKER EXPRESSION DIFFERENCES BY RFS STATUS
-# # ================================================================================
-# 
-# cat("\n=== ANALYZING MARKER EXPRESSION BY RFS STATUS ===\n")
-# 
-# # Select relevant markers for budding analysis
-# budding_markers <- c("EpCAM", "Vimentin", "Ki67", "VEGF", "CA_IX", "GLUT1", "HK2", "FASN")
-# available_budding_markers <- budding_markers[budding_markers %in% rownames(spe_malignant_IM)]
-# 
-# cat("Available budding markers:", paste(available_budding_markers, collapse = ", "), "\n")
-# 
-# # Calculate mean expression per ROI for budding cells
-# roi_budding_expression <- data.frame()
-# rownames(budding_cell_data) <- budding_cell_data$Row.names
-# 
-# for(roi in unique(budding_cell_data$sample_id)) {
-#   roi_budding_cells <- budding_results[[roi]][["budding_cells"]]
-#   roi_budding_cells <- budding_cell_data[roi_budding_cells, ]
-#   
-#   if(nrow(roi_budding_cells) == 0) next
-#   
-#   roi_cell_indices <- rownames(roi_budding_cells)
-#   roi_expression <- budding_expression[available_budding_markers, roi_cell_indices, drop = FALSE]
-#   
-#   # Calculate mean expression for this ROI
-#   roi_means <- rowMeans(roi_expression)
-#   
-#   # Get clinical metadata
-#   roi_meta <- roi_budding_cells[1, c("sample_id", "patient_id", "Treatment", "RFS_status", "RFS_group")]
-#   roi_meta$n_budding_cells <- nrow(roi_budding_cells)
-#   roi_meta$mean_cluster_size <- mean(roi_budding_cells$cluster_size)
-#   
-#   # Combine with expression data
-#   roi_data <- data.frame(t(roi_means), roi_meta)
-#   roi_budding_expression <- rbind(roi_budding_expression, roi_data)
-# }
-# 
-# rownames(roi_budding_expression) <- roi_budding_expression$sample_id
-# 
-# cat("ROIs with budding cells:", nrow(roi_budding_expression), "\n")
-# 
-# # Boxplots for each marker
-# budding_expression_long <- roi_budding_expression %>%
-#   select(sample_id, patient_id, Treatment, RFS_status, RFS_group, all_of(available_budding_markers)) %>%
-#   pivot_longer(cols = all_of(available_budding_markers), 
-#                names_to = "marker", values_to = "expression")
-# 
-# p_budding_rfs <- ggplot(budding_expression_long, aes(x = RFS_group, y = expression)) +
-#   geom_boxplot(aes(fill = RFS_group), alpha = 0.7) +
-#   geom_jitter(width = 0.2, alpha = 0.6) +
-#   facet_wrap(~marker, scales = "free_y") +
-#   stat_compare_means(method = "wilcox.test", label = "p.format") +
-#   theme_minimal() +
-#   labs(title = "Tumor Budding Marker Expression by RFS Status",
-#        x = "RFS Status",
-#        y = "Mean Expression",
-#        fill = "RFS Status") +
-#   scale_fill_manual(values = c("No Early Relapse" = "#0073c2b2", "Early Relapse" = "#efc000b2"))
-# 
-# print(p_budding_rfs)
-# ggsave("figures/budding/budding_markers_rfs_comparison.pdf", p_budding_rfs, width = 12, height = 10)
-# 
-# # Treatment-stratified boxplots
-# p_budding_treatment <- ggplot(budding_expression_long, aes(x = RFS_group, y = expression)) +
-#   geom_boxplot(aes(fill = RFS_group), alpha = 0.7) +
-#   geom_jitter(width = 0.2, alpha = 0.6) +
-#   facet_grid(Treatment ~ marker, scales = "free_x") +
-#   stat_compare_means(method = "wilcox.test", label = "p.format", size = 2.5) +
-#   theme_minimal() +
-#   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-#   labs(title = "Tumor Budding Marker Expression by Treatment and RFS Status",
-#        x = "RFS Status",
-#        y = "Mean Expression",
-#        fill = "RFS Status") +
-#   scale_fill_manual(values = c("No Early Relapse" = "#0073c2b2", "Early Relapse" = "#efc000b2"))
-# 
-# print(p_budding_treatment)
-# ggsave("figures/budding/budding_markers_treatment_comparison.pdf", p_budding_treatment, 
-#        width = 12, height = 6)
-# 
-# # Summary of budding characteristics
-# cat("\n=== BUDDING SUMMARY STATISTICS ===\n")
-# 
-# budding_summary <- roi_budding_expression %>%
-#   group_by(Treatment, RFS_group) %>%
-#   summarise(
-#     n_rois = n(),
-#     mean_budding_cells = round(mean(n_budding_cells), 1),
-#     median_budding_cells = median(n_budding_cells),
-#     mean_cluster_size = round(mean(mean_cluster_size), 2),
-#     .groups = "drop"
-#   )
-# 
-# cat("Budding characteristics by treatment and RFS status:\n")
-# print(budding_summary)
-# 
-# # Plot budding cell counts
-# p_budding_counts <- ggplot(roi_budding_expression, aes(x = RFS_group, y = n_budding_cells)) +
-#   geom_boxplot(aes(fill = RFS_group), alpha = 0.7) +
-#   geom_jitter(width = 0.2, alpha = 0.6) +
-#   facet_wrap(~Treatment) +
-#   stat_compare_means(method = "wilcox.test", label = "p.format") +
-#   theme_minimal() +
-#   labs(title = "Number of Budding Cells per ROI",
-#        x = "RFS Status",
-#        y = "Number of Budding Cells",
-#        fill = "RFS Status") +
-#   scale_fill_manual(values = c("No Early Relapse" = "#0073c2b2", "Early Relapse" = "#efc000b2"))
-# 
-# print(p_budding_counts)
-# ggsave("figures/budding/budding_cell_counts.pdf", p_budding_counts, width = 10, height = 6)
-# 
-# # Plot cluster sizes
-# p_cluster_sizes <- ggplot(roi_budding_expression, aes(x = RFS_group, y = mean_cluster_size)) +
-#   geom_boxplot(aes(fill = RFS_group), alpha = 0.7) +
-#   geom_jitter(width = 0.2, alpha = 0.6) +
-#   facet_wrap(~Treatment) +
-#   stat_compare_means(method = "wilcox.test", label = "p.format") +
-#   theme_minimal() +
-#   labs(title = "Mean Cluster Size of Budding Cells",
-#        x = "RFS Status",
-#        y = "Mean Cluster Size",
-#        fill = "RFS Status") +
-#   scale_fill_manual(values = c("No Early Relapse" = "#0073c2b2", "Early Relapse" = "#efc000b2"))
-# 
-# print(p_cluster_sizes)
-# ggsave("figures/budding/budding_cluster_sizes.pdf", p_cluster_sizes, width = 10, height = 6)
-# 
-# cat("\n=== TUMOR BUDDING ANALYSIS COMPLETE ===\n")
-# cat("Results saved in 'figures/budding/' directory:\n")
-# cat("- budding_markers_rfs_comparison.pdf: Marker expression by RFS status\n")
-# cat("- budding_markers_treatment_comparison.pdf: Treatment-stratified analysis\n")
-# cat("- budding_markers_heatmap.pdf: Fold change heatmap\n")
-# cat("- budding_cell_counts.pdf: Number of budding cells per ROI\n")
-# cat("- budding_cluster_sizes.pdf: Cluster size distributions\n")
-# 
-# # Export results
-# write.csv(roi_budding_expression, "figures/budding/roi_budding_expression_data.csv", row.names = FALSE)
-# 
-# # Compare the expression among all EP cells during IM
-# roi_EC_expression <- data.frame()
-# IM_EC_expression <- assay(spe_malignant_IM)
-# IM_EC_cells <- as.data.frame(colData(spe_malignant_IM))
-# IM_EC_cells$RFS_group <- ifelse(IM_EC_cells$RFS_status == 0, 
-#                                 "No Early Relapse", "Early Relapse")
-# 
-# for(roi in unique(spe_malignant_IM$sample_id)) {
-#   roi_EC_cells <- IM_EC_cells[IM_EC_cells$sample_id == roi, ]
-#   
-#   if(nrow(roi_EC_cells) == 0) next
-#   
-#   roi_cell_indices <- rownames(roi_EC_cells)
-#   roi_expression <- IM_EC_expression[available_budding_markers, roi_cell_indices, drop = FALSE]
-#   
-#   # Calculate mean expression for this ROI
-#   roi_means <- rowMeans(roi_expression)
-#   
-#   # Get clinical metadata
-#   roi_meta <- roi_EC_cells[1, c("sample_id", "patient_id", "Treatment", "RFS_status", "RFS_group")]
-#   roi_meta$n_budding_cells <- nrow(roi_EC_cells)
-#   
-#   # Combine with expression data
-#   roi_data <- data.frame(t(roi_means), roi_meta)
-#   roi_EC_expression <- rbind(roi_EC_expression, roi_data)
-# }
-# 
-# rownames(roi_EC_expression) <- roi_EC_expression$sample_id
-# 
-# cat("ROIs with EC cells:", nrow(roi_EC_expression), "\n")
-# 
-# # Boxplots for each marker
-# EC_expression_long <- roi_EC_expression %>%
-#   select(sample_id, patient_id, Treatment, RFS_status, RFS_group, all_of(available_budding_markers)) %>%
-#   pivot_longer(cols = all_of(available_budding_markers), 
-#                names_to = "marker", values_to = "expression")
-# 
-# p_budding_rfs <- ggplot(EC_expression_long, aes(x = RFS_group, y = expression)) +
-#   geom_boxplot(aes(fill = RFS_group), alpha = 0.7) +
-#   geom_jitter(width = 0.2, alpha = 0.6) +
-#   facet_wrap(~marker, scales = "free_y") +
-#   stat_compare_means(method = "wilcox.test", label = "p.format") +
-#   theme_minimal() +
-#   labs(title = "Tumor Marker Expression by RFS Status",
-#        x = "RFS Status",
-#        y = "Mean Expression",
-#        fill = "RFS Status") +
-#   scale_fill_manual(values = c("No Early Relapse" = "#0073c2b2", "Early Relapse" = "#efc000b2"))
-# 
-# print(p_budding_rfs)
-# ggsave("figures/budding/all_EC_markers_rfs_comparison.pdf", p_budding_rfs, width = 12, height = 10)
-# 
-# # Treatment-stratified boxplots
-# p_budding_treatment <- ggplot(EC_expression_long, aes(x = RFS_group, y = expression)) +
-#   geom_boxplot(aes(fill = RFS_group), alpha = 0.7) +
-#   geom_jitter(width = 0.2, alpha = 0.6) +
-#   facet_grid(Treatment ~ marker, scales = "free_x") +
-#   stat_compare_means(method = "wilcox.test", label = "p.format", size = 2.5) +
-#   theme_minimal() +
-#   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-#   labs(title = "Tumor Marker Expression by Treatment and RFS Status",
-#        x = "RFS Status",
-#        y = "Mean Expression",
-#        fill = "RFS Status") +
-#   scale_fill_manual(values = c("No Early Relapse" = "#0073c2b2", "Early Relapse" = "#efc000b2"))
-# 
-# print(p_budding_treatment)
-# ggsave("figures/budding/all_EC_markers_treatment_comparison.pdf", p_budding_treatment, 
-#        width = 12, height = 6)
+result <- createCoxForestPlot(multicox_with_interaction,
+                              var_display_names = custom_names,
+                              var_groups = var_groups,
+                              savePath = figureDir,
+                              filename = "Multi-cox of variables with interaction factor.pdf",
+                              plot_title = "Clinical Variables Cox Regression")
 
 # ================================================================================
 # SUMMARY AND CONCLUSIONS
