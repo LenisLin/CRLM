@@ -128,9 +128,9 @@ def get_hallmark_pathways(use_IMC_pathway=False):
         # Extract only the IMC-relevant pathways
         for pathway_name, description in imc_relevant_hallmarks.items():
             if pathway_name in hallmark_pathways:
-                if pathway_name == "HALLMARK_EPITHELIAL_MESENCHYMAL_TRANSITION":
+                if pathway_name == "HALLMARK_FATTY_ACID_METABOLISM":
                     select_pathways[pathway_name] = hallmark_pathways[pathway_name]
-                    select_pathways[pathway_name].extend(["H3-3A","H3-3B","NME1-NME2"])
+                    select_pathways[pathway_name].extend(["SREBF1"])
                 else:
                     select_pathways[pathway_name] = hallmark_pathways[pathway_name]
 
@@ -285,18 +285,7 @@ def create_pathway_enrichment_figure(enrichment_results, save_path=None, figsize
                      fontsize=14, fontweight='bold')
     ax_main.set_xlabel('Malignant Subtypes', fontsize=12)
     ax_main.set_ylabel('HALLMARK Pathways', fontsize=12)
-    
-    # Colorbar
-    cbar_ax = axes[0, 1]
-    cbar = plt.colorbar(im, cax=cbar_ax)
-    cbar.set_label('log₂(Enrichment Score + 1)', rotation=270, labelpad=20, fontsize=11)
-    
-    # Network visualization
-    ax_network = axes[1, 0]
-    
-    # Create network for top enrichments
-    G = nx.Graph()
-    
+
     # Add subtype nodes
     subtype_colors = plt.cm.Set2(np.linspace(0, 1, len(all_subtypes)))
     pos = {}
@@ -374,13 +363,6 @@ def create_pathway_enrichment_figure(enrichment_results, save_path=None, figsize
                                font_size=6, ax=ax_network)
     
     ax_network.set_title('Top Enrichments Network', fontsize=12, fontweight='bold')
-    ax_network.axis('off')
-    
-    # Summary table
-    ax_table = axes[1, 1]
-    ax_table.axis('off')
-    
-    # Create summary text
     summary_text = f"Analysis Summary:\n"
     summary_text += f"• {len(all_subtypes)} Malignant Subtypes\n"
     summary_text += f"• {len(all_pathways)} Enriched Pathways\n"
@@ -899,3 +881,15 @@ def compare_bulk_datasets(scores_df, bulk_clinical, save_path="./bulk_comparison
         print(f"    - Wilcoxon Statistic: {res['statistic']:.3f}, p-value: {res['p_value']:.4f}")
     
     return dataset_results
+
+def manual_hvg(adata, select_gene):
+    # Filter for available genes
+    available_genes = [g for g in select_gene if g in adata.var_names]
+
+    # Set as highly variable
+    adata.var['highly_variable'] = False  # Reset all
+    adata.var.loc[available_genes, 'highly_variable'] = True  # Set your genes
+
+    print(f"Using {len(available_genes)} IMC-guided genes as HVGs")
+
+    return adata

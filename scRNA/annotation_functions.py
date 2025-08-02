@@ -1,4 +1,4 @@
-from tarfile import NUL
+import os
 import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
@@ -314,3 +314,130 @@ def plot_patient_sample_overview(adata, figsize=(8, 6), save_path=None):
     if save_path:
         plt.savefig(save_path, dpi=300, bbox_inches='tight')
     plt.show()
+
+# ============================================================================
+# ANNOTATION FUNCTION FOR EACH CELL TYPE
+# ============================================================================
+
+def preprocessing_for_subtype_anno(adata, cell_type, marker_genes, figurePath, resolution=0.5):
+    """
+    Annotate subtypes for a specific major cell type
+    
+    Parameters:
+    - adata: AnnData object with all cells
+    - cell_type: string, major cell type to analyze ('T', 'Myeloid', etc.)
+    - marker_genes: dict, marker genes for this cell type
+    - figurePath: string, path to save figures
+    - resolution: float, clustering resolution
+    """
+    
+    print(f"\n🎯 Annotating {cell_type} cells")
+    print("="*60)
+    
+    # Step 1: Extract cells of this type
+    cell_mask = adata.obs['Major_type'] == cell_type
+    print(f"Found {cell_mask.sum():,} {cell_type} cells")
+    
+    if cell_mask.sum() < 1000:
+        print(f"⚠️ Too few {cell_type} cells for detailed analysis")
+        return adata
+    
+    # Create subset
+    cell_subset = sc.AnnData(
+        X=adata[cell_mask].raw.X,
+        obs=adata[cell_mask].obs.copy(),
+        var=adata.raw.var.copy(),
+        obsm=adata[cell_mask].obsm.copy()
+    )
+    
+    # Step 2: Basic preprocessing
+    print("Preprocessing...")
+    sc.pp.normalize_total(cell_subset, target_sum=1e4)
+    sc.pp.log1p(cell_subset)
+    sc.pp.highly_variable_genes(cell_subset, n_top_genes=2000)
+    sc.pp.scale(cell_subset)
+    sc.tl.pca(cell_subset)
+    sc.pp.neighbors(cell_subset, n_neighbors=10, n_pcs=50,  use_rep='X_pca_harmony')
+    # sc.pp.neighbors(cell_subset, n_neighbors=15)
+    sc.tl.umap(cell_subset)
+    
+    # Step 3: Clustering
+    print("Clustering cells...")
+    sc.tl.leiden(cell_subset, resolution=resolution, key_added='leiden')
+    
+    print(f"Found {len(cell_subset.obs['leiden'].unique())} clusters")
+    
+    # Step 4: Calculate marker gene scores
+    print("Calculating marker gene scores...")
+    all_marker_genes = []
+    
+    for subtype, genes in marker_genes.items():
+        available_genes = [g for g in genes if g in cell_subset.var_names]
+        all_marker_genes.extend(available_genes)
+
+        # available_genes = [g for g in genes if g in cell_subset.var_names]
+        # if available_genes:
+        #     print(f"  {subtype}: {available_genes}")
+        #     sc.tl.score_genes(cell_subset, available_genes, 
+        #                       score_name=f'{subtype}_score', use_raw=False)
+        #     all_marker_genes.extend(available_genes)
+        # else:
+        #     print(f"  {subtype}: No genes found in dataset")
+    
+    # Remove duplicates
+    all_marker_genes = list(set(all_marker_genes))
+    
+    # Step 5: Differential expression analysis
+    sc.tl.rank_genes_groups(cell_subset, groupby="leiden", method="wilcoxon")
+    
+    # Step 6: Visualizations
+    cell_figurePath = os.path.join(figurePath, f"{cell_type}_analysis")
+    os.makedirs(cell_figurePath, exist_ok=True)
+    
+    # Cluster overview
+    fig, axes = plt.subplots(1, 2, figsize=(12, 5))
+    sc.pl.umap(cell_subset, color='leiden', ax=axes[0], show=False, 
+               legend_loc='on data', title=f'{cell_type} Clusters')
+    sc.pl.umap(cell_subset, color='Major_type', ax=axes[1], show=False, 
+               title=f'{cell_type} Cells')
+    plt.tight_layout()
+    plt.savefig(os.path.join(cell_figurePath, f"{cell_type}_clusters.pdf"), 
+                dpi=300, bbox_inches='tight')
+    plt.show()
+    
+    # Marker genes dotplot
+    if len(all_marker_genes) > 0:
+        sc.pl.rank_genes_groups_dotplot(
+            cell_subset, groupby="leiden", standard_scale="var", n_genes=8, show=False
+        )
+        plt.tight_layout()
+        plt.savefig(os.path.join(cell_figurePath, f"{cell_type}_markers_dotplot.pdf"), 
+                    dpi=300, bbox_inches='tight')
+        plt.show()
+        
+        # # Marker gene expression plots
+        # if len(all_marker_genes) <= 20:  # Only plot if reasonable number
+        #     fig = plt.figure(figsize=(20, 15))
+        #     n_genes = len(all_marker_genes)
+        #     n_cols = 5
+        #     n_rows = (n_genes + n_cols - 1) // n_cols
+            
+        #     for i, gene in enumerate(all_marker_genes):
+        #         ax = plt.subplot(n_rows, n_cols, i+1)
+        #         sc.pl.umap(cell_subset, color=gene, ax=ax, show=False, 
+        #                   frameon=False, size=8, color_map='Reds')
+        #         ax.set_title(gene, fontsize=10, fontweight='bold')
+        #         ax.set_xlabel('')
+        #         ax.set_ylabel('')
+        #         ax.set_xticks([])
+        #         ax.set_yticks([])
+            
+        #     plt.tight_layout()
+        #     plt.savefig(os.path.join(cell_figurePath, f'{cell_type}_marker_expression.pdf'), 
+        #                 dpi=300, bbox_inches='tight')
+        #     plt.show()
+    
+    ## Save processed data
+    cell_subset.write_h5ad(os.path.join(cell_figurePath, f"{cell_type}_processed.h5ad"))
+
+    return NONE
