@@ -1,3 +1,4 @@
+import gc
 import os
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -335,7 +336,10 @@ def preprocessing_for_subtype_anno(adata, cell_type, marker_genes, figurePath, r
     print("="*60)
     
     # Step 1: Extract cells of this type
-    cell_mask = adata.obs['Major_type'] == cell_type
+    if cell_type == 'B_Plasma':
+        cell_mask = (adata.obs['Major_type'] == 'B') | (adata.obs['Major_type'] == 'Plasma')
+    else:
+        cell_mask = adata.obs['Major_type'] == cell_type
     print(f"Found {cell_mask.sum():,} {cell_type} cells")
     
     if cell_mask.sum() < 1000:
@@ -440,4 +444,7 @@ def preprocessing_for_subtype_anno(adata, cell_type, marker_genes, figurePath, r
     ## Save processed data
     cell_subset.write_h5ad(os.path.join(cell_figurePath, f"{cell_type}_processed.h5ad"))
 
-    return NONE
+    del cell_subset
+    gc.collect()
+
+    return None
