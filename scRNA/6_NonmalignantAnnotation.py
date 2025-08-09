@@ -218,7 +218,7 @@ cell_types_to_annotate = ['T'] # ,'Myeloid', 'NK',  'Fibroblast', 'B_Plasma', 'E
 # 
 # Different resolutions for different cell types (adjust as needed)
 resolutions = {
-    'T': 1.0,           # T cells are diverse, need higher resolution
+    'T': 0.6,           # T cells are diverse, need higher resolution
     'Myeloid': 0.6,     # Myeloid cells have clear subtypes
     'NK': 0.3,          # NK cells are more homogeneous
     'Fibroblast': 0.6,  # Moderate diversity
@@ -250,23 +250,19 @@ plt.xticks(rotation=45, fontsize=10) # Add styling after the plot is created
 plt.yticks(fontsize=10)
 plt.title('Expression Level', fontsize=12, fontweight='bold', pad=5)
 plt.tight_layout()
-plt.savefig(
-    os.path.join(figurePath, f"{cell_type}_analysis", f'{cell_type}_specific_marker_genes_dotplot.pdf'), 
-    dpi=300, 
-    bbox_inches='tight',
-    format='pdf'
-)
+plt.savefig(os.path.join(figurePath, f"{cell_type}_analysis", f'{cell_type}_specific_marker_genes_dotplot.pdf'), dpi=300, bbox_inches='tight',format='pdf')
 plt.show()
 
 new_cluster_names = [
-    'CD8T_GZMK','CD4T_','MAIT_SLC4A10','_IL7R','CD8T_GZMB',
-    'Treg_FOXP3','CD8T_GZMK','CD8T_MKI67','CD4T_CXCL13','9',
-    '10','Unknown','NaiveT_TCF7'
+    'CD8T_GZMK','CD4T_IL7R','MAIT_SLC4A10','MAIT_SLC4A10','CD8T_GZMB',
+    'Treg_FOXP3','CD8T_GZMK','CD8T_MKI67','CD4T_CXCL13','CD8T_MT',
+    'CD8T_STAT1','Unknown','Unknown'
 ]
 
 ## Map cluster names to cell types
 cluster_to_celltype = {str(i): celltype for i, celltype in enumerate(new_cluster_names)}
 sub_anndata.obs['Sub_type'] = sub_anndata.obs['leiden'].map(cluster_to_celltype)
+sub_anndata.obs['Sub_type'].value_counts()
 
 ## Mapping to major anndata
 adata.obs.loc[:,"Major_type"] = adata.obs['Major_type'].astype(str)  # Ensure Sub_type is string type
@@ -278,7 +274,7 @@ adata.obs.loc[idx,"Sub_type"] = sub_anndata.obs['Sub_type']
 ## Mannual adjustment for Sub_type
 adata.obs["Sub_type"].value_counts()
 adata.obs.loc[adata.obs["Sub_type"] == "Unknown","Major_type"] = "Unknown"
-sub_anndata = sub_anndata[sub_anndata.obs["Sub_type"].str.startswith(("B", "Plasma"))]
+sub_anndata = sub_anndata[sub_anndata.obs["Sub_type"].str.startswith(("T", "CD4T", "CD8T", "MAIT"))]  # Subset to T cells
 
 # Create the UMAP plot with enhanced styling
 fig, ax = plt.subplots(figsize=(3.5, 3.5), dpi=300)
@@ -304,14 +300,21 @@ plt.close()
 
 # Create a more appealing dot plot
 selected_marker_genes = {
-    # B cell subtypes
-    'B_MS4A1': ['CD19', 'MS4A1','SELL'],  # General B cell markers
+    # Pan T cell
+    'Pan_T':["CD3E","CD8A","CD4"],
 
-    # Plasma cell subtypes
-    'Plasma_IgA': ['IGHA1', 'IGHA2'],  # IgA+ plasma cells
-    'Plasma_IgG': ['IGHG1', 'IGHG2', 'IGHG3', 'IGHG4'],  # IgG+ plasma cells
-    'Plasma_CD59': ['CD59',"IGLL5"],  # CD59+ plasma cells
-    'Plasma_Proliferating': ['MKI67']  # Proliferating plasma cells
+    # CD4+ T cell subtypes
+    'CD4T_CXCL13': ['CXCL13', 'PDCD1'], 
+    'CD4T_IL7R': ['IL7R'],
+
+    # CD8+ T cell subtypes
+    'CD8T_GZMB': ['GZMB',"PRF1"],  # Tissue-resident memory
+    'CD8T_GZMK': ['GZMK',"NKG7"],  # Memory CD8+
+    'CD8T_MKI67': ['MKI67',"STMN1"],  # Proliferating CD8+
+    'CD8T_MT': ['MT1X', 'MT1E'],
+    'CD8T_STAT1': ['STAT1', 'ISG15'],  # Effector CD8+
+    'MAIT_SLC4A10': ['SLC4A10', 'DPP4', 'NCR3'],
+    'Treg': ['FOXP3', 'TIGIT', 'CTLA4'],
 }
 
 plt.figure(figsize=(15, 8))
@@ -356,7 +359,7 @@ plt.savefig(
 plt.show()
 
 new_cluster_names = [
-    'Macro_VCAN', 'Macro_APOE', 'cDC_CD1C', 'Macro_APOE', 'Neutrophil', 
+    'Macro_VCAN', 'Macro_APOE', 'cDC_CD1C', 'Macro_APOE', 'Neutrophil_FCGR3B', 
     'Macro_SPP1', 'cDC_CLEC9A', 'Macro_S100A12', 'Macro_FOLR2', 'pDC_LILRA4',
     'Macro_HSPH1', 'Macro_APOE', 'Macro_MKI67', 'Macro_APOE'
 ]
@@ -399,21 +402,21 @@ selected_marker_genes = {
     "Myeloid": ['CD68','CD14'],
 
     # Macrophage subtypes
-    'Macro_SPP1': ['SPP1', 'MARCO'],  # SPP1+ tumor-associated
-    'Macro_MKI67': ['MKI67',"STMN1"],  # Proliferating macrophages
-    'Macro_VCAN': ["VCAN"],
     'Macro_APOE': ["APOE"],
-    'Macro_S100A12': ["S100A12"],
     'Macro_FOLR2': ["FOLR2"],
     'Macro_HSPH1': ['HSPA1B', 'HSPA1A', 'HSPB1'],  # Heat shock macrophages
-
-    # Dendritic cell subtypes
-    'cDC_CLEC9A': ['CLEC9A', 'XCR1', 'BATF3'],  # Conventional DC1
-    'cDC_CD1C': ['CLEC10A', 'CD1C', 'FCER1A'],  # Conventional DC2
-    'pDC_LILRA4': ['LILRA4', 'CLEC4C'],  # Plasmacytoid DC
+    'Macro_MKI67': ['MKI67',"STMN1"],  # Proliferating macrophages
+    'Macro_S100A12': ["S100A12"],
+    'Macro_SPP1': ['SPP1', 'MARCO'],  # SPP1+ tumor-associated
+    'Macro_VCAN': ["VCAN"],
 
     # Neutrophils
-    'Neutrophil': ['FCGR3B', 'CXCR2']
+    'Neutrophil': ['FCGR3B', 'CXCR2'],
+
+    # Dendritic cell subtypes
+    'cDC_CD1C': ['CLEC10A', 'CD1C', 'FCER1A'],  # Conventional DC2
+    'cDC_CLEC9A': ['CLEC9A', 'XCR1', 'BATF3'],  # Conventional DC1
+    'pDC_LILRA4': ['LILRA4', 'CLEC4C']  # Plasmacytoid DC
 }
 
 plt.figure(figsize=(15, 8))
@@ -521,6 +524,9 @@ plt.savefig(
 plt.show()
 plt.close()
 
+del sub_anndata
+gc.collect()
+
 #%% Task 7: Annotation Fibroblast
 
 ## Load Anndata of Subtype
@@ -590,14 +596,15 @@ plt.close()
 # Create a more appealing dot plot
 selected_marker_genes = {
     'Stromal': ['LUM', "DCN",'FAP', 'ACTA2'],
-    
+    'CAF_CXCL12': ['CXCL12',"CCL11"],
+    'CAF_PDPN': ['PDPN',"C3"],
+    'CAF_POSTN': ['POSTN'],
+
     # Fibroblast subtypes
-    'Fibro_RGS5': ['RGS5', 'MCAM', 'NOTCH3'],  # F2_MCAM (LM-enriched)
     'Fibro_COL3A1': ['COL3A1',"COL1A2"],  # F4_F3 (CC-enriched)
     'Fibro_MKI67': ['MKI67'],  # F5_CCL11 (CC-enriched)
-    'CAF_POSTN': ['POSTN'],
-    'CAF_PDPN': ['PDPN',"C3"],
-    'CAF_CXCL12': ['CXCL12',"CCL11"],
+
+    'Fibro_RGS5': ['RGS5', 'MCAM', 'NOTCH3'],  # F2_MCAM (LM-enriched)
 }
 
 
@@ -643,9 +650,9 @@ plt.savefig(
 plt.show()
 
 new_cluster_names = [
-    'B_MS4A1', 'Plasma_IGHG', 'B_CD37', 'B_MS4A1', 'Plasma_IGHA',
-    'Plasma_MKI67', 'Plasma_CD59', 'Unknown', 'B_CD37', 'Unknown',
-    'Unknown', 'B_MS4A1', 'Plasma_IGHA', 'B_MS4A1'
+    'B_CD19', 'Plasma_IGHG', 'B_MS4A1', 'B_CD19', 'Plasma_IGHA',
+    'Plasma_MKI67', 'Plasma_CD59', 'Unknown', 'B_MS4A1', 'Unknown',
+    'Unknown', 'B_CD19', 'Plasma_IGHA', 'B_CD19'
 ]
 
 ## Map cluster names to cell types
@@ -688,13 +695,14 @@ plt.close()
 
 # Create a more appealing dot plot
 selected_marker_genes = {
+    'B': ['CD79A', 'CD37'],  # General B cell markers
     # B cell subtypes
-    'B_MS4A1': ['CD19', 'MS4A1','SELL'],  # General B cell markers
-
+    'B_CD19': ['CD19'],  # B cell markers
+    'B_MS4A1': ['MS4A1'],  # General B cell markers
     # Plasma cell subtypes
+    'Plasma_CD59': ['CD59',"IGLL5"],  # CD59+ plasma cells
     'Plasma_IgA': ['IGHA1', 'IGHA2'],  # IgA+ plasma cells
     'Plasma_IgG': ['IGHG1', 'IGHG2', 'IGHG3', 'IGHG4'],  # IgG+ plasma cells
-    'Plasma_CD59': ['CD59',"IGLL5"],  # CD59+ plasma cells
     'Plasma_Proliferating': ['MKI67']  # Proliferating plasma cells
 }
 
@@ -741,7 +749,7 @@ plt.show()
 
 new_cluster_names = [
     'EC_EFNB2', 'EC_ACKR1', 'EC_EFNB2', 'EC_ANGPT2', 'EC_LYVE1',
-    'EC_ACKR1', 'EC_EFNB2', 'Myeloid', 'EC_EFNB2',
+    'EC_ACKR1', 'EC_EFNB2', 'Unknown', 'EC_EFNB2',
     'EC_MKI67'
 ]
 
@@ -758,7 +766,7 @@ adata.obs.loc[idx,"Sub_type"] = sub_anndata.obs['Sub_type']
 
 ## Mannual adjustment for Sub_type
 adata.obs["Sub_type"].value_counts()
-adata.obs.loc[adata.obs["Sub_type"] == "Myeloid","Major_type"] = "Myeloid"
+adata.obs.loc[adata.obs["Sub_type"] == "Unknown","Major_type"] = "Unknown"
 sub_anndata = sub_anndata[sub_anndata.obs["Sub_type"].str.startswith("EC")] ## Subset
 
 # Create the UMAP plot with enhanced styling
@@ -788,9 +796,9 @@ selected_marker_genes = {
     # Pan-endothelial markers
     'Endo_Pan': ['PECAM1', 'CD34', 'VWF'],  # General endothelial markers
     # Endothelial subtypes
-    'EC_EFNB2': ['EFNB2', 'HEY1'],  # Arterial endothelial
     'EC_ACKR1':["ACKR1"],
     'EC_ANGPT2': ['ANGPT2', 'NOTCH3', "VEGFA"],  # Venous endothelial
+    'EC_EFNB2': ['EFNB2', 'HEY1'],  # Arterial endothelial
     'EC_LYVE1': ['LYVE1', 'SELP'],  # Capillary endothelial
     'EC_MKI67': ['MKI67']  # Proliferating endothelial
 }
@@ -814,6 +822,11 @@ plt.savefig(
 )
 plt.show()
 plt.close()
+
+# Save the annotated anndata object
+adata.obs["Sub_type"].value_counts()
+adata.write(os.path.join(figurePath, f"Nonmalignant_annotated.h5ad"))
+
 
 # new_cluster_names = [
 #     '0', '1', '2', '3', '4', 

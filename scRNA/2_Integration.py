@@ -89,7 +89,7 @@ print("="*60)
 
 # Prepare data with larger sample
 final_integrated = prepare_for_integration(
-    merged_adata, 
+    merged_adata.copy(), 
     n_top_genes=n_top_genes,
     downsample_n=None,
     batch_key='batch'
