@@ -2,7 +2,6 @@
 import os
 import gc
 import pickle
-from re import T
 import scanpy as sc
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -177,7 +176,9 @@ plt.show()
 # Define comprehensive marker genes for major cell types
 marker_genes = {
     # Epithelial cells
-    'Malignant_Epithelial': ['EPCAM','KRT19','CDH1'],
+    "Epithelial": ['EPCAM','CDH1'],
+    'Malignant': ['CDX2','KRT20','KRT19'],
+    'Other': ['Hep-Par1','KRT7'],
     'Hypoxic': ['CA9', 'HIF1A', 'BNIP3'],  # CA9 encodes CA-IX protein
     'Lipids_metabolism': ['FASN', 'ACLY', 'SREBF1'],
     'Glycolytic': ['SLC2A1', 'HK2', 'PFKP', 'ALDOA'],  # SLC2A1 encodes GLUT1, metabolic genes
