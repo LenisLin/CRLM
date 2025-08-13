@@ -259,318 +259,144 @@ ggsave(filename = file.path(figureDir,"Cell subpopulation abudance dynamic of ma
 ggsave(filename = file.path(figureDir,"CN types abudance dynamic of major types.pdf"),p3,width = 6,height = 5)
 
 # =============================================================================
-# Step 5: EC CO-LOCALIZATION ANALYSIS
-# =============================================================================
-
-cat("\n=== 5. EC Co-localization Analysis ===\n")
-
-# Identify EC cells (EpCAM+ epithelial cells in PT)
-ec_cells <- pt_meta %>%
-  filter(grepl("^EC_", sub_celltype)) %>%
-  pull(sub_celltype) %>%
-  unique()
-
-cat("Identified EC subtypes:", paste(ec_cells, collapse = ", "), "\n")
-
-cat("\n--- Ripley's K Function Analysis ---\n")
-# Analyze EC co-localization with major cell types
-major_types <- unique(pt_meta$major_celltype)
-major_types <- major_types[!is.na(major_types)]
-
-ripleys_results <- list()
-
-meta_all <- colData(spe_pt)
-coor_all <- spatialCoords(spe_pt)
-
-non_ec_subtypes <- unique(meta_all$sub_celltype)
-non_ec_subtypes <- non_ec_subtypes[!startsWith(non_ec_subtypes,"EC")]
-
-for (sample in unique(spe_pt$sample_id)) {
-  index_ <- meta_all$sample_id == sample
-  sample_meta <- meta_all[index_,]
-  sample_coor <- coor_all[index_,]
-  
-  # Get patient info
-  patient_id <- unique(sample_meta$patient_id)
-  treatment <- unique(sample_meta$Treatment)
-  rfs_status <- unique(sample_meta$RFS_status)
-  
-  cat("Analyzing sample:", sample, "Patient:", patient_id, "\n")
-  
-  # Test EC against each major cell type
-  
-  for (target_type in non_ec_subtypes) {
-    # target_cells <- sample_meta$sub_celltype[sample_meta$major_celltype == target_type]
-    # if (length(target_cells) < 5) next
-    # # Use the most abundant subtype as representative
-    # target_subtype <- names(sort(table(target_cells), decreasing = TRUE))[1]
-    
-    k_result <- perform_ripleys_k(coords = sample_coor, sample_meta = sample_meta, focal_celltype = "EC", target_type, max_dist = 150)
-    
-    if (!is.null(k_result)) {
-      k_result$sample_id <- sample
-      k_result$patient_id <- patient_id
-      k_result$treatment <- treatment
-      k_result$rfs_status <- rfs_status
-      k_result$focal_type <- "EC"
-      k_result$target_type <- target_type
-
-      ripleys_results[[paste(sample, "EC", target_type, sep = "_")]] <- k_result
-    }
-  }
-}
-
-# Combine all results
-ripleys_combined <- do.call(rbind, ripleys_results)
-rownames(ripleys_combined) <- NULL
-
-# =============================================================================
-# Step 6: L-FUNCTION VISUALIZATION ANALYSIS
-# =============================================================================
-
-cat("\n=== 6. L-function Visualization Analysis ===\n")
-
-# Step 6.1: Data Preparation
-# Add some summary metrics for better analysis
-ripleys_summary <- ripleys_combined %>%
-  mutate(
-    RFS_group = factor(rfs_status, levels = c(0, 1), labels = c("No Recurrence", "Recurrence")),
-    Treatment_RFS = paste(treatment, RFS_group, sep = "_")
-  )
-ripleys_summary$log2_L <- sign(ripleys_summary$L) * log2(abs(ripleys_summary$L))
-
-# Step 6.2: Plot 1 - Heatmaps for specific distances (20, 50, 100μm)
-cat("\n--- 6.2: Creating Distance-specific Heatmaps ---\n")
-
-heatmap_distances <- c(20, 50, 100)  # Specific distances for heatmaps
-# Create heatmaps for each specific distance
-for(dist in heatmap_distances) {
-  cat("Creating heatmap for distance:", dist, "μm\n")
-  
-  # Prepare heatmap data for this distance
-  heatmap_matrix <- ripleys_summary %>%
-    filter(distance == dist) %>%
-    select(sample_id, target_type, log2_L) %>%
-    group_by(sample_id, target_type) %>%
-    summarise(log2_L = mean(log2_L), .groups = "drop") %>%
-    pivot_wider(names_from = target_type, values_from = log2_L) %>%
-    tibble::column_to_rownames("sample_id") %>%
-    as.matrix()
-  
-  # Create the heatmap
-  p_heatmap_dist <- pheatmap(
-    heatmap_matrix,
-    main = paste0("EC Co-localization Heatmap at ", dist, "μm"),
-    color = colorRampPalette(c("blue", "white", "red"))(100),
-    cluster_rows = TRUE,
-    cluster_cols = TRUE,
-    angle_col = 45,
-    fontsize = 10,
-    fontsize_row = 8,
-    fontsize_col = 10,
-    border_color = "white"
-  )
-  
-  # Save immediately
-  ggsave(file.path(figureDir, paste0("EC_colocalization_heatmap_", dist, "um.pdf")), 
-         p_heatmap_dist, width = 12, height = 8)
-  cat("Saved heatmap for", dist, "μm\n")
-}
-
-# Step 6.3: Plot 2 - Split Violin Plots with Statistical Testing
-cat("\n--- 6.3: Creating Split Violin Plots with Statistics ---\n")
-
-# Calculate key distance summaries for violin plots
-key_distances <- c(20, 30, 50, 75, 100, 150)  # Focus on biologically relevant distances
-
-ripleys_key_distances <- ripleys_summary %>%
-  filter(distance %in% key_distances) %>%
-  mutate(distance_label = paste0(distance, "μm"))
-
-# Get key target types
-key_target_types <- c("CD8T","B","Macro_CD163","SC_Collagen","SC_Collagen_Vimentin")
-
-# Ensure proper factor levels for RFS
-ripleys_key_distances$rfs_status <- factor(ripleys_key_distances$rfs_status)
-
-# Plot 2A: Split violin plot for RFS comparison
-ripleys_for_violin <- ripleys_key_distances %>%
-  filter(target_type %in% key_target_types)
-
-# Calculate statistical annotations
-violin_stats <- ripleys_for_violin %>%
-  group_by(target_type, distance_label) %>%
-  group_modify(~ add_significance(.x, max(.x$log2_L, na.rm = TRUE) * 1.1)) %>%
-  ungroup()
-
-p_violin_rfs <- ripleys_for_violin %>%
-  ggplot(aes(x = rfs_status, y = log2_L)) +
-  geom_violin(aes(fill = rfs_status), alpha = 0.7, scale = "width", 
-              position = position_dodge(width = 0.8)) +
-  geom_boxplot(aes(fill = rfs_status), width = 0.2, alpha = 0.8,
-               position = position_dodge(width = 0.8)) +
-  geom_text(data = violin_stats, aes(x = x, y = y, label = label), 
-            size = 3, hjust = 0.5) +
-  facet_grid(distance_label ~ target_type, scales = "free_y") +
-  scale_fill_manual(values = RFS_color, name = "RFS Status") +
-  labs(
-    title = "Split Violin Plot: L-values by Recurrence Status",
-    subtitle = "Distribution of clustering patterns with Wilcoxon test results",
-    x = "RFS Status",
-    y = "log2(L-value)"
-  ) +
-  theme_minimal() +
-  theme(
-    legend.position = "bottom",
-    strip.text = element_text(size = 9),
-    axis.text.x = element_text(angle = 45, hjust = 1)
-  )
-
-# Save immediately
-ggsave(file.path(figureDir, "EC_colocalization_split_violin_rfs.pdf"), 
-       p_violin_rfs, width = 14, height = 12)
-cat("Saved split violin plot for RFS comparison\n")
-
-# Plot 2B: Treatment-stratified split violin plot
-ripleys_treatment_violin <- ripleys_key_distances %>%
-  filter(target_type %in% key_target_types)
-
-# Calculate treatment-specific statistics
-treatment_violin_stats <- ripleys_treatment_violin %>%
-  group_by(target_type, distance_label, treatment) %>%
-  group_modify(~ add_significance(.x, max(.x$log2_L, na.rm = TRUE) * 1.1)) %>%
-  ungroup()
-
-p_violin_treatment <- ripleys_treatment_violin %>%
-  ggplot(aes(x = rfs_status, y = log2_L)) +
-  geom_violin(aes(fill = rfs_status), alpha = 0.7, scale = "width") +
-  geom_boxplot(aes(fill = rfs_status), width = 0.2, alpha = 0.8) +
-  geom_text(data = treatment_violin_stats, aes(x = x, y = y, label = label), 
-            size = 2.5, hjust = 0.5) +
-  facet_grid(distance_label ~ target_type + treatment, scales = "free_y") +
-  scale_fill_manual(values = RFS_color, name = "RFS Status") +
-  labs(
-    title = "Treatment-Stratified Split Violin Plot",
-    subtitle = "L-values by RFS Status within each treatment group",
-    x = "RFS Status",
-    y = "L-value"
-  ) +
-  theme_minimal() +
-  theme(
-    legend.position = "bottom",
-    strip.text = element_text(size = 8),
-    axis.text.x = element_text(angle = 0, vjust = 0.5, hjust = 0.5)
-  )
-
-# Save immediately
-ggsave(file.path(figureDir, "EC_colocalization_treatment_violin.pdf"), 
-       p_violin_treatment, width = 16, height = 12)
-cat("Saved treatment-stratified violin plot\n")
-
-# Step 6.4: Plot 3 - Combined Line Plots (3 rows × n columns)
-cat("\n--- 6.4: Creating Combined Line Plots (3×n layout) ---\n")
-
-# Prepare data for line plots with more points
-line_data_detailed <- ripleys_summary %>%
-  filter(target_type %in% key_target_types) %>%  # Focus on top 4 target types
-  mutate(
-    treatment_category = case_when(
-      TRUE ~ "All Patients",
-      treatment == "Chemo" ~ "Chemotherapy Only", 
-      treatment == "Combo" ~ "Combination Therapy"
-    )
-  )
-
-# Create separate datasets for each row
-line_data_all <- line_data_detailed %>%
-  mutate(treatment_category = "All Patients") %>%
-  group_by(distance, target_type, rfs_status, RFS_group, treatment_category) %>%
-  summarise(
-    mean_L = mean(log2_L, na.rm = TRUE),
-    se_L = sd(log2_L, na.rm = TRUE) / sqrt(n()),
-    n_samples = n(),
-    .groups = "drop"
-  )
-
-line_data_chemo <- line_data_detailed %>%
-  filter(treatment == "Chemo") %>%
-  mutate(treatment_category = "Chemotherapy Only") %>%
-  group_by(distance, target_type, rfs_status, RFS_group, treatment_category) %>%
-  summarise(
-    mean_L = mean(log2_L, na.rm = TRUE),
-    se_L = sd(log2_L, na.rm = TRUE) / sqrt(n()),
-    n_samples = n(),
-    .groups = "drop"
-  )
-
-line_data_combo <- line_data_detailed %>%
-  filter(treatment == "Combo") %>%
-  mutate(treatment_category = "Combination Therapy") %>%
-  group_by(distance, target_type, rfs_status, RFS_group, treatment_category) %>%
-  summarise(
-    mean_L = mean(log2_L, na.rm = TRUE),
-    se_L = sd(log2_L, na.rm = TRUE) / sqrt(n()),
-    n_samples = n(),
-    .groups = "drop"
-  )
-
-# Combine all data
-line_data_combined <- bind_rows(line_data_all, line_data_chemo, line_data_combo) %>%
-  mutate(treatment_category = factor(treatment_category, 
-                                     levels = c("All Patients", "Chemotherapy Only", "Combination Therapy")))
-
-# Create the combined plot
-line_data_combined$rfs_status <- as.factor(line_data_combined$rfs_status)
-p_line_combined <- line_data_combined %>%
-  ggplot(aes(x = distance, y = mean_L, color = rfs_status)) +
-  geom_hline(yintercept = 0, linetype = "dashed", color = "gray50", alpha = 0.7) +
-  geom_point(size = 1, alpha = 0.8) +  # More points with smaller size
-  geom_smooth(aes(group = rfs_status), method = "loess", se = FALSE, size = 1) +
-  geom_ribbon(aes(ymin = mean_L - se_L, ymax = mean_L + se_L, fill = rfs_status), 
-              alpha = 0.15, color = NA) +
-  facet_grid(treatment_category ~ target_type, scales = "free_y") +
-  scale_color_manual(values = RFS_color, name = "RFS Status") +
-  scale_fill_manual(values = RFS_color, name = "RFS Status") +
-  scale_x_continuous(breaks = seq(20, 200, 40)) +
-  labs(
-    title = "L-function Curves: Combined Analysis",
-    subtitle = "EC co-localization patterns across treatment contexts",
-    x = "Distance (μm)",
-    y = "Mean L-value (±SE)"
-  ) +
-  theme_minimal() +
-  theme(
-    legend.position = "bottom",
-    strip.text = element_text(size = 9),
-    panel.grid.minor = element_blank(),
-    axis.text.x = element_text(angle = 45, hjust = 1)
-  )
-
-# Save immediately
-ggsave(file.path(figureDir, "EC_colocalization_combined_lines.pdf"), 
-       p_line_combined, width = 16, height = 12)
-cat("Saved combined line plot (3×n layout)\n")
-
-# =============================================================================
-# Step 6.7: Save All Results to CSV
-# =============================================================================
-
-cat("\n--- 6.7: Saving Results to CSV ---\n")
-
-# Save all analysis results
-write.csv(ripleys_summary, file.path(saveDir, "EC_ripleys_complete_analysis.csv"), row.names = FALSE)
-write.csv(violin_stats, file.path(saveDir, "EC_violin_plot_statistics.csv"), row.names = FALSE)
-write.csv(treatment_violin_stats, file.path(saveDir, "EC_treatment_violin_statistics.csv"), row.names = FALSE)
-
-# =============================================================================
-# Interaction based analysis
+# 5. Interaction based analysis
 # =============================================================================
 library(scales)
 library(BiocParallel)
+library(dplyr)
+library(circlize)
+library(ggplot2)
+
 out <- testInteractions(spe_pt, 
                         group_by = "sample_id",
                         label = "major_celltype", 
                         colPairName = "knn_20",
                         BPPARAM = SerialParam(RNGseed = 619))
 
+saveRDS(out, file = file.path(figureDir,"PT_major_interaction_out.rds"))
 
+# Step 1: Filter out "Other" cell type
+out_filtered <- out %>% 
+  as_tibble() %>%
+  filter(from_label != "Other" & to_label != "Other")
+
+# Check the filtered data
+cat("Data after filtering:\n")
+print(table(out_filtered$from_label))
+
+# Step 2: Heatmap
+p <- out_filtered %>%
+  group_by(from_label, to_label) %>%
+  summarize(sum_sigval = sum(sigval, na.rm = TRUE)) %>%
+  ggplot() +
+  geom_tile(aes(from_label, to_label, fill = sum_sigval)) +
+  scale_fill_gradient2(low = muted("blue"), mid = "white", high = muted("red")) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+ggsave("majortype_interaction_heatmap_PT.pdf", p, width = 8, height = 6)
+
+# Step 3: Sum sigval entries across all images for each cell type pair
+interaction_matrix <- out_filtered %>%
+  group_by(from_label, to_label) %>%
+  summarise(total_sigval = sum(sigval, na.rm = TRUE), .groups = 'drop')
+
+# Create a square matrix for chord diagram
+cell_types <- unique(c(interaction_matrix$from_label, interaction_matrix$to_label))
+mat <- matrix(0, nrow = length(cell_types), ncol = length(cell_types))
+rownames(mat) <- cell_types
+colnames(mat) <- cell_types
+
+# Fill the matrix
+for(i in 1:nrow(interaction_matrix)) {
+  from <- interaction_matrix$from_label[i]
+  to <- interaction_matrix$to_label[i]
+  mat[from, to] <- interaction_matrix$total_sigval[i]
+}
+
+# Step 4: Create chord plot
+# Set up colors for different cell types
+colors <- metadata(spe_pt)$color_vectors$major_celltype
+
+# Create the chord diagram
+pdf("major type interaction chord plot.pdf", width = 10, height = 10)
+chordDiagram(mat, 
+             grid.col = colors,
+             transparency = 0.2,
+             directional = 1,
+             direction.type = c("arrows", "diffHeight"), 
+             diffHeight = -0.04,
+             annotationTrack = "grid",
+             annotationTrackHeight = c(0.05, 0.1),
+             link.arr.type = "big.arrow",
+             link.sort = TRUE,
+             link.largest.ontop = TRUE)
+
+# Add cell type labels
+circos.track(track.index = 1, panel.fun = function(x, y) {
+  circos.text(CELL_META$xcenter, CELL_META$ylim[1], CELL_META$sector.index, 
+              facing = "clockwise", niceFacing = TRUE, adj = c(0, 0.5), cex = 0.8)
+}, bg.border = NA)
+
+title("Cell-Cell Spatial Interactions (Chord Diagram)")
+dev.off()
+
+# For display in environment without PDF output
+chordDiagram(mat, 
+             grid.col = colors,
+             transparency = 0.2,
+             directional = 1,
+             direction.type = c("arrows", "diffHeight"), 
+             diffHeight = -0.04,
+             annotationTrack = "grid",
+             annotationTrackHeight = c(0.05, 0.1),
+             link.arr.type = "big.arrow",
+             link.sort = TRUE,
+             link.largest.ontop = TRUE)
+
+circos.track(track.index = 1, panel.fun = function(x, y) {
+  circos.text(CELL_META$xcenter, CELL_META$ylim[1], CELL_META$sector.index, 
+              facing = "clockwise", niceFacing = TRUE, adj = c(0, 0.5), cex = 0.8)
+}, bg.border = NA)
+
+title("Cell-Cell Spatial Interactions (Chord Diagram)")
+circos.clear()
+
+# Step 5: Create barplot for epithelial interactions
+epithelial_interactions <- out_filtered %>%
+  filter(from_label == "Epithelial" | to_label == "Epithelial") %>%
+  mutate(
+    other_cell_type = ifelse(from_label == "Epithelial", to_label, from_label),
+    interaction_direction = ifelse(from_label == "Epithelial", "from_epithelial", "to_epithelial")
+  ) %>%
+  group_by(other_cell_type) %>%
+  summarise(total_interaction = sum(sigval, na.rm = TRUE), .groups = 'drop') %>%
+  arrange(desc(abs(total_interaction)))
+
+# Create the barplot
+p <- ggplot(epithelial_interactions, aes(x = total_interaction, 
+                                         y = reorder(other_cell_type, total_interaction))) +
+  geom_col(aes(fill = ifelse(total_interaction > 0, "Interaction", "Avoidance")),
+           width = 0.7) +
+  scale_fill_manual(values = c("Interaction" = "#2E86AB", "Avoidance" = "#F24236"),
+                    name = "Type") +
+  coord_flip() +
+  labs(
+    title = "Epithelial Cell Spatial Interactions",
+    subtitle = "Positive values = Attraction, Negative values = Avoidance",
+    x = "Cell Type",
+    y = "Total Interaction Score"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(size = 14, face = "bold"),
+    plot.subtitle = element_text(size = 12),
+    axis.text = element_text(size = 11),
+    axis.title = element_text(size = 12),
+    legend.position = "bottom"
+  ) +
+  geom_hline(yintercept = 0, linetype = "dashed", alpha = 0.5)
+
+print(p)
+
+# Save the plot
+ggsave("epithelial_interactions_barplot.pdf", p, width = 8, height = 6)
