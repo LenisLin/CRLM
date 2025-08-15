@@ -51,7 +51,7 @@ from sklearn.cluster import DBSCAN
 from sklearn.preprocessing import StandardScaler
 import scanpy as sc
 
-def identify_tma_cores(adata, eps=None, min_samples=50, standardize=True, plot=True):
+def identify_tma_cores(adata, eps=None, min_samples=50, standardize=True, plot=True, saveDir=None):
     """
     Identify TMA cores using DBSCAN clustering on spatial coordinates
     
@@ -263,31 +263,7 @@ def identify_tma_cores(adata, eps=None, min_samples=50, standardize=True, plot=T
         ax4.set_title('TMA Cores with Centroids (Color-Coded)')
         
         plt.tight_layout()
-        plt.show()
-        
-        # Create a separate figure for core correspondence verification
-        fig2, ax_verify = plt.subplots(1, 1, figsize=(12, 8))
-        
-        # Plot all cores with large, clearly labeled points
-        for core in unique_cores:
-            core_mask = adata.obs['tma_core'] == core
-            sample_indices = np.where(core_mask)[0]
-            
-            # Sample points for clearer visualization if too many points
-            if len(sample_indices) > 1000:
-                sample_indices = np.random.choice(sample_indices, 1000, replace=False)
-            
-            ax_verify.scatter(x_coords[sample_indices], y_coords[sample_indices], 
-                            c=[core_color_map[core]], s=3, alpha=0.8, 
-                            label=f'Core {core} ({core_counts[core]:,} cells)')
-        
-        ax_verify.set_xlabel('X coordinate')
-        ax_verify.set_ylabel('Y coordinate')
-        ax_verify.set_title('TMA Core Correspondence Verification\n(Consistent Colors Across All Visualizations)')
-        ax_verify.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
-        ax_verify.grid(True, alpha=0.3)
-        
-        plt.tight_layout()
+        plt.savefig(f'{saveDir}/tma_core_verification.png', dpi=300)
         plt.show()
         
         # Print color mapping for reference

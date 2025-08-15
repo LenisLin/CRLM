@@ -144,27 +144,31 @@ import squidpy as sq
 # Load Stereo-seq data
 sample_dir = os.path.join(data_dir, 'FDZS_stereoseq') 
 dataset_name = 'FDZS'
-sample = 'A04932G3_bin50'
+sample = 'A04932G3_bin100'
 
-# data = st.io.read_h5ad(os.path.join(sample_dir,A04932G3.cellbin_1.0.adjusted.h5ad")) ## Cellbin data
-data = st.io.read_h5ad(os.path.join(sample_dir,"A04932G3.bin50_1.0.h5ad")) ## Bin20 data
-adata = st.io.stereo_to_anndata(data)
+## Start from the processed data
+# # data = st.io.read_h5ad(os.path.join(sample_dir,A04932G3.cellbin_1.0.adjusted.h5ad")) ## Cellbin data
+# data = st.io.read_h5ad(os.path.join(sample_dir,"A04932G3.bin50_1.0.h5ad")) ## Bin50 data
+# adata = st.io.stereo_to_anndata(data)
 
-# # Find the correct attribute
-# all_attrs = [attr for attr in dir(data) if not attr.startswith('_')]
-# all_attrs
+# # # Find the correct attribute
+# # all_attrs = [attr for attr in dir(data) if not attr.startswith('_')]
+# # all_attrs
 
-adata = combine_stereo_process_info(adata, data)
+# adata = combine_stereo_process_info(adata, data)
+
+## Start from the raw data
+data = st.io.read_gef(file_path=os.path.join(sample_dir,"A04932G3.tissue.gef"), bin_size=100)
+adata = st.io.stereo_to_anndata(data, output=os.path.join(sample_dir,'A04932G3_anndata.h5ad'))
 
 ## Adjust Gene Names
 real_gene_name = [str(x) for x in adata.var['real_gene_name']]
-# adata.X = adata.raw.X
 
 adata.var_names = real_gene_name
 adata.var_names_make_unique()
 
 ## Identify the TMA
-identify_tma_cores(adata, eps=0.1, min_samples=50, plot=True)
+identify_tma_cores(adata, eps=0.1, min_samples=50, plot=True,saveDir=sample_dir)
 
 ## Add the tme order 
 core_mapping = {
