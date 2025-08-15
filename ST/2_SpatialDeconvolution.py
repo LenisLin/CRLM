@@ -4,8 +4,6 @@
 import os
 import sys
 import gc
-from xml.sax.handler import property_interning_dict
-from projects.Kidney_HE.MedSAM.train_one_gpu import show_box
 import torch
 import scanpy as sc
 import numpy as np
@@ -129,6 +127,7 @@ mod.save(f"{ref_run_name}", overwrite=True)
 # Save anndata object with results
 adata_ref.write(f"{ref_run_name}/sc.h5ad")
 
+# If performed on decovolution on slides, load the model and anndata object
 # export estimated expression in each cluster
 adata_ref = sc.read_h5ad(f"{ref_run_name}/sc.h5ad")
 
@@ -139,6 +138,9 @@ if name_of_per_cluster_mu_fg in adata_ref.varm.keys():
     
 inf_aver.columns = adata_ref.uns['mod']['factor_names']
 inf_aver.iloc[0:5, 0:5]
+
+if filter_tumor:
+    inf_aver = inf_aver.loc[:,~inf_aver.columns.str.contains("TC_")].copy()  # remove tumor cells
 
 #%% Step 4: Cell2location: spatial mapping
 

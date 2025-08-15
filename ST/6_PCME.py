@@ -2,16 +2,21 @@
 PCME analysis on stereo-seq data
 """
 import os
+import pickle
 import pandas as pd
 import numpy as np
 import pandas as pd
 import scanpy as sc
 import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
 import seaborn as sns
 from scipy import stats
+from scipy.stats import ttest_ind, mannwhitneyu
 from pathlib import Path
 import warnings
 warnings.filterwarnings('ignore')
+
+from PCME_functions import *
 
 # Set up scanpy settings
 sc.settings.verbosity = 3
@@ -29,67 +34,68 @@ if not os.path.exists(SAVE_PATH):
 
 #%% Step 1.1: Load and Check data
 
-# Define FDZS A/C samples only
-fdzs_samples = {
-    # A group (Early Recurrence)
-    'FDZS_A04932G3_bin50_A1': {'group': 'A', 'recurrence': 'Early_Recurrence'},
-    'FDZS_A04932G3_bin50_A2': {'group': 'A', 'recurrence': 'Early_Recurrence'},
-    'FDZS_A04932G3_bin50_A3': {'group': 'A', 'recurrence': 'Early_Recurrence'},
-    'FDZS_A04932G3_bin50_A5': {'group': 'A', 'recurrence': 'Early_Recurrence'},
-    'FDZS_A04932G3_bin50_A6': {'group': 'A', 'recurrence': 'Early_Recurrence'},
-    'FDZS_A04932G3_bin50_A7': {'group': 'A', 'recurrence': 'Early_Recurrence'},
+# # Define FDZS A/C samples only
+# fdzs_samples = {
+#     # A group (Early Recurrence)
+#     'FDZS_A04932G3_bin50_A1': {'group': 'A', 'recurrence': 'Early_Recurrence'},
+#     'FDZS_A04932G3_bin50_A2': {'group': 'A', 'recurrence': 'Early_Recurrence'},
+#     'FDZS_A04932G3_bin50_A3': {'group': 'A', 'recurrence': 'Early_Recurrence'},
+#     'FDZS_A04932G3_bin50_A5': {'group': 'A', 'recurrence': 'Early_Recurrence'},
+#     'FDZS_A04932G3_bin50_A6': {'group': 'A', 'recurrence': 'Early_Recurrence'},
+#     'FDZS_A04932G3_bin50_A7': {'group': 'A', 'recurrence': 'Early_Recurrence'},
     
-    # C group (Non-Early Recurrence)
-    'FDZS_A04932G3_bin50_C5': {'group': 'C', 'recurrence': 'Non_Early_Recurrence'},
-    'FDZS_A04932G3_bin50_C6': {'group': 'C', 'recurrence': 'Non_Early_Recurrence'},
-    'FDZS_A04932G3_bin50_C7': {'group': 'C', 'recurrence': 'Non_Early_Recurrence'},
-}
+#     # C group (Non-Early Recurrence)
+#     'FDZS_A04932G3_bin50_C5': {'group': 'C', 'recurrence': 'Non_Early_Recurrence'},
+#     'FDZS_A04932G3_bin50_C6': {'group': 'C', 'recurrence': 'Non_Early_Recurrence'},
+#     'FDZS_A04932G3_bin50_C7': {'group': 'C', 'recurrence': 'Non_Early_Recurrence'},
+# }
 
-print(f"\nTarget samples: {len(fdzs_samples)} FDZS slides")
-print(f"A group (Early Recurrence): {len([s for s in fdzs_samples.values() if s['group'] == 'A'])} samples")
-print(f"C group (Non-Early Recurrence): {len([s for s in fdzs_samples.values() if s['group'] == 'C'])} samples")
+# print(f"\nTarget samples: {len(fdzs_samples)} FDZS slides")
+# print(f"A group (Early Recurrence): {len([s for s in fdzs_samples.values() if s['group'] == 'A'])} samples")
+# print(f"C group (Non-Early Recurrence): {len([s for s in fdzs_samples.values() if s['group'] == 'C'])} samples")
 
-# Load each sample
-data_path = Path(DATA_PATH)
-adata_list = []
+# # Load each sample
+# data_path = Path(DATA_PATH)
+# adata_list = []
 
-print(f"\nLoading samples from: {data_path}")
+# print(f"\nLoading samples from: {data_path}")
 
-for sample_name, sample_info in fdzs_samples.items():
-    print(f"\nProcessing {sample_name}...")
+# for sample_name, sample_info in fdzs_samples.items():
+#     print(f"\nProcessing {sample_name}...")
     
-    # Find h5ad file in sample folder
-    sample_path = data_path / sample_name
-    h5ad_files = list(sample_path.glob("*.h5ad"))
+#     # Find h5ad file in sample folder
+#     sample_path = data_path / sample_name
+#     h5ad_files = list(sample_path.glob("*.h5ad"))
     
-    if len(h5ad_files) == 0:
-        print(f"  ❌ No h5ad file found in {sample_path}")
-        continue
+#     if len(h5ad_files) == 0:
+#         print(f"  ❌ No h5ad file found in {sample_path}")
+#         continue
     
-    # Load the data
-    adata = sc.read_h5ad(h5ad_files[0])
+#     # Load the data
+#     adata = sc.read_h5ad(h5ad_files[0])
 
-    # Add meta information
-    adata.obs["n_spots"] = adata.n_obs
-    adata.obs["n_genes"] = adata.n_vars
-    adata.obs["sample_id"] = adata.obs['sample'].astype(str).values + "_" + adata.obs['core_name'].astype(str).values
+#     # Add meta information
+#     adata.obs["n_spots"] = adata.n_obs
+#     adata.obs["n_genes"] = adata.n_vars
+#     adata.obs["sample_id"] = adata.obs['sample'].astype(str).values + "_" + adata.obs['core_name'].astype(str).values
 
-    # Add to list
-    adata_list.append(adata)
-    print(f"  ✅ Loaded: {adata.n_obs:,} spots, {adata.n_vars:,} genes")
+#     # Add to list
+#     adata_list.append(adata)
+#     print(f"  ✅ Loaded: {adata.n_obs:,} spots, {adata.n_vars:,} genes")
 
-# Check loading results
-print(f"Successfully loaded: {len(adata_list)} / {len(fdzs_samples)} samples")
+# # Check loading results
+# print(f"Successfully loaded: {len(adata_list)} / {len(fdzs_samples)} samples")
 
-# Combine all samples
-print(f"\nCombining {len(adata_list)} samples...")
-adata_combined = sc.concat(
-    adata_list, 
-    join='outer', 
-    label='batch_sample',
-    keys=[adata.obs['core_name'].iloc[0] for adata in adata_list]
-)
+# # Combine all samples
+# print(f"\nCombining {len(adata_list)} samples...")
+# adata_combined = sc.concat(
+#     adata_list, 
+#     join='outer', 
+#     label='batch_sample',
+#     keys=[adata.obs['core_name'].iloc[0] for adata in adata_list]
+# )
 
+adata_combined = sc.read_h5ad(f"{DATA_PATH}/FDZS_A04932G3_bin100/sp.h5ad")
 print(f"Combined dataset: {adata_combined.n_obs:,} spots, {adata_combined.n_vars:,} genes")
 
 # Create metadata DataFrame
@@ -148,21 +154,15 @@ metadata_df.to_csv(os.path.join(SAVE_PATH,"step1_fdzs_metadata.csv"), index=Fals
 abundance_df.to_csv(os.path.join(SAVE_PATH,"step1_fdzs_abundance.csv"), index=False) # Save abundance data
 
 #%% Step 1.2: Overall description and visualization data
-import matplotlib.pyplot as plt
-import seaborn as sns
-import pandas as pd
-import numpy as np
 from matplotlib.patches import Patch
 
-from PCME_functions import plot_sample_overview, plot_cell_type_overview
-
-adata = sc.read_h5ad("step1_combined_data.h5ad")
-metadata_df = pd.read_csv("step1_sample_metadata.csv")
-abundance_df = pd.read_csv("step1_cell_abundance.csv")
+adata = sc.read_h5ad(f"{SAVE_PATH}/step1_fdzs_combined_data.h5ad")
+metadata_df = pd.read_csv(f"{SAVE_PATH}/step1_fdzs_metadata.csv")
+abundance_df = pd.read_csv(f"{SAVE_PATH}/step1_fdzs_abundance.csv")
 
 # Create visualizations
 print("Creating sample overview plots...")
-fig1 = plot_sample_overview(metadata_df)
+fig1= plot_sample_overview(metadata_df, figsize=(15, 9))
 fig1.savefig(os.path.join(SAVE_PATH,'step1_sample_overview.pdf'), dpi=300, bbox_inches='tight')
 plt.show()
 
@@ -184,6 +184,7 @@ print(f"RFS status distribution: {adata.obs['RFS_status'].value_counts().to_dict
 # Define cholangiocyte signature genes based on literature
 cholangiocyte_genes = [
     'KRT7',      # Cytokeratin 7 - classic cholangiocyte marker
+    'KRT19',     # Cytokeratin 19 - classic cholangiocyte marker
     'EPCAM',     # Epithelial cell adhesion molecule
     'SOX9',      # SRY-box transcription factor 9
     'AQP1',      # Aquaporin 1
@@ -228,8 +229,14 @@ print(f"Mean: {epithelial_abundance.mean():.3f}")
 
 # Define cholangiocyte-enriched spots using combined criteria
 print(f"\n🎯 Defining cholangiocyte-enriched spots...")
-signature_threshold = 1.0 # np.percentile(cholangiocyte_signature, 99) # Top 99%
+
+## cholangiocyte signature basaed
+signature_threshold = np.percentile(cholangiocyte_signature, 95) # 1.0 # Top 99%
 high_signature_spots = cholangiocyte_signature > signature_threshold
+
+## epithelial fraction signature basaed
+# fraction_threshold = np.percentile(epithelial_abundance, 99) # 1.0 # Top 99%
+# high_signature_spots = epithelial_abundance > fraction_threshold
 
 adata.obs['cholangiocyte_enriched'] = high_signature_spots
 print(f"  High signature spots: {high_signature_spots.sum():,} ({high_signature_spots.mean()*100:.1f}%)")
@@ -244,6 +251,7 @@ cholangiocyte_by_rfs = pd.crosstab(
 print(cholangiocyte_by_rfs.round(1))
 
 # Sample-level analysis
+adata.obs["sample_id"] = [str(x) for x in adata.obs["core_name"]]
 sample_cholangiocyte_stats = []
 
 for sample_id in adata.obs['sample_id'].unique():
@@ -270,8 +278,6 @@ sample_stats_df = pd.DataFrame(sample_cholangiocyte_stats)
 print(sample_stats_df.round(2))
 
 # Statistical comparison between RFS groups at sample level
-from scipy import stats
-
 rfs0_percentages = sample_stats_df[sample_stats_df['RFS_status'] == 0]['cholangiocyte_percentage']
 rfs1_percentages = sample_stats_df[sample_stats_df['RFS_status'] == 1]['cholangiocyte_percentage']
 
@@ -326,7 +332,7 @@ if len(available_genes) > 0:
     chol_spots = adata.obs['cholangiocyte_enriched']
     
     expression_comparison = []
-    for gene in available_genes[:4]:  # Show top 4 genes
+    for gene in available_genes:  # Show top 4 genes
         chol_expr = adata[chol_spots, gene].X.toarray().flatten()
         non_chol_expr = adata[~chol_spots, gene].X.toarray().flatten()
         
@@ -424,7 +430,7 @@ print(f"\n🔍 Searching for CAIX gene (CA9)...")
 #     adata.obs['CA9_expression'] = caix_expression
 
 ## Use hypoxic signature
-hypoxia_genes = ['CA9', 'HIF1A', 'VEGFA',] #  'LDHA', 'SLC2A1', 'PKM', 'BNIP3'
+hypoxia_genes = ['CA9', 'HIF1A',] #  'VEGFA', 'LDHA', 'PKM', 'SLC2A1', 'BNIP3'
 hypoxia_expr = adata[:, hypoxia_genes].X.toarray()
 caix_expression = np.mean(hypoxia_expr, axis=1)
 adata.obs['CA9_expression'] = caix_expression
@@ -446,7 +452,7 @@ print(f"  Mean: {cholangiocyte_caix.mean():.3f}")
 
 # Define CAIX+ vs CAIX- cholangiocytes
 # caix_threshold = np.percentile(cholangiocyte_caix, 90)  # Top 10%
-caix_threshold = 0.5  # Top 10%
+caix_threshold = 0.3
 
 cholangiocyte_adata.obs['CAIX_positive'] = cholangiocyte_adata.obs['CA9_expression'] > caix_threshold
 
@@ -1101,6 +1107,32 @@ plt.savefig(f'{SAVE_PATH}/step2_3_cholangiocyte_DEG_analysis.pdf', dpi=300, bbox
 plt.show()
 
 #%% Step 3.1: Spatial Distance Analysis Framework
+# Load data and reconstruct cholangiocyte annotations
+SAVE_PATH = "/mnt/public/lyx/IMC_HE_Merge/CRLM/figures/ST/PCME"
+adata = sc.read_h5ad(f"{SAVE_PATH}/step1_fdzs_combined_data.h5ad")
+abundance_df = pd.read_csv(f"{SAVE_PATH}/step1_fdzs_abundance.csv")
+
+adata.obs['sample_id'] = adata.obs['core_name'].astype(str)
+abundance_df['sample_id'] = adata.obs['sample_id'].tolist()
+
+# Reconstruct cholangiocyte annotations
+cholangiocyte_genes = ['KRT7', 'KRT19', 'EPCAM', 'SOX9', 'AQP1']
+available_genes = [gene for gene in cholangiocyte_genes if gene in adata.var_names]
+
+if len(available_genes) > 0:
+    gene_subset = adata[:, available_genes].X.toarray()
+    cholangiocyte_signature = np.mean(gene_subset, axis=1)
+    adata.obs['cholangiocyte_signature'] = cholangiocyte_signature
+    
+    signature_threshold = np.percentile(cholangiocyte_signature, 95) # 1.0 # Top 99%
+    high_signature_spots = cholangiocyte_signature > signature_threshold
+    adata.obs['cholangiocyte_enriched'] = high_signature_spots
+
+    print(f"Reconstructed cholangiocyte annotations using {len(available_genes)} genes")
+    print(f"Cholangiocyte-enriched spots: {adata.obs['cholangiocyte_enriched'].sum():,}")
+else:
+    print("❌ Cannot reconstruct cholangiocyte annotations")
+    exit()
 
 print(f"Data loaded: {adata.n_obs:,} spots, {adata.n_vars:,} genes")
 print(f"RFS distribution: {adata.obs['RFS_status'].value_counts().to_dict()}")
@@ -1111,58 +1143,735 @@ cell_type_cols = [col for col in abundance_df.columns
 
 print(f"Cell types for analysis: {len(cell_type_cols)}")
 
-# Define distance bins for analysis (in micrometers)
+# Define distance bins for microenvironment analysis (matching IMC approach)
 distance_bins = [
-    (0, 25),      # Immediate vicinity
-    (25, 50),    # Close proximity  
-    (50, 100),   # Intermediate distance
-    (100, 150),   # Distant proximity
+    (50, 60),      # Immediate vicinity (0-25μm)
+    (60, 80),    # Close proximity (25-50μm)  
+    (80, 120),   # Intermediate distance (50-100μm)
+    (120,150),
 ]
 
-print(f"\n📏 Distance bins defined:")
+print(f"\n📏 Distance bins for microenvironment analysis:")
 for i, (start, end) in enumerate(distance_bins):
     print(f"  Bin {i+1}: {start}-{end} μm")
 
-# Analyze all samples
-print(f"\n🔬 Starting spatial analysis for all samples...")
+# Analyze all samples using graph-based cholangiocyte zone detection
+print(f"\n🔬 Starting graph-based cholangiocyte zone analysis...")
 sample_results = {}
 sample_ids = adata.obs['sample_id'].unique()
 
 for sample_id in sample_ids:
-    result = analyze_sample_spatial_zones(sample_id, adata, abundance_df, distance_bins)
+    result = analyze_sample_cholangiocyte_zones(
+        sample_id, adata, abundance_df, 
+        max_distance_um=20,  # IMC-aligned threshold
+        distance_bins=distance_bins
+    )
     if result is not None:
         sample_results[sample_id] = result
 
 print(f"\nCompleted analysis for {len(sample_results)} samples")
 
-# Aggregate results across samples
-print(f"\n📈 Aggregating results across samples...")
+# Create zone-level data matrix for PCME classification
+print(f"\n📈 Creating zone-level data matrix...")
+zone_data = []
 
-# Create zone-level cell abundance matrix
-zone_abundance_data = []
-zone_info_data = []
-
-for sample_id, result in sample_results.items():
-    rfs_status = result['rfs_status']
-    
-    for zone_name, zone_data in result['zone_composition'].items():
-        # Zone information
-        zone_info = {
+for sample_id, sample_result in sample_results.items():
+    for zone_id, zone_info in sample_result['zones'].items():
+        # Create one row per zone with overall microenvironment signatures
+        zone_row = {
             'sample_id': sample_id,
-            'rfs_status': rfs_status,
-            'zone_name': zone_name,
-            'spot_count': zone_data['spot_count'],
-            'percentage': zone_data['percentage'],
-            'mean_distance': zone_data['mean_distance'],
-            'std_distance': zone_data['std_distance']
+            'zone_id': f"{sample_id}_{zone_id}",
+            'rfs_status': zone_info['rfs_status'],
+            'n_cholangiocytes': zone_info['n_cholangiocytes'],
+            'total_microenv_spots': zone_info['total_microenv_spots'],
+            'immune_signature': zone_info['overall_immune_signature'],
+            'stromal_signature': zone_info['overall_stromal_signature'],
+            'immune_stromal_ratio': zone_info['overall_immune_stromal_ratio'],
+            'center_x': zone_info['center'][0],
+            'center_y': zone_info['center'][1],
+            **zone_info['overall_cell_abundances']
         }
-        zone_info_data.append(zone_info)
         
-        # Cell abundance data
-        abundance_row = {
-            'sample_id': sample_id,
-            'rfs_status': rfs_status,
-            'zone_name': zone_name,
-            **zone_data['cell_abundances']
+        # Add distance-specific data including cholangiocytes
+        for bin_name, bin_data in zone_info['distance_analysis'].items():
+            zone_row[f'{bin_name}_immune_signature'] = bin_data['immune_signature']
+            zone_row[f'{bin_name}_stromal_signature'] = bin_data['stromal_signature']
+            zone_row[f'{bin_name}_immune_stromal_ratio'] = bin_data['immune_stromal_ratio']
+            zone_row[f'{bin_name}_n_spots'] = bin_data['n_spots']
+            
+            # ADDED: Include individual cell type abundances for each distance
+            for cell_type, abundance in bin_data['cell_abundances'].items():
+                zone_row[f'{bin_name}_{cell_type}'] = abundance
+        
+        zone_data.append(zone_row)
+
+zone_df = pd.DataFrame(zone_data)
+print(f"Created zone matrix: {len(zone_df)} cholangiocyte zones across {len(sample_results)} samples")
+
+# Summary statistics
+print(f"\n📊 Zone summary:")
+print(f"  Total zones: {len(zone_df)}")
+print(f"  RFS distribution: {zone_df['rfs_status'].value_counts().to_dict()}")
+print(f"  Zones per sample: {zone_df.groupby('sample_id').size().describe()}")
+print(f"  Zone size distribution: {zone_df['n_cholangiocytes'].describe()}")
+
+# Compare zones between RFS groups
+print(f"\n📈 Comparing zones between RFS groups...")
+
+rfs0_zones = zone_df[zone_df['rfs_status'] == 0]
+rfs1_zones = zone_df[zone_df['rfs_status'] == 1]
+
+if len(rfs0_zones) > 0 and len(rfs1_zones) > 0:
+    print(f"RFS 0: {len(rfs0_zones)} zones from {rfs0_zones['sample_id'].nunique()} samples")
+    print(f"RFS 1: {len(rfs1_zones)} zones from {rfs1_zones['sample_id'].nunique()} samples")
+    
+    # Test overall microenvironment differences
+    stat_immune, p_immune = stats.mannwhitneyu(
+        rfs1_zones['immune_signature'], rfs0_zones['immune_signature'], alternative='two-sided'
+    )
+    stat_stromal, p_stromal = stats.mannwhitneyu(
+        rfs1_zones['stromal_signature'], rfs0_zones['stromal_signature'], alternative='two-sided'
+    )
+    stat_ratio, p_ratio = stats.mannwhitneyu(
+        rfs1_zones['immune_stromal_ratio'], rfs0_zones['immune_stromal_ratio'], alternative='two-sided'
+    )
+    
+    print(f"\nZone-level differences (overall microenvironment):")
+    print(f"  Immune signature: RFS 0 = {rfs0_zones['immune_signature'].mean():.3f}, RFS 1 = {rfs1_zones['immune_signature'].mean():.3f}, p = {p_immune:.4f}")
+    print(f"  Stromal signature: RFS 0 = {rfs0_zones['stromal_signature'].mean():.3f}, RFS 1 = {rfs1_zones['stromal_signature'].mean():.3f}, p = {p_stromal:.4f}")
+    print(f"  I/S ratio: RFS 0 = {rfs0_zones['immune_stromal_ratio'].mean():.3f}, RFS 1 = {rfs1_zones['immune_stromal_ratio'].mean():.3f}, p = {p_ratio:.4f}")
+    
+    # Test distance-specific differences
+    print(f"\nDistance-specific differences:")
+    for bin_idx, (min_dist, max_dist) in enumerate(distance_bins):
+        bin_col = f'bin_{bin_idx}_{min_dist}-{max_dist}um_immune_stromal_ratio'
+        if bin_col in zone_df.columns:
+            rfs0_bin = rfs0_zones[bin_col].dropna()
+            rfs1_bin = rfs1_zones[bin_col].dropna()
+            
+            if len(rfs0_bin) > 0 and len(rfs1_bin) > 0:
+                stat_bin, p_bin = stats.mannwhitneyu(rfs1_bin, rfs0_bin, alternative='two-sided')
+                print(f"  {min_dist}-{max_dist}μm I/S ratio: RFS 0 = {rfs0_bin.mean():.3f}, RFS 1 = {rfs1_bin.mean():.3f}, p = {p_bin:.4f}")
+
+# Create enhanced visualization
+fig = plt.figure(figsize=(15, 12))
+
+# 1. Zone count distribution per sample
+ax1 = plt.subplot(2, 3, 1)
+sample_zone_counts = zone_df.groupby(['sample_id', 'rfs_status']).size().reset_index(name='count')
+rfs0_counts = sample_zone_counts[sample_zone_counts['rfs_status'] == 0]['count']
+rfs1_counts = sample_zone_counts[sample_zone_counts['rfs_status'] == 1]['count']
+
+bp = ax1.boxplot([rfs0_counts, rfs1_counts], labels=['RFS 0', 'RFS 1'], patch_artist=True)
+bp['boxes'][0].set_facecolor('lightblue')
+bp['boxes'][1].set_facecolor('lightcoral')
+ax1.set_ylabel('Zones per Sample')
+ax1.set_title('Zone Count Distribution\n(Graph-Based, 30μm threshold)')
+
+for i, data in enumerate([rfs0_counts, rfs1_counts]):
+    x = np.random.normal(i+1, 0.04, size=len(data))
+    ax1.scatter(x, data, alpha=0.7, s=50)
+
+# 3. Overall immune vs stromal signatures
+ax3 = plt.subplot(2, 3, 2)
+scatter = ax3.scatter(zone_df['immune_signature'], zone_df['stromal_signature'],
+                     c=zone_df['rfs_status'], cmap='RdYlBu_r', alpha=0.7, s=30)
+ax3.set_xlabel('Immune Signature')
+ax3.set_ylabel('Stromal Signature')
+ax3.set_title('Zone Immune vs Stromal')
+cbar = plt.colorbar(scatter, ax=ax3)
+cbar.set_label('RFS Status')
+
+# 4. Overall I/S ratio distribution
+ax4 = plt.subplot(2, 3, 3)
+ax4.hist(rfs0_zones['immune_stromal_ratio'], bins=20, alpha=0.6, 
+         label='RFS 0', color='lightblue', density=True)
+ax4.hist(rfs1_zones['immune_stromal_ratio'], bins=20, alpha=0.6, 
+         label='RFS 1', color='lightcoral', density=True)
+ax4.set_xlabel('Overall I/S Ratio')
+ax4.set_ylabel('Density')
+ax4.set_title(f'I/S Ratio Distribution\n(p = {p_ratio:.4f})')
+ax4.legend()
+
+# 5-7. Distance-specific I/S ratios
+for i, (bin_idx, (min_dist, max_dist)) in enumerate([(0, distance_bins[0]), (1, distance_bins[1]), (2, distance_bins[2])]):
+    if i < 3:  # Only plot first 3 bins
+        ax = plt.subplot(2, 3, 4 + i)
+        bin_col = f'bin_{bin_idx}_{min_dist}-{max_dist}um_immune_stromal_ratio'
+        
+        if bin_col in zone_df.columns:
+            rfs0_bin = rfs0_zones[bin_col].dropna()
+            rfs1_bin = rfs1_zones[bin_col].dropna()
+            
+            if len(rfs0_bin) > 0 and len(rfs1_bin) > 0:
+                stat_bin, p_bin = stats.mannwhitneyu(rfs1_bin, rfs0_bin, alternative='two-sided')
+                
+                bp = ax.boxplot([rfs0_bin, rfs1_bin], labels=['RFS 0', 'RFS 1'], patch_artist=True)
+                bp['boxes'][0].set_facecolor('lightblue')
+                bp['boxes'][1].set_facecolor('lightcoral')
+                
+                ax.set_ylabel('I/S Ratio')
+                ax.set_title(f'{min_dist}-{max_dist}μm I/S Ratio\n(p = {p_bin:.4f})')
+
+plt.tight_layout()
+plt.savefig(f'{SAVE_PATH}/step3_1_graph_based_zone_analysis.pdf', dpi=300, bbox_inches='tight')
+plt.show()
+
+# Spatial maps showing zones
+fig = plt.figure(figsize=(20, 16))
+selected_samples = list(sample_results.keys())
+spatial_axes = [plt.subplot(3, 3, 1 + i) for i in range(len(selected_samples))]
+
+# Define colors for each assignment type
+color_mapping = {
+    'cholangiocyte': '#FF0000',        # Bright red
+    'bin_0_50-60um': '#0066CC',        # Deep blue  
+    'bin_1_60-80um': '#00AA44',        # Green
+    'bin_2_80-120um': '#FF8800',       # Orange (more visible than yellow)
+    'bin_3_120-150um': '#8800CC',      # Purple
+    'beyond_range': '#E0E0E0',         # Light gray
+    'unassigned': '#808080'            # Medium gray
+}
+
+# Size mapping - larger for sparse important categories
+size_mapping = {
+    'cholangiocyte': 20,               # Largest
+    'bin_0_50-60um': 12,               # Large for distance bins
+    'bin_1_60-80um': 12,
+    'bin_2_80-120um': 12,
+    'bin_3_120-150um': 12,
+    'beyond_range': 1,                 # Tiny for background
+    'unassigned': 5                    # Medium
+}
+
+# Alpha mapping - less transparent for important categories
+alpha_mapping = {
+    'cholangiocyte': 1.0,              # Fully opaque
+    'bin_0_50-60um': 0.9,              # High opacity
+    'bin_1_60-80um': 0.9,
+    'bin_2_80-120um': 0.9,
+    'bin_3_120-150um': 0.9,
+    'beyond_range': 0.6,              # Very transparent
+    'unassigned': 0.6                  # Medium transparency
+}
+
+for i, (sample_id, ax) in enumerate(zip(selected_samples, spatial_axes)):
+    result = sample_results[sample_id]
+    all_assignments = pd.concat([result['sample_adata'].obs['distance_assignment'] 
+                            for result in sample_results.values()])
+    overall_counts = all_assignments.value_counts()
+
+    coords = result['sample_adata'].obs.loc[:,['x','y']]
+    zone_assignments = result['sample_adata'].obs['distance_assignment']
+    
+    # Plot in layers - background first, important categories last
+    plot_order = ['beyond_range', 'unassigned', 'bin_3_120-150um', 
+                  'bin_2_80-120um', 'bin_1_60-80um', 'bin_0_50-60um', 'cholangiocyte']
+    
+    for assignment in plot_order:
+        if assignment in zone_assignments.values:
+            mask = zone_assignments == assignment
+            if mask.sum() > 0:
+                coords_subset = coords[mask]
+                color = color_mapping.get(assignment, 'gray')
+                size = size_mapping.get(assignment, 3)
+                alpha = alpha_mapping.get(assignment, 0.7)
+                
+                # Add edge color for cholangiocytes to make them stand out more
+                edgecolor = 'black' if assignment == 'cholangiocyte' else None
+                linewidth = 1.5 if assignment == 'cholangiocyte' else 0
+                
+                scatter = ax.scatter(coords_subset.iloc[:, 0], coords_subset.iloc[:, 1], 
+                                   c=color, s=size, alpha=alpha,
+                                   edgecolors=edgecolor, linewidths=linewidth)
+    
+    # Enhanced title with more statistics
+    rfs_status = result['rfs_status']
+    chol_count = result['total_cholangiocytes']
+    sample_counts = zone_assignments.value_counts()
+    bin_spots = sum([sample_counts.get(f'bin_{j}_{ranges}', 0) 
+                    for j, ranges in enumerate(['50-60um', '60-80um', '80-120um', '120-150um'])])
+    
+    ax.set_title(f'{sample_id}\nRFS: {rfs_status} | Chol: {chol_count} | Bins: {bin_spots}',
+                fontweight='bold', fontsize=11)
+    ax.set_xlabel('X coordinate', fontweight='bold')
+    ax.set_ylabel('Y coordinate', fontweight='bold')
+    
+    # Add subtle grid for better spatial reference
+    ax.grid(True, alpha=0.2, linestyle='--')
+    ax.set_aspect('equal', adjustable='box')
+
+# Enhanced legend with counts and better formatting
+fig = plt.gcf()
+legend_handles = []
+
+# Create legend in logical order with counts
+legend_order = ['cholangiocyte', 'bin_0_50-60um', 'bin_1_60-80um', 
+               'bin_2_80-120um', 'bin_3_120-150um', 'unassigned', 'beyond_range']
+
+for assignment in legend_order:
+    if assignment in overall_counts.index:
+        color = color_mapping.get(assignment, 'gray')
+        count = overall_counts[assignment]
+        percentage = (count / len(all_assignments)) * 100
+        
+        # Create clean display names with counts
+        if assignment == 'cholangiocyte':
+            display_name = f'Cholangiocyte (n={count})'
+            # Special marker for cholangiocytes with border
+            patch = plt.Line2D([0], [0], marker='o', color='w', 
+                             markerfacecolor=color, markersize=10,
+                             markeredgecolor='black', markeredgewidth=1.5,
+                             label=display_name, linestyle='None')
+        elif assignment.startswith('bin_'):
+            distance_range = assignment.split('_')[1] + assignment.split('_')[2]
+            distance_range = distance_range.replace('um', 'μm')
+            display_name = f'Zone {distance_range} (n={count})'
+            patch = mpatches.Patch(color=color, label=display_name)
+        elif assignment == 'beyond_range':
+            display_name = f'Beyond Range (n={count}, {percentage:.1f}%)'
+            patch = mpatches.Patch(color=color, label=display_name)
+        elif assignment == 'unassigned':
+            display_name = f'Unassigned (n={count})'
+            patch = mpatches.Patch(color=color, label=display_name)
+        else:
+            display_name = f'{assignment} (n={count})'
+            patch = mpatches.Patch(color=color, label=display_name)
+        
+        legend_handles.append(patch)
+
+# Enhanced figure-level legend
+legend = fig.legend(handles=legend_handles,
+                   bbox_to_anchor=(0.98, 0.85),
+                   loc='upper left',
+                   frameon=True,
+                   framealpha=0.95,
+                   edgecolor='black',
+                   title='Distance Assignment',
+                   title_fontsize=12,
+                   fontsize=10,
+                   handlelength=1.5,
+                   handletextpad=0.5,
+                   borderpad=0.8)
+
+# Enhanced figure title with overall statistics
+total_samples = len(selected_samples)
+total_spots = len(all_assignments)
+total_chol = overall_counts.get('cholangiocyte', 0)
+total_bins = sum([overall_counts.get(f'bin_{j}_{ranges}', 0) 
+                 for j, ranges in enumerate(['50-60um', '60-80um', '80-120um', '120-150um'])])
+
+fig.suptitle(f'Spatial Distance Analysis - {total_samples} Samples\n'
+            f'Total: {total_spots:,} spots | Cholangiocytes: {total_chol} | Zone spots: {total_bins}',
+            fontsize=16, fontweight='bold', y=0.96)
+
+plt.tight_layout()
+plt.subplots_adjust(right=0.85, top=0.90)  # Make room for legend and title
+plt.savefig(f'{SAVE_PATH}/step3_1_spatial_distance_analysis.pdf', dpi=300, bbox_inches='tight')
+plt.show()
+
+# Save zone-level results
+print(f"\n💾 Saving graph-based zone analysis results...")
+zone_df.to_csv(f"{SAVE_PATH}/step3_1_zone_data_graph_based.csv", index=False)
+
+# Save sample results for next step
+with open(f"{SAVE_PATH}/step3_1_sample_results_graph_based.pkl", 'wb') as f:
+    pickle.dump(sample_results, f)
+
+print(f"✅ Step 3.1 complete: Graph-based zone analysis saved")
+
+#%% Step 3.2: PCME-I vs PCME-S Classification
+
+# Load data from Step 3.1
+SAVE_PATH = "/mnt/public/lyx/IMC_HE_Merge/CRLM/figures/ST/PCME"
+zone_df = pd.read_csv(f"{SAVE_PATH}/step3_1_zone_data_graph_based.csv")
+with open(f"{SAVE_PATH}/step3_1_sample_results_graph_based.pkl", 'rb') as f:
+    sample_results = pickle.load(f)
+
+print(f"Loaded zone data: {len(zone_df)} cholangiocyte zones")
+print(f"RFS distribution: {zone_df['rfs_status'].value_counts().to_dict()}")
+
+# Try different methods
+classification_results = {}
+for method in ['percentile', 'kmeans', 'adaptive']:
+    classifications, threshold = classify_zones_pcme(zone_df, method=method, 
+                                                     distence_prefix='cholangiocyte_distance_0', use_overall=False)
+    classification_results[method] = {
+        'classifications': classifications,
+        'threshold': threshold
+    }
+
+# Analyze relationship with RFS status
+print(f"\n📈 Analyzing PCME classification vs RFS status...")
+zone_df['pcme_classification'] = classification_results['kmeans']['classifications']
+
+# Zone-level analysis
+pcme_rfs_crosstab = pd.crosstab(
+    zone_df['pcme_classification'], 
+    zone_df['rfs_status'], 
+    normalize='columns'
+) * 100
+
+print(f"PCME classification by RFS status (column percentages):")
+print(pcme_rfs_crosstab.round(1))
+
+# Statistical test
+from scipy.stats import chi2_contingency
+pcme_rfs_contingency = pd.crosstab(zone_df['pcme_classification'], zone_df['rfs_status'])
+chi2, p_value, dof, expected = chi2_contingency(pcme_rfs_contingency)
+print(f"\nChi-square test: χ²={chi2:.3f}, p={p_value:.4f}")
+
+# Sample-level aggregation
+print(f"\n📊 Sample-level PCME aggregation...")
+sample_pcme_df = calculate_sample_pcme_metrics_zones(zone_df)
+print(f"Sample-level PCME summary:")
+print(sample_pcme_df.round(2))
+# Test sample-level differences
+if len(sample_pcme_df) > 0:
+    rfs0_samples = sample_pcme_df[sample_pcme_df['rfs_status'] == 0]
+    rfs1_samples = sample_pcme_df[sample_pcme_df['rfs_status'] == 1]
+    
+    if len(rfs0_samples) > 0 and len(rfs1_samples) > 0:
+        # Test PCME-I percentage
+        stat_i, p_val_i = mannwhitneyu(
+            rfs1_samples['pcme_i_percentage'], rfs0_samples['pcme_i_percentage'], alternative='two-sided'
+        )
+        
+        # Test PCME-S percentage  
+        stat_s, p_val_s = mannwhitneyu(
+            rfs1_samples['pcme_s_percentage'], rfs0_samples['pcme_s_percentage'], alternative='two-sided'
+        )
+        
+        # Test weighted I/S ratio
+        stat_ratio, p_val_ratio = mannwhitneyu(
+            rfs1_samples['weighted_is_ratio'], rfs0_samples['weighted_is_ratio'], alternative='two-sided'
+        )
+        
+        print(f"\nSample-level statistical tests:")
+        print(f"PCME-I percentage: RFS 0 = {rfs0_samples['pcme_i_percentage'].mean():.1f}%, RFS 1 = {rfs1_samples['pcme_i_percentage'].mean():.1f}%, p = {p_val_i:.4f}")
+        print(f"PCME-S percentage: RFS 0 = {rfs0_samples['pcme_s_percentage'].mean():.1f}%, RFS 1 = {rfs1_samples['pcme_s_percentage'].mean():.1f}%, p = {p_val_s:.4f}")
+        print(f"Weighted I/S ratio: RFS 0 = {rfs0_samples['weighted_is_ratio'].mean():.3f}, RFS 1 = {rfs1_samples['weighted_is_ratio'].mean():.3f}, p = {p_val_ratio:.4f}")
+
+# Create comprehensive visualization
+fig = plt.figure(figsize=(20, 12))
+
+# Define celltypes
+cell_types = define_celltypes()
+immune_cell_types = cell_types["immune_cell_types"]
+stromal_cell_types = cell_types["stromal_cell_types"]
+
+# Define consistent colors
+pcme_colors = {'PCME-I': '#E31A1C', 'PCME-S': '#1F78B4', 'Intermediate': '#888888'}
+
+# ================== TOP ROW: OVERVIEW & CLASSIFICATION ==================
+
+# 1. PCME classification scatter plot (Main result)
+ax1 = plt.subplot(2, 4, 1)
+for pcme_type, color in pcme_colors.items():
+    mask = zone_df['pcme_classification'] == pcme_type
+    if np.any(mask):
+        ax1.scatter(zone_df.loc[mask, 'immune_signature'], 
+                   zone_df.loc[mask, 'stromal_signature'],
+                   c=color, label=pcme_type, alpha=0.7, s=40, edgecolors='black', linewidth=0.5)
+
+ax1.set_xlabel('Immune Signature Score', fontweight='bold')
+ax1.set_ylabel('Stromal Signature Score', fontweight='bold')
+ax1.set_title('PCME Classification Overview', fontweight='bold', fontsize=12)
+ax1.legend(framealpha=0.9, edgecolor='black')
+ax1.grid(True, alpha=0.3)
+
+# 2. PCME distribution by RFS status (Clinical relevance)
+ax2 = plt.subplot(2, 4, 2)
+pcme_rfs_counts = pd.crosstab(zone_df['pcme_classification'], zone_df['rfs_status'])
+
+# Create stacked bar plot with better colors
+pcme_rfs_counts.plot(kind='bar', ax=ax2, 
+                    color=['#87CEEB', '#FF6B6B'], alpha=0.8, 
+                    edgecolor='black', linewidth=0.5)
+ax2.set_xlabel('PCME Classification', fontweight='bold')
+ax2.set_ylabel('Number of Zones', fontweight='bold')
+ax2.set_title('PCME Distribution by RFS Status', fontweight='bold', fontsize=12)
+ax2.legend(['RFS 0 (Better)', 'RFS 1 (Worse)'], framealpha=0.9)
+ax2.tick_params(axis='x', rotation=45)
+
+# Add count labels on bars
+for container in ax2.containers:
+    ax2.bar_label(container, label_type='center', fontweight='bold')
+
+# 3. Immune/Stromal ratio distribution (Mechanism)
+ax3 = plt.subplot(2, 4, 3)
+for pcme_type, color in pcme_colors.items():
+    pcme_data = zone_df[zone_df['pcme_classification'] == pcme_type]
+    if len(pcme_data) > 0:
+        ax3.hist(pcme_data['immune_stromal_ratio'], bins=15, alpha=0.6, 
+                label=pcme_type, color=color, density=True, edgecolor='black', linewidth=0.5)
+
+ax3.set_xlabel('Immune/Stromal Ratio', fontweight='bold')
+ax3.set_ylabel('Density', fontweight='bold')
+ax3.set_title('I/S Ratio Distribution by PCME Type', fontweight='bold', fontsize=12)
+ax3.legend(framealpha=0.9)
+ax3.grid(True, alpha=0.3)
+
+# 4. Summary statistics table
+ax4 = plt.subplot(2, 4, 4)
+ax4.axis('off')
+
+# Create summary statistics
+summary_stats = []
+for pcme_type in ['PCME-I', 'PCME-S', 'Intermediate']:
+    pcme_data = zone_df[zone_df['pcme_classification'] == pcme_type]
+    if len(pcme_data) > 0:
+        stats = {
+            'PCME Type': pcme_type,
+            'Count': len(pcme_data),
+            'Percentage': f"{len(pcme_data)/len(zone_df)*100:.1f}%",
+            'Mean I/S Ratio': f"{pcme_data['immune_stromal_ratio'].mean():.2f}",
+            'RFS 1 Rate': f"{(pcme_data['rfs_status'] == 1).mean()*100:.1f}%"
         }
-        zone_abundance_data.append(abundance_row)
+        summary_stats.append(stats)
+
+summary_df = pd.DataFrame(summary_stats)
+
+# Create table
+table = ax4.table(cellText=summary_df.values,
+                 colLabels=summary_df.columns,
+                 cellLoc='center',
+                 loc='center',
+                 bbox=[0, 0, 1, 1])
+
+table.auto_set_font_size(False)
+table.set_fontsize(9)
+table.scale(1, 2)
+
+# Style the table
+for i in range(len(summary_df.columns)):
+    table[(0, i)].set_facecolor('#D3D3D3')
+    table[(0, i)].set_text_props(weight='bold')
+
+for i in range(1, len(summary_df) + 1):
+    pcme_type = summary_df.iloc[i-1]['PCME Type']
+    color = pcme_colors.get(pcme_type, '#FFFFFF')
+    for j in range(len(summary_df.columns)):
+        table[(i, j)].set_facecolor(color)
+        table[(i, j)].set_alpha(0.3)
+
+ax4.set_title('PCME Classification Summary', fontweight='bold', fontsize=12, pad=20)
+
+# ================== BOTTOM ROW: DETAILED CELL TYPE ANALYSIS ==================
+
+# 5. Key immune cell types in PCME-I vs PCME-S
+ax5 = plt.subplot(2, 4, 5)
+pcme_i_data = zone_df[zone_df['pcme_classification'] == 'PCME-I']
+pcme_s_data = zone_df[zone_df['pcme_classification'] == 'PCME-S']
+
+if len(pcme_i_data) > 0 and len(pcme_s_data) > 0 and len(immune_cell_types) > 0:
+    x = range(len(immune_cell_types))
+    width = 0.35
+    
+    pcme_i_means = [pcme_i_data[ct].mean() for ct in immune_cell_types]
+    pcme_s_means = [pcme_s_data[ct].mean() for ct in immune_cell_types]
+    
+    bars1 = ax5.bar([i - width/2 for i in x], pcme_i_means, width, 
+                   label='PCME-I', color=pcme_colors['PCME-I'], alpha=0.8,
+                   edgecolor='black', linewidth=0.5)
+    bars2 = ax5.bar([i + width/2 for i in x], pcme_s_means, width, 
+                   label='PCME-S', color=pcme_colors['PCME-S'], alpha=0.8,
+                   edgecolor='black', linewidth=0.5)
+    
+    ax5.set_xlabel('Immune Cell Type', fontweight='bold')
+    ax5.set_ylabel('Mean Abundance', fontweight='bold')
+    ax5.set_title('Immune Cell Types: PCME-I vs PCME-S', fontweight='bold', fontsize=12)
+    ax5.set_xticks(x)
+    
+    # Clean cell type names
+    clean_labels = []
+    for ct in immune_cell_types:
+        clean_name = ct.replace('q05cell_abundance_w_sf_', '').replace('_', ' ')
+        # Wrap long names
+        if len(clean_name) > 10:
+            words = clean_name.split()
+            if len(words) >= 2:
+                clean_name = words[0] + '\n' + ' '.join(words[1:])
+        clean_labels.append(clean_name)
+    
+    ax5.set_xticklabels(clean_labels, fontsize=8, rotation=0)
+    ax5.legend(framealpha=0.9)
+    ax5.grid(axis='y', alpha=0.3)
+
+# 6. Key stromal cell types in PCME-I vs PCME-S
+ax6 = plt.subplot(2, 4, 6)
+if len(pcme_i_data) > 0 and len(pcme_s_data) > 0 and len(stromal_cell_types) > 0:
+    x = range(len(stromal_cell_types))
+    width = 0.35
+    
+    pcme_i_means = [pcme_i_data[ct].mean() for ct in stromal_cell_types]
+    pcme_s_means = [pcme_s_data[ct].mean() for ct in stromal_cell_types]
+    
+    bars1 = ax6.bar([i - width/2 for i in x], pcme_i_means, width, 
+                   label='PCME-I', color=pcme_colors['PCME-I'], alpha=0.8,
+                   edgecolor='black', linewidth=0.5)
+    bars2 = ax6.bar([i + width/2 for i in x], pcme_s_means, width, 
+                   label='PCME-S', color=pcme_colors['PCME-S'], alpha=0.8,
+                   edgecolor='black', linewidth=0.5)
+    
+    ax6.set_xlabel('Stromal Cell Type', fontweight='bold')
+    ax6.set_ylabel('Mean Abundance', fontweight='bold')
+    ax6.set_title('Stromal Cell Types: PCME-I vs PCME-S', fontweight='bold', fontsize=12)
+    ax6.set_xticks(x)
+    
+    # Clean stromal cell type names
+    clean_labels = []
+    for ct in stromal_cell_types:
+        clean_name = ct.replace('q05cell_abundance_w_sf_', '').replace('_', ' ')
+        if len(clean_name) > 10:
+            words = clean_name.split()
+            if len(words) >= 2:
+                clean_name = words[0] + '\n' + ' '.join(words[1:])
+        clean_labels.append(clean_name)
+    
+    ax6.set_xticklabels(clean_labels, fontsize=8, rotation=0)
+    ax6.legend(framealpha=0.9)
+    ax6.grid(axis='y', alpha=0.3)
+
+# 7. Statistical significance heatmap
+ax7 = plt.subplot(2, 4, 7)
+
+# Calculate p-values for all cell types between PCME-I and PCME-S
+all_cell_types = immune_cell_types + stromal_cell_types
+distence_prefix='cholangiocyte_distance_0'
+
+if len(pcme_i_data) > 0 and len(pcme_s_data) > 0:
+    pval_results = []
+    fold_changes = []
+    
+    for ct in all_cell_types:
+        if ct in pcme_i_data.columns and ct in pcme_s_data.columns:
+            i_values = pcme_i_data[f"{distence_prefix}_{ct}"].values
+            s_values = pcme_s_data[f"{distence_prefix}_{ct}"].values
+            
+            # Perform t-test
+            try:
+                _, pval = ttest_ind(i_values, s_values)
+                fold_change = np.log2((np.mean(i_values) + 1e-8) / (np.mean(s_values) + 1e-8))
+            except:
+                pval = 1.0
+                fold_change = 0.0
+            
+            pval_results.append(pval)
+            fold_changes.append(fold_change)
+    
+    # Create significance matrix
+    significance_data = pd.DataFrame({
+        'Cell_Type': [ct.replace('q05cell_abundance_w_sf_', '') for ct in all_cell_types],
+        'P_Value': pval_results,
+        'Log2_FC': fold_changes,
+        'Significant': [p < 0.05 for p in pval_results]
+    })
+    
+    # Plot as horizontal bar chart of fold changes
+    y_pos = range(len(significance_data))
+    colors = ['red' if fc > 0 else 'blue' for fc in significance_data['Log2_FC']]
+    bars = ax7.barh(y_pos, significance_data['Log2_FC'], color=colors, alpha=0.7,
+                   edgecolor='black', linewidth=0.5)
+    
+    # Mark significant ones
+    for i, (_, row) in enumerate(significance_data.iterrows()):
+        if row['Significant']:
+            ax7.text(row['Log2_FC'] + 0.01 if row['Log2_FC'] > 0 else row['Log2_FC'] - 0.01, 
+                    i, '*', va='center', ha='left' if row['Log2_FC'] > 0 else 'right',
+                    fontsize=12, fontweight='bold')
+    
+    ax7.set_yticks(y_pos)
+    ax7.set_yticklabels([name.replace('_', ' ') for name in significance_data['Cell_Type']], 
+                       fontsize=8)
+    ax7.set_xlabel('Log₂ Fold Change (PCME-I vs PCME-S)', fontweight='bold')
+    ax7.set_title('Cell Type Enrichment\n(* p < 0.05)', fontweight='bold', fontsize=12)
+    ax7.axvline(x=0, color='black', linestyle='-', alpha=0.5)
+    ax7.grid(axis='x', alpha=0.3)
+
+# 8. PCME composition pie chart
+ax8 = plt.subplot(2, 4, 8)
+pcme_counts = zone_df['pcme_classification'].value_counts()
+colors_list = [pcme_colors[pcme_type] for pcme_type in pcme_counts.index]
+
+wedges, texts, autotexts = ax8.pie(pcme_counts.values, labels=pcme_counts.index, 
+                                  colors=colors_list, autopct='%1.1f%%',
+                                  startangle=90, explode=[0.05]*len(pcme_counts),
+                                  textprops={'fontweight': 'bold'})
+
+ax8.set_title('PCME Type Distribution', fontweight='bold', fontsize=12)
+
+# Enhance pie chart text
+for autotext in autotexts:
+    autotext.set_color('white')
+    autotext.set_fontsize(10)
+    autotext.set_fontweight('bold')
+
+# Overall figure adjustments
+plt.suptitle('PCME Classification Analysis', fontsize=16, fontweight='bold', y=0.95)
+plt.tight_layout()
+plt.subplots_adjust(top=0.92, hspace=0.3, wspace=0.3)
+
+# Save the figure
+plt.savefig(f'{SAVE_PATH}/step3_2_PCME_classification.pdf', dpi=300, bbox_inches='tight')
+plt.show()
+
+zone_df.to_csv(f"{SAVE_PATH}/step3_2_zone_pcme_data_graph_based.csv", index=False)
+sample_pcme_df.to_csv(f"{SAVE_PATH}/step3_2_sample_pcme_summary_graph_based.csv", index=False)
+
+
+#%% Step 4.1: PCME-Specific Pathway Analysis
+
+# Load PCME classification results from Step 3.2
+SAVE_PATH = "/mnt/public/lyx/IMC_HE_Merge/CRLM/figures/ST/PCME"
+zone_df = pd.read_csv(f"{SAVE_PATH}/step3_2_zone_pcme_data_graph_based.csv")
+sample_pcme_df = pd.read_csv(f"{SAVE_PATH}/step3_2_sample_pcme_summary_graph_based.csv")
+
+with open(f"{SAVE_PATH}/step3_1_sample_results_graph_based.pkl", 'rb') as f:
+    sample_results = pickle.load(f)
+
+# Load original spatial data
+# adata = sc.read_h5ad(f"{SAVE_PATH}/step1_fdzs_combined_data.h5ad")
+# adata.obs['sample_id'] = adata.obs['core_name'].astype(str)
+
+print(f"Loaded data: {len(zone_df)} zones, {adata.n_obs:,} spots")
+print(f"PCME distribution: {zone_df['pcme_classification'].value_counts().to_dict()}")
+
+# 1. Extract PCME region expression data
+pcme_expression_data = extract_pcme_region_expression(adata, zone_df, sample_results, max_radius = 50)
+
+# 2. Perform differential expression analysis
+deg_results = perform_pcme_differential_analysis(adata, pcme_expression_data)
+
+# 3. Pathway enrichment analysis
+enrichment_results = perform_pathway_enrichment_analysis(deg_results)
+    
+# 4. Save results
+print(f"\n💾 Saving Step 4.1 results...")
+deg_results.to_csv(f"{SAVE_PATH}/step4_1_pcme_deg_results.csv", index=False)
+
+# Save enrichment results
+for direction, enrichment_df in enrichment_results.items():
+    enrichment_df.to_csv(f"{SAVE_PATH}/step4_1_pathway_enrichment_{direction}.csv", index=False)
+
+# Set style for publication-quality figures
+plt.style.use('default')
+sns.set_palette("husl")
+
+# 1. Create individual volcano plot
+print("Creating volcano plot...")
+fig_volcano, ax_volcano = create_volcano_plot(deg_results)
+fig_volcano.savefig(f'{SAVE_PATH}/step4_1_volcano_plot.pdf', dpi=300, bbox_inches='tight')
+plt.show()
+
+# 2. Create individual pathway enrichment plots
+print("Creating pathway enrichment plots...")
+fig_pathways = create_pathway_enrichment_plots(enrichment_results)
+fig_pathways.savefig(f'{SAVE_PATH}/step4_1_pathway_enrichment.pdf', dpi=300, bbox_inches='tight')
+plt.show()
+
+print("✅ All figures created and saved successfully!")
+print(f"📁 Figures saved to: {SAVE_PATH}")
+print("   - step4_1_volcano_plot.pdf")
+print("   - step4_1_pathway_enrichment.pdf") 
+print("   - step4_1_comprehensive_analysis.pdf")
