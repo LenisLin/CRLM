@@ -327,6 +327,36 @@ pdf(file = file.path(desc_output_dir, "km_curve_for_treatment.pdf"), height = 6,
 print(km_plot)
 dev.off()
 
+## Validation set
+plot_df_val <- read.csv("/mnt/public/lyx/IMC_HE_Merge/CRLM/results/clinical_treatment_val.csv")
+colnames(plot_df_val) <- c("event", "time", "group","treatment")
+
+# Fit survival model with error checking
+surv_object <- Surv(time = plot_df_val$time, event = plot_df_val$event)
+fit <- survfit(surv_object ~ treatment, data = plot_df_val)
+
+# Generate Kaplan-Meier plot
+km_plot <- ggsurvplot(
+  fit = fit,
+  data = plot_df_val,
+  pval = TRUE,                    # Add p-value
+  conf.int = FALSE,                # Add confidence intervals
+  risk.table = TRUE,              # Add risk table
+  risk.table.col = "strata",      # Color risk table by groups
+  linetype = "strata",            # Different line types for groups
+  surv.median.line = "hv",        # Add median survival lines
+  ggtheme = theme_bw(),           # Clean theme
+  palette = c("#f39b7fff", "#8491b4ff"), # Custom colors
+  title = "Recurrence-Free Survival by Cellular compostion Group",
+  xlab = "Time (months)",
+  ylab = "Survival probability",
+  legend.title = "Treatment strategy",
+  legend.labs = c("Chemo", "Combo")
+)
+pdf(file = file.path(desc_output_dir, "km_curve_for_treatment_val.pdf"), height = 6,width = 8)
+print(km_plot)
+dev.off()
+
 # =============================================================================
 # PART 2: DISCRETE CLINICAL ANALYSIS
 # =============================================================================
