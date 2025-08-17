@@ -63,24 +63,6 @@ def load_slide_data(slide_name, run_name, treatment_mapping):
     print(f"Loaded {slide_name}: {adata.n_obs} spots, {adata.n_vars} genes")
     return adata
 
-def calculate_emt_score(adata, emt_genes):
-    """Calculate EMT score from gene expression"""
-    available_genes = adata.var.index.tolist()
-    available_emt_genes = [g for g in emt_genes if g in available_genes]
-    
-    if len(available_emt_genes) >= 2:
-        emt_expr = adata[:, available_emt_genes].X
-        if hasattr(emt_expr, 'toarray'):
-            emt_expr = emt_expr.toarray()
-        emt_score = np.mean(emt_expr, axis=1)
-        adata.obs['EMT_Score'] = emt_score
-        print(f"  EMT score calculated from {len(available_emt_genes)} genes: {available_emt_genes}")
-        return True
-    else:
-        print(f"  Insufficient EMT genes ({len(available_emt_genes)} available)")
-        adata.obs['EMT_Score'] = 0
-        return False
-
 def create_slide_output_dir(figure_path, slide_name):
     """Create slide-specific output directory"""
     slide_dir = os.path.join(figure_path, slide_name)
@@ -96,7 +78,7 @@ def visualize_malignant_distribution(adata, slide_dir, slide_name):
         sc.pl.spatial(adata, cmap='magma',
                     # show first 8 cell types
                     color=tumor_types,
-                    ncols=4, size=1.3,
+                    ncols=3, size=1.3,
                     img_key='hires',
                     # limit color scale at 99.2% quantile of cell abundance
                     vmin=0, vmax='p99.2', show = False
@@ -196,9 +178,140 @@ def setup_tumor_focused_vessel_analysis(adata, slide_name):
         print(f"  No vascular hotspots found in tumor regions")
         return False
 
+def visualize_vascular_tumor_regions(adata, slide_dir, slide_name):
+    """
+    Visualize vascular hotspots, tumor regions, and spatial zones
+    Similar to visualize_malignant_distribution but for vessel analysis results
+    """
+    
+    print(f"  Creating vascular-tumor region visualizations for {slide_name}...")
+    
+    # Check if required columns exist
+    required_cols = ['Is_Tumor_Region', 'Is_Vascular_Hotspot', 'Spatial_Zone', 'Distance_to_Vessel_um']
+    missing_cols = [col for col in required_cols if col not in adata.obs.columns]
+    
+    if missing_cols:
+        print(f"  Warning: Missing columns {missing_cols}. Skipping visualization.")
+        return
+    
+    # Create figure with 2x2 subplots
+    with mpl.rc_context({'axes.facecolor': 'black', 'figure.figsize': [12, 10]}):
+        fig, axes = plt.subplots(2, 2, figsize=(12, 10))
+        axes = axes.flatten()
+        
+        # 1. Tumor Regions (boolean)
+        tumor_values = adata.obs['Is_Tumor_Region'].astype(int)
+        adata.obs['tumor_regions_viz'] = tumor_values
+        
+        sc.pl.spatial(adata, 
+                     color='tumor_regions_viz',
+                     cmap='Reds',
+                     ax=axes[0],
+                     size=1.3,
+                     img_key='hires',
+                     vmin=0, vmax=1,
+                     show=False,
+                     colorbar_loc=None)
+        axes[0].set_title(f'Tumor Regions\n({tumor_values.sum()} spots)', 
+                         color='white', fontsize=12, fontweight='bold')
+        
+        # 2. Vascular Hotspots (boolean)
+        hotspot_values = adata.obs['Is_Vascular_Hotspot'].astype(int)
+        adata.obs['vascular_hotspots_viz'] = hotspot_values
+        
+        sc.pl.spatial(adata,
+                     color='vascular_hotspots_viz', 
+                     cmap='Blues',
+                     ax=axes[1],
+                     size=1.3,
+                     img_key='hires',
+                     vmin=0, vmax=1,
+                     show=False,
+                     colorbar_loc=None)
+        axes[1].set_title(f'Vascular Hotspots\n({hotspot_values.sum()} spots)', 
+                         color='white', fontsize=12, fontweight='bold')
+        
+        # 3. Spatial Zones (categorical)
+        # Create numeric mapping for spatial zones
+        zone_mapping = {
+            'Perivascular': 3,
+            'Intermediate': 2, 
+            'Distant': 1
+        }
+        
+        zone_numeric = adata.obs['Spatial_Zone'].map(zone_mapping)
+        adata.obs['spatial_zones_viz'] = zone_numeric
+        
+        # Custom colormap for zones
+        zone_colors = ['#3498DB', '#F39C12', '#E74C3C']  # Non_Tumor, Distant, Intermediate, Perivascular
+        zone_cmap = mpl.colors.ListedColormap(zone_colors)
+        
+        sc.pl.spatial(adata,
+                     color='spatial_zones_viz',
+                     cmap=zone_cmap,
+                     ax=axes[2], 
+                     size=1.3,
+                     img_key='hires',
+                     vmin=0, vmax=3,
+                     show=False,
+                     colorbar_loc=None)
+        
+        # Add custom legend for zones
+        zone_labels = ['Distant', 'Intermediate', 'Perivascular']
+        zone_handles = [mpl.patches.Patch(color=zone_colors[i], label=zone_labels[i]) 
+                       for i in range(len(zone_labels))]
+        axes[2].legend(handles=zone_handles, loc='upper right', fontsize=8)
+        axes[2].set_title('Spatial Zones', color='white', fontsize=12, fontweight='bold')
+        
+        # 4. Distance to Vessels (continuous)
+        distance_values = adata.obs['Distance_to_Vessel_um']
+        # Cap extreme values for better visualization
+        distance_cap = np.percentile(distance_values[distance_values > 0], 95)
+        distance_capped = np.clip(distance_values, 0, distance_cap)
+        adata.obs['distance_vessels_viz'] = distance_capped
+        
+        sc.pl.spatial(adata,
+                     color='distance_vessels_viz',
+                     cmap='viridis_r',  # Reversed so close = hot colors
+                     ax=axes[3],
+                     size=1.3, 
+                     img_key='hires',
+                     vmin=0, 
+                     vmax=distance_cap,
+                     show=False,
+                     colorbar_loc=None)
+        axes[3].set_title(f'Distance to Vessels\n(max: {distance_cap:.0f}μm)', 
+                         color='white', fontsize=12, fontweight='bold')
+        
+        # Overall styling
+        for ax in axes:
+            ax.set_facecolor('black')
+            ax.tick_params(colors='white')
+            for spine in ax.spines.values():
+                spine.set_color('white')
+        
+        # Add treatment info
+        treatment = adata.obs['treatment_status'].iloc[0] if 'treatment_status' in adata.obs.columns else 'Unknown'
+        plt.suptitle(f'Vascular-Tumor Analysis: {slide_name}\nTreatment: {treatment.replace("_", " ").title()}', 
+                    color='white', fontsize=14, fontweight='bold', y=0.95)
+        
+        plt.tight_layout(rect=[0, 0, 1, 0.93])
+        
+        # Save figure
+        plt.savefig(f"{slide_dir}/vascular_tumor_regions_{slide_name}.pdf", 
+                   bbox_inches='tight', dpi=300, facecolor='black')
+        plt.show()
+    
+    # Print summary statistics
+    print(f"  Summary for {slide_name}:")
+    print(f"    Total spots: {len(adata.obs)}")
+    print(f"    Tumor regions: {tumor_values.sum()} ({tumor_values.mean()*100:.1f}%)")
+    print(f"    Vascular hotspots: {hotspot_values.sum()} ({hotspot_values.mean()*100:.1f}%)")
+    
+    return None
 #%% Step 4: Vascular-Tumor Subtype Spatial Associations
 
-def analyze_tumor_vessel_spatial_associations(adata, slide_name):
+def analyze_tumor_vessel_spatial_associations(adata):
     """Analyze spatial associations between tumor subtypes and vessels"""
     
     print(f"  Analyzing tumor-vessel spatial associations...")
@@ -246,7 +359,7 @@ def analyze_tumor_vessel_spatial_associations(adata, slide_name):
     
     return associations
 
-def create_distance_profiles(adata, slide_name):
+def create_distance_profiles(adata, slide_name, bin_size=55, max_distance=500, min_spots=3):
     """Create distance-dependent association curves for tumor subtypes"""
     
     print(f"  Creating distance profiles for {slide_name}...")
@@ -256,104 +369,147 @@ def create_distance_profiles(adata, slide_name):
     tumor_data = adata.obs[tumor_mask]
     
     # Create distance bins (55μm resolution)
-    distance_bins = np.arange(0, 400, 55)  # Up to 400μm
-    bin_centers = distance_bins[:-1] + 27.5
-    
+    distance_bins = np.arange(0, max_distance + bin_size, bin_size)
     distance_profiles = {}
     
     for tc_type in tumor_types:
         bin_profiles = []
         bin_distances = []
+        bin_ranges = []
+        bin_counts = []
+        bin_stds = []
         
-        for bin_center in bin_centers:
-            bin_min = bin_center - 27.5
-            bin_max = bin_center + 27.5
+        total_spots_processed = 0
+
+        # Process each distance range
+        for i in range(len(distance_bins) - 1):
+            bin_min = distance_bins[i]
+            bin_max = distance_bins[i + 1]
             
+            # Cap at max_distance
+            if bin_min >= max_distance:
+                break
+            if bin_max > max_distance:
+                bin_max = max_distance
+            
+            # Create mask for current distance range
             bin_mask = (tumor_data['Distance_to_Vessel_um'] >= bin_min) & \
                       (tumor_data['Distance_to_Vessel_um'] < bin_max)
             
-            if bin_mask.sum() >= 3:  # Minimum spots for reliable statistics
-                mean_abundance = tumor_data.loc[bin_mask, tc_type].mean()
+            spot_count = bin_mask.sum()
+            total_spots_processed += spot_count
+            
+            if spot_count >= min_spots:
+                abundance_values = tumor_data.loc[bin_mask, tc_type]
+                mean_abundance = abundance_values.mean()
+                std_abundance = abundance_values.std()
+                bin_center = (bin_min + bin_max) / 2
+                
                 bin_profiles.append(mean_abundance)
                 bin_distances.append(bin_center)
+                bin_ranges.append(f"{bin_min}-{bin_max}")
+                bin_counts.append(spot_count)
+                bin_stds.append(std_abundance)
         
         if len(bin_profiles) > 2:
             distance_profiles[tc_type] = {
                 'distances': np.array(bin_distances),
-                'abundances': np.array(bin_profiles)
+                'abundances': np.array(bin_profiles),
+                'std_abundances': np.array(bin_stds),
+                'ranges': bin_ranges,
+                'spot_counts': np.array(bin_counts),
+                'bin_edges': distance_bins[:len(bin_profiles)+1],
+                'total_spots': total_spots_processed,
+                'coverage_rate': total_spots_processed / len(tumor_data) * 100
             }
     
     return distance_profiles
 
-def visualize_tumor_vessel_associations(adata, slide_name, distance_profiles, slide_dir):
-    """Enhanced distance profiles with publication-quality styling"""
+def visualize_tumor_vessel_associations(adata, slide_name, distance_profiles, associations, slide_dir):
+    """
+    Enhanced distance profiles with error bars and publication-quality styling
+    """
     
-    treatment = adata.obs['treatment_status'].iloc[0]
+    if not distance_profiles:
+        print(f"No distance profiles to visualize for {slide_name}")
+        return
+    
+    treatment = adata.obs['treatment_status'].iloc[0] if 'treatment_status' in adata.obs.columns else 'Unknown'
     
     # Create figure with better proportions
-    fig, (ax_main, ax_legend) = plt.subplots(1, 2, figsize=(16, 8), 
-                                           gridspec_kw={'width_ratios': [4, 1]})
+    fig, (ax_main, ax_stats) = plt.subplots(1, 2, figsize=(16, 8), 
+                                           gridspec_kw={'width_ratios': [3, 1]})
     
     # Enhanced color scheme for tumor types
     tumor_type_colors = {
-        'TC_Glycolysis': '#E74C3C',    # Red - highlight as most important
+        'TC_Glycolysis': '#E74C3C',    # Red - keep original color
         'TC_EMT': '#9B59B6',           # Purple 
         'TC_Proliferation': '#3498DB',  # Blue
         'TC_Quiescent': '#2ECC71',     # Green
         'TC_LipidMeta': '#F39C12'      # Orange
     }
     
-    # Track lines for legend
+    # Track data for statistics
+    profile_stats = []
     legend_elements = []
+    
+    print(f"Plotting distance profiles for {slide_name}:")
     
     for tc_type, profile in distance_profiles.items():
         distances = profile['distances']
         abundances = profile['abundances']
         
-        if len(distances) > 2:
-            # Get color and styling
-            color = tumor_type_colors.get(tc_type, '#34495E')
-            linewidth = 4 if 'Glycolysis' in tc_type else 3
-            alpha = 1.0 if 'Glycolysis' in tc_type else 0.8
+        if len(distances) < 2:
+            continue
             
-            # LOWESS smoothing with confidence intervals
-            try:
-                lowess_result = lowess(abundances, distances, frac=0.4, it=3, return_sorted=True)
-                smooth_distances = lowess_result[:, 0]
-                smooth_abundances = lowess_result[:, 1]
+        # Get color and styling (uniform for all types)
+        color = tumor_type_colors.get(tc_type, '#34495E')
+        linewidth = 2  # Same for all types
+        markersize = 6  # Same for all types
+        alpha = 0.8    # Same for all types
+        
+        # Plot main line with points
+        main_line = ax_main.plot(distances, abundances, 'o-', 
+                               color=color, linewidth=linewidth, 
+                               markersize=markersize, alpha=alpha,
+                               label=tc_type.replace('TC_', ''), 
+                               markerfacecolor=color, 
+                               markeredgecolor='white',
+                               markeredgewidth=1,
+                               zorder=3)
+        
+        # Add error bars if available
+        if 'std_abundances' in profile and profile['std_abundances'] is not None:
+            std_abundances = profile['std_abundances']
+            ax_main.errorbar(distances, abundances, yerr=std_abundances,
+                           color=color, alpha=0.6, capsize=4, capthick=2,
+                           linestyle='none', zorder=2)
+            
+            print(f"  {tc_type}: {len(distances)} points, range {abundances.min():.3f}-{abundances.max():.3f}")
+            
+            # Use pre-calculated correlation from associations
+            if tc_type in associations:
+                correlation = associations[tc_type]['distance_correlation']
+                vessel_behavior = "vessel-seeking" if correlation < -0.2 else \
+                                "vessel-avoiding" if correlation > 0.2 else "neutral"
                 
-                # Plot main line with shadow effect for GLUT1
-                if 'Glycolysis' in tc_type:
-                    # Add shadow effect for emphasis
-                    shadow_line = ax_main.plot(smooth_distances, smooth_abundances, 
-                                             color='black', linewidth=linewidth+2, alpha=0.3, zorder=1)
+                print(f"    Correlation with distance: {correlation:+.3f} ({vessel_behavior})")
                 
-                main_line = ax_main.plot(smooth_distances, smooth_abundances, 
-                                       color=color, linewidth=linewidth, alpha=alpha, 
-                                       label=tc_type.replace('TC_', ''), zorder=3)
-                
-                # Add confidence intervals (bootstrap-style)
-                if len(distances) > 5:
-                    # Simple confidence interval estimation
-                    residuals = abundances - np.interp(distances, smooth_distances, smooth_abundances)
-                    std_err = np.std(residuals)
-                    ci_upper = smooth_abundances + 1.96 * std_err
-                    ci_lower = smooth_abundances - 1.96 * std_err
-                    
-                    ax_main.fill_between(smooth_distances, ci_lower, ci_upper, 
-                                       color=color, alpha=0.15, zorder=1)
-                
-                # Original data points with better styling
-                ax_main.scatter(distances, abundances, color=color, s=40, 
-                              alpha=0.7, edgecolors='white', linewidths=1, zorder=4)
-                
-                # Store for legend
-                legend_elements.append(mpatches.Patch(color=color, label=tc_type.replace('TC_', '')))
-                
-            except Exception as e:
-                # Fallback to simple plot
-                ax_main.plot(distances, abundances, 'o-', color=color, 
-                           label=tc_type.replace('TC_', ''), linewidth=linewidth, markersize=6)
+                profile_stats.append({
+                    'tumor_type': tc_type.replace('TC_', ''),
+                    'n_points': len(distances),
+                    'mean_abundance': abundances.mean(),
+                    'abundance_range': abundances.max() - abundances.min(),
+                    'distance_correlation': correlation,
+                    'vessel_behavior': vessel_behavior,
+                    'color': color
+                })
+            else:
+                print(f"    Warning: No association data found for {tc_type}")
+        
+        # Store for legend
+        legend_elements.append(mpatches.Patch(color=color, 
+                                            label=tc_type.replace('TC_', '')))
     
     # Enhanced zone visualization
     zone_colors = {'Perivascular': '#E74C3C', 'Intermediate': '#F39C12', 'Distant': '#3498DB'}
@@ -361,32 +517,35 @@ def visualize_tumor_vessel_associations(adata, slide_name, distance_profiles, sl
     
     # Zone backgrounds
     ax_main.axvspan(0, 100, alpha=zone_alphas['Perivascular'], 
-                   color=zone_colors['Perivascular'], zorder=0)
+                   color=zone_colors['Perivascular'], zorder=0, label='Perivascular')
     ax_main.axvspan(100, 200, alpha=zone_alphas['Intermediate'], 
-                   color=zone_colors['Intermediate'], zorder=0)
-    ax_main.axvspan(200, 350, alpha=zone_alphas['Distant'], 
-                   color=zone_colors['Distant'], zorder=0)
+                   color=zone_colors['Intermediate'], zorder=0, label='Intermediate')
+    ax_main.axvspan(200, 500, alpha=zone_alphas['Distant'], 
+                   color=zone_colors['Distant'], zorder=0, label='Distant')
     
     # Zone boundary lines
-    ax_main.axvline(x=100, color='gray', linestyle='--', alpha=0.7, linewidth=2)
-    ax_main.axvline(x=200, color='gray', linestyle='--', alpha=0.7, linewidth=2)
+    ax_main.axvline(x=100, color='gray', linestyle='--', alpha=0.7, linewidth=1.5)
+    ax_main.axvline(x=200, color='gray', linestyle='--', alpha=0.7, linewidth=1.5)
+    
+    # Dynamic y-limits for annotations
+    y_max = ax_main.get_ylim()[1]
     
     # Enhanced annotations
-    ax_main.text(50, ax_main.get_ylim()[1]*0.95, 'Perivascular\n(0-100μm)', 
-                ha='center', va='top', fontsize=11, fontweight='bold',
+    ax_main.text(50, y_max*0.95, 'Perivascular\n(0-100μm)', 
+                ha='center', va='top', fontsize=10, fontweight='bold',
                 bbox=dict(boxstyle="round,pad=0.3", facecolor='white', alpha=0.8))
-    ax_main.text(150, ax_main.get_ylim()[1]*0.95, 'Intermediate\n(100-200μm)', 
-                ha='center', va='top', fontsize=11, fontweight='bold',
+    ax_main.text(150, y_max*0.95, 'Intermediate\n(100-200μm)', 
+                ha='center', va='top', fontsize=10, fontweight='bold',
                 bbox=dict(boxstyle="round,pad=0.3", facecolor='white', alpha=0.8))
-    ax_main.text(275, ax_main.get_ylim()[1]*0.95, 'Distant\n(>200μm)', 
-                ha='center', va='top', fontsize=11, fontweight='bold',
+    ax_main.text(350, y_max*0.95, 'Distant\n(>200μm)', 
+                ha='center', va='top', fontsize=10, fontweight='bold',
                 bbox=dict(boxstyle="round,pad=0.3", facecolor='white', alpha=0.8))
     
     # Enhanced main plot styling
-    ax_main.set_xlabel('Distance to Nearest Vessel (μm)', fontsize=14, fontweight='bold')
-    ax_main.set_ylabel('Tumor Cell Abundance', fontsize=14, fontweight='bold')
+    ax_main.set_xlabel('Distance to Nearest Vessel (μm)', fontsize=12, fontweight='bold')
+    ax_main.set_ylabel('Tumor Cell Abundance', fontsize=12, fontweight='bold')
     ax_main.set_title(f'Vessel-Distance Profiles: {slide_name}\n({treatment.replace("_", " ").title()})', 
-                     fontsize=16, fontweight='bold', pad=20)
+                     fontsize=14, fontweight='bold', pad=20)
     
     # Enhanced grid and spines
     ax_main.grid(True, alpha=0.3, linestyle='-', linewidth=0.5)
@@ -395,265 +554,402 @@ def visualize_tumor_vessel_associations(adata, slide_name, distance_profiles, sl
     ax_main.spines['left'].set_linewidth(1.5)
     ax_main.spines['bottom'].set_linewidth(1.5)
     
-    # Enhanced legend in separate subplot
-    ax_legend.axis('off')
+    # Add legend to main plot
+    ax_main.legend(loc='upper right', fontsize=10, frameon=True, 
+                  fancybox=True, shadow=True)
     
-    # Create custom legend
-    legend_title = ax_legend.text(0.1, 0.9, 'Tumor Cell Types', fontsize=14, fontweight='bold',
-                                 transform=ax_legend.transAxes)
+    # Statistics panel
+    ax_stats.axis('off')
     
-    y_pos = 0.8
-    for i, element in enumerate(legend_elements):
-        # Color patch
-        rect = Rectangle((0.1, y_pos - 0.02), 0.15, 0.04, 
-                        facecolor=element.get_facecolor(), transform=ax_legend.transAxes)
-        ax_legend.add_patch(rect)
+    if profile_stats:
+        # Title
+        ax_stats.text(0.05, 0.95, 'Vessel Association Analysis', 
+                     fontsize=12, fontweight='bold', transform=ax_stats.transAxes)
         
-        # Label with emphasis for GLUT1
-        label_text = element.get_label()
-        if 'Glycolysis' in label_text:
-            label_text += ' ★'  # Star for emphasis
-            fontweight = 'bold'
-            fontsize = 12
-        else:
-            fontweight = 'normal'
-            fontsize = 11
+        # Table header
+        y_pos = 0.85
+        ax_stats.text(0.05, y_pos, 'Tumor Type', fontsize=10, fontweight='bold', 
+                     transform=ax_stats.transAxes)
+        ax_stats.text(0.65, y_pos, 'Behavior', fontsize=10, fontweight='bold', 
+                     transform=ax_stats.transAxes)
+        
+        # Add separator line
+        y_pos -= 0.05
+        ax_stats.plot([0.05, 0.95], [y_pos, y_pos], 'k-', alpha=0.3, 
+                     transform=ax_stats.transAxes)
+        
+        # Statistics for each tumor type
+        for stat in profile_stats:
+            y_pos -= 0.08
             
-        ax_legend.text(0.3, y_pos, label_text, fontsize=fontsize, fontweight=fontweight,
-                      va='center', transform=ax_legend.transAxes)
+            # Color indicator
+            rect = Rectangle((0.02, y_pos-0.01), 0.02, 0.04, 
+                           facecolor=stat['color'], transform=ax_stats.transAxes)
+            ax_stats.add_patch(rect)
+            
+            # Tumor type name
+            ax_stats.text(0.05, y_pos, stat['tumor_type'], fontsize=9, 
+                         transform=ax_stats.transAxes)
+            
+            # Behavior with color coding
+            behavior = stat['vessel_behavior']
+            corr = stat['distance_correlation']
+            
+            if behavior == 'vessel-seeking':
+                behavior_color = VESSEL_SEEKING_COLOR
+                behavior_text = f'Seeking\n(r={corr:+.2f})'
+            elif behavior == 'vessel-avoiding':
+                behavior_color = VESSEL_AVOIDING_COLOR  
+                behavior_text = f'Avoiding\n(r={corr:+.2f})'
+            else:
+                behavior_color = NEUTRAL_COLOR
+                behavior_text = f'Neutral\n(r={corr:+.2f})'
+            
+            ax_stats.text(0.65, y_pos, behavior_text, fontsize=8, 
+                         color=behavior_color, transform=ax_stats.transAxes)
+        
+        # Add interpretation guide
+        y_pos -= 0.15
+        ax_stats.text(0.05, y_pos, 'Interpretation:', fontsize=10, fontweight='bold',
+                     transform=ax_stats.transAxes)
+        
+        y_pos -= 0.08
+        ax_stats.text(0.05, y_pos, '• r < -0.2: Vessel-seeking', fontsize=9,
+                     color=VESSEL_SEEKING_COLOR, transform=ax_stats.transAxes)
+        
+        y_pos -= 0.06
+        ax_stats.text(0.05, y_pos, '• r > +0.2: Vessel-avoiding', fontsize=9,
+                     color=VESSEL_AVOIDING_COLOR, transform=ax_stats.transAxes)
+        
+        y_pos -= 0.06
+        ax_stats.text(0.05, y_pos, '• |r| ≤ 0.2: Neutral', fontsize=9,
+                     color=NEUTRAL_COLOR, transform=ax_stats.transAxes)
+        
+        # Data quality info
         y_pos -= 0.12
-    
-    # Add interpretation guide
-    ax_legend.text(0.1, 0.4, 'Interpretation:', fontsize=12, fontweight='bold',
-                  transform=ax_legend.transAxes)
-    ax_legend.text(0.1, 0.32, '• Downward slope:\n  Vessel-seeking behavior', fontsize=10,
-                  transform=ax_legend.transAxes, color=VESSEL_SEEKING_COLOR)
-    ax_legend.text(0.1, 0.20, '• Upward slope:\n  Vessel-avoiding behavior', fontsize=10,
-                  transform=ax_legend.transAxes, color=VESSEL_AVOIDING_COLOR)
-    ax_legend.text(0.1, 0.08, '★ = Metastasis-associated', fontsize=10, fontweight='bold',
-                  transform=ax_legend.transAxes, color=HIGH_RISK_COLOR)
+        total_spots = list(distance_profiles.values())[0]['total_spots']
+        coverage = list(distance_profiles.values())[0]['coverage_rate']
+        n_points = len(list(distance_profiles.values())[0]['distances'])
+        
+        ax_stats.text(0.05, y_pos, f'Data Quality:', fontsize=10, fontweight='bold',
+                     transform=ax_stats.transAxes)
+        y_pos -= 0.06
+        ax_stats.text(0.05, y_pos, f'Spots: {total_spots}', fontsize=9,
+                     transform=ax_stats.transAxes)
+        y_pos -= 0.05
+        ax_stats.text(0.05, y_pos, f'Coverage: {coverage:.1f}%', fontsize=9,
+                     transform=ax_stats.transAxes)
+        y_pos -= 0.05
+        ax_stats.text(0.05, y_pos, f'Distance bins: {n_points}', fontsize=9,
+                     transform=ax_stats.transAxes)
     
     plt.tight_layout()
-    plt.savefig(os.path.join(slide_dir, f"enhanced_distance_profiles_{slide_name}.pdf"), 
-               bbox_inches='tight', dpi=300, facecolor='white')
+    
+    # Save figure
+    save_path = os.path.join(slide_dir, f"enhanced_distance_profiles_{slide_name}.pdf")
+    plt.savefig(save_path, bbox_inches='tight', dpi=300, facecolor='white')
+    print(f"Distance profiles saved to: {save_path}")
+    
     plt.show()
-
+    
+    return None
 #%% Step 5: Vascular Hotspot Co-occurrence Analysis (Metastasis Mechanism)
-
 def analyze_vascular_hotspot_cooccurrence(adata, slide_name):
-    """Analyze tumor-vessel co-occurrence in same spots (metastasis mechanism)"""
+    """
+    Analyze tumor-vessel co-occurrence in same spots (metastasis mechanism)
+    
+    Fixed version with corrected statistical logic
+    """
     
     print(f"  Analyzing vascular hotspot co-occurrence (metastasis potential)...")
     
     tumor_types = [col for col in adata.obs.columns if col.startswith('TC_')]
     
-    # Focus on tumor regions
+    # Focus on tumor regions only
     tumor_mask = adata.obs['Is_Tumor_Region']
     hotspot_mask = adata.obs['Is_Vascular_Hotspot']
     
-    # Co-occurrence: same spot has both vessels and tumor cells
+    # Restrict all analysis to tumor regions only
+    tumor_data = adata.obs[tumor_mask].copy()
+    
+    if len(tumor_data) == 0:
+        print(f"    Warning: No tumor regions found in {slide_name}")
+        return {}
+    
+    # Get hotspot status within tumor regions
+    hotspot_in_tumor = tumor_data['Is_Vascular_Hotspot']
+    
     cooccurrence_results = {}
     
-    print(f"    Co-occurrence analysis (same 100μm spot):")
+    print(f"    Co-occurrence analysis (same 100μm spot within tumor regions):")
+    print(f"    Total tumor spots: {len(tumor_data)}")
+    print(f"    Vascular hotspots in tumor: {hotspot_in_tumor.sum()} ({hotspot_in_tumor.mean()*100:.1f}%)")
     
     for tc_type in tumor_types:
+        if tc_type not in tumor_data.columns:
+            continue
+            
         # Define tumor-positive spots (within tumor regions only)
-        tumor_region_values = adata.obs.loc[tumor_mask, tc_type]
-        tumor_positive_threshold = np.percentile(tumor_region_values, 90)  # Top 25% within tumor regions
-        tumor_positive_mask = adata.obs[tc_type] >= tumor_positive_threshold
+        tumor_values = tumor_data[tc_type]
+        tumor_positive_threshold = np.percentile(tumor_values, 90)  # Top 10% within tumor regions
+        tumor_positive_in_tumor = tumor_values >= tumor_positive_threshold
         
-        # Co-occurrence: hotspot + tumor in same spot (within tumor regions)
-        cooccurrence_mask = hotspot_mask & tumor_positive_mask & tumor_mask
+        # Four categories (all within tumor regions)
+        cooccurrence_mask = hotspot_in_tumor & tumor_positive_in_tumor    # Both high
+        hotspot_only = hotspot_in_tumor & (~tumor_positive_in_tumor)      # Vessels only
+        tumor_only = (~hotspot_in_tumor) & tumor_positive_in_tumor        # Tumor only  
+        neither = (~hotspot_in_tumor) & (~tumor_positive_in_tumor)        # Neither
         
-        # Control groups (within tumor regions)
-        hotspot_only = hotspot_mask & (~tumor_positive_mask) & tumor_mask
-        tumor_only = tumor_positive_mask & (~hotspot_mask) & tumor_mask
-        neither = (~hotspot_mask) & (~tumor_positive_mask) & tumor_mask
-        
+        # Counts
         n_cooccurrence = cooccurrence_mask.sum()
         n_hotspot_only = hotspot_only.sum()
         n_tumor_only = tumor_only.sum()
         n_neither = neither.sum()
-        n_total_tumor = tumor_mask.sum()
+        n_total_tumor = len(tumor_data)
+        
+        # Verify counts add up
+        total_check = n_cooccurrence + n_hotspot_only + n_tumor_only + n_neither
+        assert total_check == n_total_tumor, f"Count mismatch: {total_check} != {n_total_tumor}"
         
         # Calculate metastasis potential metrics
         if n_total_tumor > 0:
             cooccurrence_rate = n_cooccurrence / n_total_tumor * 100
             
-            # FIXED: Statistical enrichment within tumor regions only
-            hotspot_rate_in_tumor = (hotspot_mask & tumor_mask).sum() / n_total_tumor
-            tumor_rate_in_tumor = (tumor_positive_mask & tumor_mask).sum() / n_total_tumor
-            expected_cooccurrence = hotspot_rate_in_tumor * tumor_rate_in_tumor * n_total_tumor
+            # Expected co-occurrence under independence (within tumor regions)
+            hotspot_rate = hotspot_in_tumor.mean()
+            tumor_positive_rate = tumor_positive_in_tumor.mean()
+            expected_cooccurrence = hotspot_rate * tumor_positive_rate * n_total_tumor
             
+            # Enrichment ratio
             enrichment_ratio = n_cooccurrence / (expected_cooccurrence + 1e-6)
             
-            # ADDED: Fisher's exact test for significance
-            contingency_table = [[n_cooccurrence, n_tumor_only], 
-                               [n_hotspot_only, n_neither]]
-            odds_ratio, p_value = fisher_exact(contingency_table)
-            significance = "***" if p_value < 0.001 else "**" if p_value < 0.01 else "*" if p_value < 0.05 else "ns"
+            # Fisher's exact test for significance
+            # Test: Are vascular hotspots and tumor-positive status independent?
+            contingency_table = [[n_cooccurrence, n_tumor_only],      # Tumor-positive row
+                               [n_hotspot_only, n_neither]]           # Tumor-negative row
             
+            try:
+                odds_ratio, p_value = fisher_exact(contingency_table)
+            except ValueError as e:
+                print(f"      Warning: Fisher's test failed for {tc_type}: {e}")
+                odds_ratio, p_value = np.nan, 1.0
+            
+            significance = "***" if p_value < 0.001 else "**" if p_value < 0.01 else "*" if p_value < 0.05 else "ns"
+                        
             cooccurrence_results[tc_type] = {
                 'cooccurrence_spots': n_cooccurrence,
                 'cooccurrence_rate': cooccurrence_rate,
                 'enrichment_ratio': enrichment_ratio,
                 'odds_ratio': odds_ratio,
                 'p_value': p_value,
-                'total_tumor_spots': n_total_tumor
+                'significance': significance,
+                'total_tumor_spots': n_total_tumor,
+                'expected_cooccurrence': expected_cooccurrence,
+                'hotspot_rate': hotspot_rate * 100,
+                'tumor_positive_rate': tumor_positive_rate * 100,
+                'contingency_table': contingency_table,
+                'counts': {
+                    'cooccurrence': n_cooccurrence,
+                    'hotspot_only': n_hotspot_only, 
+                    'tumor_only': n_tumor_only,
+                    'neither': n_neither
+                }
             }
             
-            print(f"      {tc_type}: {n_cooccurrence}/{n_total_tumor} spots ({cooccurrence_rate:.1f}%), "
-                  f"enrichment={enrichment_ratio:.2f}x, OR={odds_ratio:.2f}, p={p_value:.3f} {significance}")
+            print(f"      {tc_type}:")
+            print(f"        Co-occurrence: {n_cooccurrence}/{n_total_tumor} spots ({cooccurrence_rate:.1f}%)")
+            print(f"        Expected: {expected_cooccurrence:.1f}, Enrichment: {enrichment_ratio:.2f}x")
+            print(f"        Odds Ratio: {odds_ratio:.2f}, p-value: {p_value:.3f} {significance}")
     
     return cooccurrence_results
 
 def visualize_hotspot_cooccurrence(adata, slide_name, cooccurrence_results, slide_dir):
-    """Enhanced metastasis potential with statistical annotations"""
+    """
+    Enhanced co-occurrence visualization with meaningful biological interpretation
+    """
     
-    treatment = adata.obs['treatment_status'].iloc[0]
+    if not cooccurrence_results:
+        print(f"No co-occurrence results to visualize for {slide_name}")
+        return
     
-    if len(cooccurrence_results) > 0:
-        # Create enhanced figure
-        fig, axes = plt.subplots(1, 3, figsize=(18, 6))
+    treatment = adata.obs['treatment_status'].iloc[0] if 'treatment_status' in adata.obs.columns else 'Unknown'
+    
+    # Create figure with 2x2 layout
+    fig, axes = plt.subplots(2, 2, figsize=(16, 12))
+    axes = axes.flatten()
+    
+    # Extract data for visualization
+    tumor_types = []
+    enrichment_ratios = []
+    cooccurrence_rates = []
+    p_values = []
+    significance_levels = []
+    observed_counts = []
+    expected_counts = []
+    
+    for tc_type, results in cooccurrence_results.items():
+        tumor_types.append(tc_type.replace('TC_', ''))
+        enrichment_ratios.append(results['enrichment_ratio'])
+        cooccurrence_rates.append(results['cooccurrence_rate'])
+        p_values.append(results['p_value'])
+        significance_levels.append(results['significance'])
+        observed_counts.append(results['cooccurrence_spots'])
+        expected_counts.append(results['expected_cooccurrence'])
+    
+    # Color scheme based on vessel association behavior
+    colors = []
+    for ratio in enrichment_ratios:
+        if ratio > 1.2:
+            colors.append('#E74C3C')  # Red: Vessel-seeking
+        elif ratio < 0.8:
+            colors.append('#3498DB')  # Blue: Vessel-avoiding
+        else:
+            colors.append('#95A5A6')  # Gray: Neutral
+    
+    # 1. Enhanced Enrichment Ratio Plot
+    bars1 = axes[0].bar(tumor_types, enrichment_ratios, color=colors, 
+                       alpha=0.8, edgecolor='white', linewidth=1.5)
+    
+    # Add reference lines
+    axes[0].axhline(y=1, color='black', linestyle='-', linewidth=2, alpha=0.8, label='Expected (1.0x)')
+    axes[0].axhline(y=1.2, color='#E74C3C', linestyle='--', alpha=0.7, label='Vessel-seeking (>1.2x)')
+    axes[0].axhline(y=0.8, color='#3498DB', linestyle='--', alpha=0.7, label='Vessel-avoiding (<0.8x)')
+    
+    # Add value labels with significance
+    for i, (bar, ratio, sig) in enumerate(zip(bars1, enrichment_ratios, significance_levels)):
+        height = bar.get_height()
+        y_pos = height + 0.05 if height > 0 else height - 0.05
+        va = 'bottom' if height > 0 else 'top'
         
-        tumor_types = list(cooccurrence_results.keys())
-        tumor_types_clean = [tc.replace('TC_', '') for tc in tumor_types]
+        # Format significance
+        sig_marker = {"***": "***", "**": "**", "*": "*", "ns": ""}[sig]
+        label_text = f'{ratio:.2f}\n{sig_marker}'
         
-        # Data extraction
-        cooccurrence_rates = [cooccurrence_results[tc]['cooccurrence_rate'] for tc in tumor_types]
-        enrichment_ratios = [cooccurrence_results[tc]['enrichment_ratio'] for tc in tumor_types]
-        p_values = [cooccurrence_results[tc]['p_value'] for tc in tumor_types]
-        odds_ratios = [cooccurrence_results[tc]['odds_ratio'] for tc in tumor_types]
-        
-        # 1. Enhanced Co-occurrence Rates
-        colors_rate = [HIGH_RISK_COLOR if 'Glycolysis' in tc else 
-                      VESSEL_SEEKING_COLOR if rate > 2.0 else 
-                      NEUTRAL_COLOR for tc, rate in zip(tumor_types, cooccurrence_rates)]
-        
-        bars1 = axes[0].bar(tumor_types_clean, cooccurrence_rates, color=colors_rate,
-                           edgecolor='white', linewidth=1.5, alpha=0.8)
-        
-        # Add value labels on bars
-        for i, (bar, rate, p_val) in enumerate(zip(bars1, cooccurrence_rates, p_values)):
+        axes[0].text(bar.get_x() + bar.get_width()/2., y_pos, label_text,
+                    ha='center', va=va, fontweight='bold', fontsize=10)
+    
+    axes[0].set_title('Vessel Association Pattern\n(Enrichment vs Expected)', 
+                     fontsize=14, fontweight='bold', pad=20)
+    axes[0].set_ylabel('Enrichment Ratio\n(Observed/Expected)', fontsize=12, fontweight='bold')
+    axes[0].set_xlabel('Tumor Cell Type', fontsize=12, fontweight='bold')
+    axes[0].tick_params(axis='x', rotation=45, labelsize=11)
+    axes[0].legend(loc='upper right', fontsize=10)
+    axes[0].grid(True, alpha=0.3, axis='y')
+    axes[0].spines['top'].set_visible(False)
+    axes[0].spines['right'].set_visible(False)
+    
+    # 2. Observed vs Expected Co-occurrence
+    x_pos = np.arange(len(tumor_types))
+    width = 0.35
+    
+    bars2a = axes[1].bar(x_pos - width/2, observed_counts, width, label='Observed', 
+                        color='#E74C3C', alpha=0.8)
+    bars2b = axes[1].bar(x_pos + width/2, expected_counts, width, label='Expected', 
+                        color='#95A5A6', alpha=0.6)
+    
+    # Add value labels
+    for bars in [bars2a, bars2b]:
+        for bar in bars:
             height = bar.get_height()
-            significance = "***" if p_val < 0.001 else "**" if p_val < 0.01 else "*" if p_val < 0.05 else ""
-            axes[0].text(bar.get_x() + bar.get_width()/2., height + 0.1,
-                        f'{rate:.1f}%\n{significance}', ha='center', va='bottom',
-                        fontweight='bold', fontsize=10)
-        
-        axes[0].set_title('Vessel Co-occurrence Rate\n(Metastatic Potential)', 
-                         fontsize=14, fontweight='bold', pad=20)
-        axes[0].set_ylabel('Co-occurrence Rate (%)', fontsize=12, fontweight='bold')
-        axes[0].set_xlabel('Tumor Cell Type', fontsize=12, fontweight='bold')
-        axes[0].tick_params(axis='x', rotation=45, labelsize=11)
-        axes[0].grid(True, alpha=0.3, axis='y')
-        axes[0].spines['top'].set_visible(False)
-        axes[0].spines['right'].set_visible(False)
-        
-        # 2. Enhanced Enrichment Ratios with significance zones
-        colors_enrich = [HIGH_RISK_COLOR if ratio > 2.0 else 
-                        VESSEL_SEEKING_COLOR if ratio > 1.5 else 
-                        VESSEL_AVOIDING_COLOR if ratio < 0.67 else 
-                        NEUTRAL_COLOR for ratio in enrichment_ratios]
-        
-        bars2 = axes[1].bar(tumor_types_clean, enrichment_ratios, color=colors_enrich,
-                           edgecolor='white', linewidth=1.5, alpha=0.8)
-        
-        # Reference lines
-        axes[1].axhline(y=1, color='black', linestyle='-', alpha=0.8, linewidth=2)
-        axes[1].axhline(y=2.0, color=HIGH_RISK_COLOR, linestyle='--', alpha=0.7, 
-                       label='High Risk (2x)')
-        axes[1].axhline(y=1.5, color=VESSEL_SEEKING_COLOR, linestyle='--', alpha=0.7, 
-                       label='Enriched (1.5x)')
-        axes[1].axhline(y=0.67, color=VESSEL_AVOIDING_COLOR, linestyle='--', alpha=0.7, 
-                       label='Depleted (0.67x)')
-        
-        # Add value labels
-        for bar, ratio, p_val in zip(bars2, enrichment_ratios, p_values):
-            height = bar.get_height()
-            significance = "***" if p_val < 0.001 else "**" if p_val < 0.01 else "*" if p_val < 0.05 else ""
-            axes[1].text(bar.get_x() + bar.get_width()/2., height + 0.05,
-                        f'{ratio:.2f}\n{significance}', ha='center', va='bottom',
-                        fontweight='bold', fontsize=10)
-        
-        axes[1].set_title('Vessel Co-occurrence Enrichment\n(vs Expected)', 
-                         fontsize=14, fontweight='bold', pad=20)
-        axes[1].set_ylabel('Enrichment Ratio\n(Observed/Expected)', fontsize=12, fontweight='bold')
-        axes[1].set_xlabel('Tumor Cell Type', fontsize=12, fontweight='bold')
-        axes[1].tick_params(axis='x', rotation=45, labelsize=11)
-        axes[1].legend(fontsize=10, loc='upper right')
-        axes[1].grid(True, alpha=0.3, axis='y')
-        axes[1].spines['top'].set_visible(False)
-        axes[1].spines['right'].set_visible(False)
-        
-        # 3. Enhanced Risk Assessment Heatmap
-        # Create risk matrix
-        risk_data = []
-        for i, tc in enumerate(tumor_types_clean):
-            risk_score = (cooccurrence_rates[i] / 5.0) * (enrichment_ratios[i])  # Normalized risk
-            p_val = p_values[i]
-            risk_data.append({
-                'Tumor_Type': tc,
-                'Co-occurrence_Rate': cooccurrence_rates[i],
-                'Enrichment_Ratio': enrichment_ratios[i],
-                'Risk_Score': risk_score,
-                'P_Value': p_val,
-                'Significant': p_val < 0.05
-            })
-        
-        risk_df = pd.DataFrame(risk_data)
-        
-        # Create heatmap data
-        heatmap_data = risk_df.set_index('Tumor_Type')[['Co-occurrence_Rate', 'Enrichment_Ratio', 'Risk_Score']]
-        
-        # Custom colormap
-        cmap = sns.diverging_palette(240, 10, as_cmap=True)
-        
-        im = axes[2].imshow(heatmap_data.T, cmap='Reds', aspect='auto')
-        
-        # Set ticks and labels
-        axes[2].set_xticks(range(len(tumor_types_clean)))
-        axes[2].set_xticklabels(tumor_types_clean, rotation=45, ha='right')
-        axes[2].set_yticks(range(len(heatmap_data.columns)))
-        axes[2].set_yticklabels(['Co-occurrence\nRate (%)', 'Enrichment\nRatio', 'Risk\nScore'])
-        
-        # Add text annotations
-        for i in range(len(tumor_types_clean)):
-            for j, col in enumerate(heatmap_data.columns):
-                value = heatmap_data.iloc[i, j]
-                text = f'{value:.1f}' if j == 0 else f'{value:.2f}'
-                
-                # Add significance markers
-                if risk_df.iloc[i]['Significant']:
-                    text += '*'
-                
-                axes[2].text(i, j, text, ha='center', va='center', 
-                           fontweight='bold', fontsize=10,
-                           color='white' if value > heatmap_data.iloc[:, j].mean() else 'black')
-        
-        axes[2].set_title('Metastatic Risk Assessment\n(* = p<0.05)', 
-                         fontsize=14, fontweight='bold', pad=20)
-        
-        # Add colorbar
-        cbar = plt.colorbar(im, ax=axes[2], shrink=0.8)
-        cbar.set_label('Relative Risk Level', rotation=270, labelpad=20, fontweight='bold')
-        
-        plt.suptitle(f'Metastasis Potential Analysis: {slide_name}\n({treatment.replace("_", " ").title()})', 
-                     fontsize=16, fontweight='bold', y=1.02)
-        
-        plt.tight_layout()
-        plt.savefig(os.path.join(slide_dir, f"enhanced_metastasis_potential_{slide_name}.pdf"), 
-                   bbox_inches='tight', dpi=300, facecolor='white')
-        plt.show()
+            axes[1].text(bar.get_x() + bar.get_width()/2., height + 0.1,
+                        f'{height:.1f}', ha='center', va='bottom', fontsize=9)
+    
+    axes[1].set_title('Co-occurrence Spot Counts\n(Observed vs Expected)', 
+                     fontsize=14, fontweight='bold', pad=20)
+    axes[1].set_ylabel('Number of Co-occurring Spots', fontsize=12, fontweight='bold')
+    axes[1].set_xlabel('Tumor Cell Type', fontsize=12, fontweight='bold')
+    axes[1].set_xticks(x_pos)
+    axes[1].set_xticklabels(tumor_types, rotation=45)
+    axes[1].legend()
+    axes[1].grid(True, alpha=0.3, axis='y')
+    axes[1].spines['top'].set_visible(False)
+    axes[1].spines['right'].set_visible(False)
+    
+    # 3. Statistical Significance Landscape
+    # Create a heatmap-style visualization of p-values
+    p_value_matrix = np.array(p_values).reshape(1, -1)
+    
+    # Create custom colormap for p-values
+    from matplotlib.colors import ListedColormap
+    p_colors = ['#E74C3C', '#F39C12', '#F1C40F', '#95A5A6']  # red, orange, yellow, gray
+    p_cmap = ListedColormap(p_colors)
+    
+    # Convert p-values to categories
+    p_categories = []
+    for p in p_values:
+        if p < 0.001:
+            p_categories.append(0)  # Highly significant
+        elif p < 0.01:
+            p_categories.append(1)  # Significant
+        elif p < 0.05:
+            p_categories.append(2)  # Marginally significant
+        else:
+            p_categories.append(3)  # Not significant
+    
+    p_category_matrix = np.array(p_categories).reshape(1, -1)
+    
+    im = axes[2].imshow(p_category_matrix, cmap=p_cmap, aspect='auto', vmin=0, vmax=3)
+    
+    # Customize the heatmap
+    axes[2].set_xticks(range(len(tumor_types)))
+    axes[2].set_xticklabels(tumor_types, rotation=45)
+    axes[2].set_yticks([0])
+    axes[2].set_yticklabels(['P-value'])
+    axes[2].set_title('Statistical Significance\n(Fisher\'s Exact Test)', 
+                     fontsize=14, fontweight='bold', pad=20)
+    
+    # Add text annotations with actual p-values
+    for i, (p_val, sig) in enumerate(zip(p_values, significance_levels)):
+        color = 'white' if p_categories[i] < 2 else 'black'
+        axes[2].text(i, 0, f'{p_val:.3f}\n({sig})', ha='center', va='center', 
+                    fontweight='bold', fontsize=10, color=color)
+    
+    # Add colorbar legend
+    p_labels = ['p<0.001\n(***)', 'p<0.01\n(**)', 'p<0.05\n(*)', 'p≥0.05\n(ns)']
+    legend_patches = [mpatches.Patch(color=p_colors[i], label=p_labels[i]) for i in range(4)]
+    axes[2].legend(handles=legend_patches, bbox_to_anchor=(1.05, 1), loc='upper left')
+
+    # 4. Precision vs Recall Analysis
+    scatter1 = axes[3].scatter(cooccurrence_rates, enrichment_ratios, c=colors, s=100, 
+                              edgecolors='black', linewidths=1, alpha=0.8)
+    for i, tumor_type in enumerate(tumor_types):
+        axes[3].annotate(tumor_type, (cooccurrence_rates[i], enrichment_ratios[i]), 
+                        xytext=(5, 5), textcoords='offset points', fontsize=10)
+    axes[3].axhline(y=1, color='black', linestyle='-', linewidth=2, alpha=0.8)
+    axes[3].set_xlabel('Co-occurrence Rate (%)')
+    axes[3].set_ylabel('Enrichment Ratio')
+    axes[3].set_title('Option 1: Spatial Association Summary')
+    axes[3].grid(True, alpha=0.3)
+
+    # Overall styling
+    plt.suptitle(f'Vessel-Tumor Co-occurrence Analysis: {slide_name}\n'
+                f'Treatment: {treatment.replace("_", " ").title()}', 
+                fontsize=16, fontweight='bold', y=0.98)
+    
+    plt.tight_layout(rect=[0, 0, 1, 0.95])
+    
+    # Save figure
+    save_path = os.path.join(slide_dir, f"enhanced_cooccurrence_analysis_{slide_name}.pdf")
+    plt.savefig(save_path, bbox_inches='tight', dpi=300, facecolor='white')
+    print(f"Co-occurrence analysis saved to: {save_path}")
+    
+    plt.show()
+    
+    return None
 
 #%% Step 6: Treatment Effect Analysis
 
-def analyze_treatment_effects_single_slide(adata, slide_name, associations, cooccurrence_results):
-    """Extract treatment-relevant metrics for cross-slide comparison"""
+def analyze_treatment_effects_single_slide(adata, slide_name, associations, cooccurrence_results, distance_profiles=None):
+    """
+    Extract treatment-relevant metrics for cross-slide comparison
+    Uses pre-calculated results from associations, cooccurrence_results, and distance_profiles
+    """
     
     treatment = adata.obs['treatment_status'].iloc[0]
     
-    # Treatment metrics
+    print(f"  Extracting treatment metrics for {slide_name} ({treatment})...")
+    
+    # Basic treatment metrics
     treatment_metrics = {
         'slide_name': slide_name,
         'treatment': treatment,
@@ -662,172 +958,186 @@ def analyze_treatment_effects_single_slide(adata, slide_name, associations, cooc
         'vascular_hotspots': adata.obs['Is_Vascular_Hotspot'].sum()
     }
     
-    # Tumor cell abundances
-    tumor_types = [col for col in adata.obs.columns if col.startswith('TC_')]
+    # Calculate basic coverage metrics
     tumor_mask = adata.obs['Is_Tumor_Region']
+    hotspot_mask = adata.obs['Is_Vascular_Hotspot']
     
+    treatment_metrics['tumor_coverage_pct'] = (tumor_mask.sum() / len(adata.obs)) * 100
+    treatment_metrics['vascular_density_pct'] = (hotspot_mask.sum() / len(adata.obs)) * 100
+    treatment_metrics['vascular_in_tumor_pct'] = ((hotspot_mask & tumor_mask).sum() / tumor_mask.sum()) * 100 if tumor_mask.sum() > 0 else 0
+    
+    # 1. Overall tumor abundances (basic stats only)
+    tumor_types = [col for col in adata.obs.columns if col.startswith('TC_')]
     for tc_type in tumor_types:
         if tumor_mask.sum() > 0:
             treatment_metrics[f'{tc_type}_mean_abundance'] = adata.obs.loc[tumor_mask, tc_type].mean()
+            treatment_metrics[f'{tc_type}_std_abundance'] = adata.obs.loc[tumor_mask, tc_type].std()
+            treatment_metrics[f'{tc_type}_max_abundance'] = adata.obs.loc[tumor_mask, tc_type].max()
     
-    # Vessel associations
+    # 2. Zone-specific abundances from associations (DIRECT USE)
+    print(f"    Using pre-calculated zone abundances from associations...")
     for tc_type, assoc in associations.items():
+        # Distance correlation (already calculated)
         treatment_metrics[f'{tc_type}_vessel_correlation'] = assoc['distance_correlation']
+        
+        # Vessel behavior classification
+        correlation = assoc['distance_correlation']
+        if correlation < -0.2:
+            behavior = 'vessel_seeking'
+        elif correlation > 0.2:
+            behavior = 'vessel_avoiding'
+        else:
+            behavior = 'neutral'
+        treatment_metrics[f'{tc_type}_vessel_behavior'] = behavior
+        
+        # Zone abundances (directly from associations)
+        if 'zone_abundances' in assoc:
+            zone_abundances = assoc['zone_abundances']
+            
+            # Store each zone abundance directly
+            for zone, abundance in zone_abundances.items():
+                treatment_metrics[f'{tc_type}_{zone}_abundance'] = abundance
+            
+            # Calculate derived zone metrics
+            if 'Perivascular' in zone_abundances and 'Distant' in zone_abundances:
+                peri_abundance = zone_abundances['Perivascular']
+                distant_abundance = zone_abundances['Distant']
+                gradient = (distant_abundance - peri_abundance) / (peri_abundance + 1e-6)
+                treatment_metrics[f'{tc_type}_peri_to_distant_gradient'] = gradient
+                
+            # Zone preference metrics
+            if zone_abundances:
+                max_zone = max(zone_abundances, key=zone_abundances.get)
+                max_abundance = zone_abundances[max_zone]
+                min_abundance = min(zone_abundances.values())
+                zone_selectivity = (max_abundance - min_abundance) / (max_abundance + 1e-6)
+                treatment_metrics[f'{tc_type}_zone_selectivity'] = zone_selectivity
+                treatment_metrics[f'{tc_type}_preferred_zone'] = max_zone
     
-    # Co-occurrence metrics
+    # 3. Distance bin abundances from distance profiles (DIRECT USE)
+    if distance_profiles:
+        print(f"    Using pre-calculated distance profiles...")
+        for tc_type, profile in distance_profiles.items():
+            # Distance profile data (already calculated)
+            if 'distances' in profile and 'abundances' in profile:
+                distances = profile['distances']
+                abundances = profile['abundances']
+                ranges = profile.get('ranges', [])
+                
+                # Store distance bin abundances using pre-calculated ranges
+                for i, (dist, abund) in enumerate(zip(distances, abundances)):
+                    if i < len(ranges):
+                        range_label = ranges[i]  # Use pre-calculated range labels
+                    else:
+                        range_label = f"{int(dist-27.5)}-{int(dist+27.5)}"  # Fallback
+                    
+                    treatment_metrics[f'{tc_type}_dist_{range_label}_abundance'] = abund
+                
+                # Distance profile summary statistics (direct from arrays)
+                treatment_metrics[f'{tc_type}_dist_profile_range'] = abundances.max() - abundances.min()
+                treatment_metrics[f'{tc_type}_dist_profile_mean'] = abundances.mean()
+                treatment_metrics[f'{tc_type}_dist_profile_std'] = abundances.std()
+                
+                # Peak distance (where abundance is highest)
+                peak_idx = np.argmax(abundances)
+                treatment_metrics[f'{tc_type}_peak_distance'] = distances[peak_idx]
+                treatment_metrics[f'{tc_type}_peak_abundance'] = abundances[peak_idx]
+                
+                # Additional pre-calculated metrics from distance profiles
+                if 'total_spots' in profile:
+                    treatment_metrics[f'{tc_type}_dist_total_spots'] = profile['total_spots']
+                if 'coverage_rate' in profile:
+                    treatment_metrics[f'{tc_type}_dist_coverage_rate'] = profile['coverage_rate']
+    
+    # 4. Spatial zone distributions (minimal calculation)
+    if 'Spatial_Zone' in adata.obs.columns:
+        # Overall zone distribution
+        zone_counts = adata.obs['Spatial_Zone'].value_counts()
+        total_spots = len(adata.obs)
+        
+        for zone in ['Perivascular', 'Intermediate', 'Distant']:
+            count = zone_counts.get(zone, 0)
+            treatment_metrics[f'{zone}_zone_spots'] = count
+            treatment_metrics[f'{zone}_zone_pct'] = (count / total_spots) * 100
+        
+        # Tumor-specific zone distributions
+        if tumor_mask.sum() > 0:
+            tumor_zones = adata.obs.loc[tumor_mask, 'Spatial_Zone'].value_counts()
+            tumor_total = tumor_mask.sum()
+            
+            for zone in ['Perivascular', 'Intermediate', 'Distant']:
+                count = tumor_zones.get(zone, 0)
+                treatment_metrics[f'{zone}_tumor_spots'] = count
+                treatment_metrics[f'{zone}_tumor_pct'] = (count / tumor_total) * 100
+    
+    # 5. Co-occurrence metrics (DIRECT USE)
+    print(f"    Using pre-calculated co-occurrence results...")
     for tc_type, cooc in cooccurrence_results.items():
+        # Core co-occurrence metrics (already calculated)
         treatment_metrics[f'{tc_type}_cooccurrence_rate'] = cooc['cooccurrence_rate']
         treatment_metrics[f'{tc_type}_enrichment_ratio'] = cooc['enrichment_ratio']
+        treatment_metrics[f'{tc_type}_cooccurrence_pvalue'] = cooc['p_value']
+        treatment_metrics[f'{tc_type}_cooccurrence_significant'] = cooc['significance'] != 'ns'
+        treatment_metrics[f'{tc_type}_odds_ratio'] = cooc['odds_ratio']
+        
+        # Additional pre-calculated metrics
+        if 'expected_cooccurrence' in cooc:
+            treatment_metrics[f'{tc_type}_expected_cooccurrence'] = cooc['expected_cooccurrence']
+        if 'hotspot_rate' in cooc:
+            treatment_metrics[f'{tc_type}_hotspot_rate'] = cooc['hotspot_rate']
+        if 'tumor_positive_rate' in cooc:
+            treatment_metrics[f'{tc_type}_tumor_positive_rate'] = cooc['tumor_positive_rate']
+        if 'precision' in cooc:
+            treatment_metrics[f'{tc_type}_precision'] = cooc['precision']
+        if 'recall' in cooc:
+            treatment_metrics[f'{tc_type}_recall'] = cooc['recall']
+        
+        # Co-occurrence classification
+        enrichment = cooc['enrichment_ratio']
+        p_value = cooc['p_value']
+        
+        if p_value < 0.05:
+            if enrichment > 1.2:
+                cooc_class = 'significant_attraction'
+            elif enrichment < 0.8:
+                cooc_class = 'significant_avoidance'
+            else:
+                cooc_class = 'significant_neutral'
+        else:
+            cooc_class = 'not_significant'
+        
+        treatment_metrics[f'{tc_type}_cooccurrence_class'] = cooc_class
+    
+    # 6. Summary spatial metrics (using pre-calculated zone abundances)
+    print(f"    Calculating summary spatial metrics from pre-calculated data...")
+    
+    # Spatial heterogeneity index using zone abundances from associations
+    for tc_type in associations.keys():
+        if 'zone_abundances' in associations[tc_type]:
+            zone_abunds = list(associations[tc_type]['zone_abundances'].values())
+            if len(zone_abunds) > 1:
+                cv = np.std(zone_abunds) / (np.mean(zone_abunds) + 1e-6)
+                treatment_metrics[f'{tc_type}_spatial_heterogeneity'] = cv
+    
+    # Dominant tumor type in each zone (using associations data)
+    for zone in ['Perivascular', 'Intermediate', 'Distant']:
+        zone_abundances = {}
+        for tc_type in associations.keys():
+            if 'zone_abundances' in associations[tc_type]:
+                zone_abundances[tc_type] = associations[tc_type]['zone_abundances'].get(zone, 0)
+        
+        if zone_abundances:
+            dominant_type = max(zone_abundances, key=zone_abundances.get)
+            dominant_abundance = zone_abundances[dominant_type]
+            treatment_metrics[f'{zone}_dominant_tumor_type'] = dominant_type
+            treatment_metrics[f'{zone}_dominant_abundance'] = dominant_abundance
+    
+    print(f"    ✓ Extracted {len(treatment_metrics)} metrics for {slide_name}")
     
     return treatment_metrics
 
-#%% Step 7: Spatial Competition and EMT Transition Analysis
 
-def analyze_spatial_competition_emt(adata, slide_name):
-    """Analyze tumor subtype spatial competition and EMT transitions"""
-    
-    print(f"  Analyzing spatial competition and EMT transitions...")
-    
-    tumor_types = [col for col in adata.obs.columns if col.startswith('TC_')]
-    tumor_mask = adata.obs['Is_Tumor_Region']
-    tumor_data = adata.obs[tumor_mask]
-    
-    # Pairwise correlations
-    tumor_pairs = [
-        ('TC_Glycolysis', 'TC_Quiescent'),
-        ('TC_Glycolysis', 'TC_EMT'),
-        ('TC_Quiescent', 'TC_EMT'),
-        ('TC_EMT', 'TC_Proliferation')
-    ]
-    
-    pairwise_results = {}
-    
-    print(f"    Pairwise correlations in tumor regions:")
-    
-    for tc1, tc2 in tumor_pairs:
-        if tc1 in tumor_types and tc2 in tumor_types:
-            if tumor_data[tc1].var() > 0 and tumor_data[tc2].var() > 0:
-                corr, p_value = spearmanr(tumor_data[tc1], tumor_data[tc2])
-                
-                relationship = "co-occurrence" if corr > 0.2 else \
-                             "mutual exclusion" if corr < -0.2 else "independent"
-                
-                pairwise_results[f'{tc1}_vs_{tc2}'] = {
-                    'correlation': corr,
-                    'p_value': p_value,
-                    'relationship': relationship
-                }
-                
-                significance = "***" if p_value < 0.001 else "**" if p_value < 0.01 else "*" if p_value < 0.05 else "ns"
-                print(f"      {tc1} vs {tc2}: r={corr:+.3f} ({relationship}) p={p_value:.3f} {significance}")
-    
-    # EMT region analysis using gene-based score
-    emt_results = {}
-    
-    if 'EMT_Score' in adata.obs.columns:
-        # Define high EMT regions using gene-based score
-        emt_threshold = np.percentile(tumor_data['EMT_Score'], 75)  # Top 25%
-        high_emt_mask = tumor_data['EMT_Score'] >= emt_threshold
-        
-        n_high_emt = high_emt_mask.sum()
-        print(f"    High EMT regions: {n_high_emt} spots ({n_high_emt/len(tumor_data)*100:.1f}% of tumor)")
-        
-        if n_high_emt > 5:
-            # Analyze other tumor types in EMT regions
-            for tc_type in tumor_types:
-                if tc_type != 'TC_EMT':  # Skip TC_EMT itself
-                    high_emt_abundance = tumor_data.loc[high_emt_mask, tc_type].mean()
-                    low_emt_abundance = tumor_data.loc[~high_emt_mask, tc_type].mean()
-                    
-                    fold_change = high_emt_abundance / (low_emt_abundance + 1e-6)
-                    
-                    emt_results[f'{tc_type}_in_high_emt'] = {
-                        'fold_enrichment': fold_change,
-                        'high_emt_abundance': high_emt_abundance,
-                        'low_emt_abundance': low_emt_abundance
-                    }
-                    
-                    print(f"      {tc_type} in high EMT: {fold_change:.2f}x enrichment")
-    
-    return pairwise_results, emt_results
-
-def visualize_competition_emt(adata, slide_name, pairwise_results, emt_results, slide_dir):
-    """Visualize spatial competition and EMT patterns"""
-    
-    treatment = adata.obs['treatment_status'].iloc[0]
-    
-    # 1. Pairwise correlation matrix
-    if len(pairwise_results) > 0:
-        tumor_pairs = list(pairwise_results.keys())
-        all_tumor_types = list(set([pair.split('_vs_')[0] for pair in tumor_pairs] + 
-                                  [pair.split('_vs_')[1] for pair in tumor_pairs]))
-        
-        # Create correlation matrix
-        n_types = len(all_tumor_types)
-        corr_matrix = np.eye(n_types)
-        
-        for pair, results in pairwise_results.items():
-            tc1, tc2 = pair.split('_vs_')
-            if tc1 in all_tumor_types and tc2 in all_tumor_types:
-                i1 = all_tumor_types.index(tc1)
-                i2 = all_tumor_types.index(tc2)
-                corr_matrix[i1, i2] = results['correlation']
-                corr_matrix[i2, i1] = results['correlation']
-        
-        plt.figure(figsize=(8, 6))
-        sns.heatmap(corr_matrix, 
-                   xticklabels=all_tumor_types,
-                   yticklabels=all_tumor_types,
-                   annot=True, fmt='.2f', cmap='RdBu_r', center=0,
-                   cbar_kws={'label': 'Correlation'})
-        
-        plt.title(f'Tumor Subtype Spatial Competition - {slide_name} ({treatment})', fontweight='bold')
-        plt.xticks(rotation=45)
-        plt.yticks(rotation=45)
-        plt.tight_layout()
-        plt.savefig(os.path.join(slide_dir, f"spatial_competition_{slide_name}.pdf"), 
-                   bbox_inches='tight', dpi=300)
-        plt.show()
-    
-    # 2. EMT region analysis
-    if 'EMT_Score' in adata.obs.columns:
-        tumor_mask = adata.obs['Is_Tumor_Region']
-        adata_tumor = adata[tumor_mask].copy()
-        
-        fig, axes = plt.subplots(1, 2, figsize=(12, 5))
-        
-        # EMT score spatial distribution
-        sc.pl.spatial(adata_tumor, color='EMT_Score', cmap='viridis',
-                     ax=axes[0], size=1.2, img_key='hires', show=False,
-                     title='EMT Score (Gene-based)')
-        
-        # EMT enrichment in other tumor types
-        if len(emt_results) > 0:
-            tumor_types_emt = []
-            enrichments = []
-            
-            for key, results in emt_results.items():
-                if key.endswith('_in_high_emt'):
-                    tumor_type = key.replace('_in_high_emt', '')
-                    tumor_types_emt.append(tumor_type)
-                    enrichments.append(results['fold_enrichment'])
-            
-            if len(enrichments) > 0:
-                colors = ['red' if e > 1.2 else 'blue' if e < 0.8 else 'gray' for e in enrichments]
-                bars = axes[1].bar(tumor_types_emt, enrichments, color=colors)
-                axes[1].axhline(y=1, color='black', linestyle='-', alpha=0.5)
-                axes[1].set_title('Enrichment in High EMT Regions')
-                axes[1].set_ylabel('Fold Enrichment')
-                axes[1].tick_params(axis='x', rotation=45)
-        
-        plt.suptitle(f'EMT Transition Analysis - {slide_name} ({treatment})', 
-                     fontsize=14, fontweight='bold')
-        plt.tight_layout()
-        plt.savefig(os.path.join(slide_dir, f"emt_transitions_{slide_name}.pdf"), 
-                   bbox_inches='tight', dpi=300)
-        plt.show()
-
-#%% STEP 1: IDENTIFY VESSEL-ASSOCIATED GENES
+#%% STEP 8: IDENTIFY VESSEL-ASSOCIATED GENES
 
 def identify_vessel_proximity_genes(adata, slide_name):
     """
@@ -1056,34 +1366,94 @@ def load_pathway_databases():
         
         return backup_pathways
 
-def calculate_pathway_scores(adata, vessel_pathways, method='mean'):
+def calculate_pathway_scores(adata, vessel_pathways, method='ssgsea'):
     """
-    Calculate pathway enrichment scores for each spot
+    Calculate pathway enrichment scores for each spot using ssGSEA-like algorithm
     """
     print(f"  Calculating pathway scores using {method} method...")
     
     pathway_scores = {}
     available_genes = adata.var.index.tolist()
-
+    
     if hasattr(adata.X, 'toarray'):
-        all_expr = adata.X.toarray()
+        expr_matrix = adata.X.toarray()
     else:
-        all_expr = adata.X
+        expr_matrix = adata.X
+    
+    n_spots, n_genes = expr_matrix.shape
     
     for pathway_name, pathway_genes in vessel_pathways.items():
         # Find available genes in the pathway
         available_pathway_genes = [gene for gene in pathway_genes if gene in available_genes]
         
         if len(available_pathway_genes) >= 3:  # Minimum genes for reliable score
-            if method == 'mean':
-                # Simple mean expression method
-                pathway_indices = [adata.var.index.get_loc(gene) for gene in available_pathway_genes]
-                pathway_expr = all_expr[:, pathway_indices]
+            print(f"    {pathway_name}: {len(available_pathway_genes)}/{len(pathway_genes)} genes available")
+            
+            if method == 'ssgsea':
+                # ssGSEA-like enrichment score calculation
+                pathway_scores_list = []
                 
+                # Get indices of pathway genes
+                pathway_indices = [adata.var.index.get_loc(gene) for gene in available_pathway_genes]
+                pathway_set = set(pathway_indices)
+                
+                for spot_idx in range(n_spots):
+                    # Get expression values for this spot
+                    spot_expr = expr_matrix[spot_idx, :]
+                    
+                    # Rank genes by expression (descending order)
+                    gene_ranks = np.argsort(-spot_expr)  # Negative for descending
+                    
+                    # Calculate enrichment score
+                    enrichment_score = 0
+                    max_enrichment = 0
+                    min_enrichment = 0
+                    
+                    # Parameters for weighting
+                    n_pathway_genes = len(pathway_indices)
+                    n_total_genes = len(gene_ranks)
+                    
+                    # Walk through ranked gene list
+                    for rank_pos, gene_idx in enumerate(gene_ranks):
+                        if gene_idx in pathway_set:
+                            # Gene is in pathway - increase score
+                            enrichment_score += 1.0 / n_pathway_genes
+                        else:
+                            # Gene not in pathway - decrease score
+                            enrichment_score -= 1.0 / (n_total_genes - n_pathway_genes)
+                        
+                        # Track maximum and minimum enrichment
+                        if enrichment_score > max_enrichment:
+                            max_enrichment = enrichment_score
+                        if enrichment_score < min_enrichment:
+                            min_enrichment = enrichment_score
+                    
+                    # Final enrichment score is the maximum absolute deviation
+                    if abs(max_enrichment) > abs(min_enrichment):
+                        final_score = max_enrichment
+                    else:
+                        final_score = min_enrichment
+                    
+                    pathway_scores_list.append(final_score)
+                
+                pathway_scores[pathway_name] = np.array(pathway_scores_list)
+                
+            elif method == 'mean':
+                # Simple mean expression method (your original)
+                pathway_indices = [adata.var.index.get_loc(gene) for gene in available_pathway_genes]
+                pathway_expr = expr_matrix[:, pathway_indices]
                 pathway_score = np.mean(pathway_expr, axis=1)
                 pathway_scores[pathway_name] = pathway_score
+            
+            elif method == 'zscore_mean':
+                # Z-score normalized mean
+                pathway_indices = [adata.var.index.get_loc(gene) for gene in available_pathway_genes]
+                pathway_expr = expr_matrix[:, pathway_indices]
                 
-                print(f"    {pathway_name}: {len(available_pathway_genes)}/{len(pathway_genes)} genes available")
+                # Z-score normalize each gene across spots
+                pathway_expr_zscore = (pathway_expr - np.mean(pathway_expr, axis=0)) / (np.std(pathway_expr, axis=0) + 1e-8)
+                pathway_score = np.mean(pathway_expr_zscore, axis=1)
+                pathway_scores[pathway_name] = pathway_score
     
     return pathway_scores
 
@@ -1132,7 +1502,7 @@ def perform_vessel_pathway_enrichment(adata, gene_correlations, vessel_pathways,
                 # Simple enrichment calculation (can be enhanced with Fisher's exact test)
                 total_genes_in_pathway = len(pathway_genes)
                 total_vessel_genes = len(genes)
-                enrichment_ratio = (overlap_count / total_vessel_genes) / (total_genes_in_pathway / 20000)  # Assume ~20k total genes
+                enrichment_ratio = (overlap_count / total_vessel_genes) / (total_genes_in_pathway / len(adata.var_names))  # Assume ~20k total genes
                 
                 set_enrichments[pathway_name] = {
                     'overlap_count': overlap_count,
@@ -1338,10 +1708,16 @@ def create_pathway_comparison_plot(pathway_scores, adata, ax):
 
 def add_statistical_annotations(ax, pathway_region_data, plot_df):
     """
-    Add statistical significance annotations using Wilcoxon test
+    Add statistical significance annotations using Wilcoxon test with BH correction
     """
+    from statsmodels.stats.multitest import multipletests
+    
     pathways = list(pathway_region_data.keys())
     x_positions = range(len(pathways))
+    
+    # First pass: collect all p-values
+    p_values = []
+    valid_comparisons = []
     
     for i, pathway in enumerate(pathways):
         region_data = pathway_region_data[pathway]
@@ -1351,34 +1727,43 @@ def add_statistical_annotations(ax, pathway_region_data, plot_df):
             len(region_data['Distant']) > 0):
             
             try:
-                # Perform Mann-Whitney U test (non-parametric alternative to t-test)
+                # Perform Mann-Whitney U test
                 statistic, p_value = mannwhitneyu(
                     region_data['Perivascular'], 
                     region_data['Distant'],
                     alternative='two-sided'
                 )
-                
-                # Add significance annotation
-                y_max = plot_df[plot_df['pathway'] == pathway.replace('_', ' ').title()]['score'].max()
-                y_annotation = y_max + (y_max * 0.1)
-                
-                # Significance levels
-                if p_value < 0.001:
-                    sig_text = '***'
-                elif p_value < 0.01:
-                    sig_text = '**'
-                elif p_value < 0.05:
-                    sig_text = '*'
-                else:
-                    sig_text = 'ns'
-                
-                # Add significance text
-                ax.text(i, y_annotation, sig_text, ha='center', va='bottom',
-                       fontweight='bold', fontsize=10)
+                p_values.append(p_value)
+                valid_comparisons.append((i, pathway))
                 
             except Exception as e:
                 continue  # Skip if statistical test fails
-
+    
+    # Apply Benjamini-Hochberg correction
+    if len(p_values) > 0:
+        rejected, corrected_p_values, _, _ = multipletests(p_values, method='fdr_bh')
+        
+        # Second pass: add annotations with corrected p-values
+        for idx, (i, pathway) in enumerate(valid_comparisons):
+            corrected_p = corrected_p_values[idx]
+            
+            # Get y position for annotation
+            y_max = plot_df[plot_df['pathway'] == pathway.replace('_', ' ').title()]['score'].max()
+            y_annotation = y_max + (y_max * 0.1)
+            
+            # Significance levels based on corrected p-values
+            if corrected_p < 0.001:
+                sig_text = '***'
+            elif corrected_p < 0.01:
+                sig_text = '**'
+            elif corrected_p < 0.05:
+                sig_text = '*'
+            else:
+                sig_text = 'ns'
+            
+            # Add significance text
+            ax.text(i, y_annotation, sig_text, ha='center', va='bottom',
+                   fontweight='bold', fontsize=10)
 
 def get_pathway_analysis_params():
     """
@@ -1470,14 +1855,14 @@ def analyze_cell_pathway_correlations(adata, pathway_scores, slide_name):
 
 def visualize_cell_pathway_correlations(adata, correlation_results, slide_dir, slide_name):
     """
-    Visualize cell type-pathway correlations
+    Enhanced visualization of cell type-pathway correlations
     """
     if not correlation_results:
         return
     
-    print(f"  Creating cell-pathway correlation visualizations...")
+    print(f"  Creating enhanced cell-pathway correlation visualizations...")
     
-    # Create correlation matrix
+    # Prepare data
     all_pathways = set()
     all_cell_types = list(correlation_results.keys())
     
@@ -1486,9 +1871,8 @@ def visualize_cell_pathway_correlations(adata, correlation_results, slide_dir, s
     
     all_pathways = sorted(list(all_pathways))
     
-    # Build correlation matrix
+    # Build correlation matrix for panel 1
     correlation_matrix = []
-    
     for cell_type in all_cell_types:
         cell_row = []
         for pathway in all_pathways:
@@ -1498,66 +1882,162 @@ def visualize_cell_pathway_correlations(adata, correlation_results, slide_dir, s
                 cell_row.append(0)
         correlation_matrix.append(cell_row)
     
-    # Create visualization
-    fig, axes = plt.subplots(1, 2, figsize=(20, 10))
+    # Create enhanced visualization
+    fig, axes = plt.subplots(2, 2, figsize=(24, 20))
     
-    # 1. Correlation heatmap
+    # Panel 1: Enhanced correlation heatmap
     correlation_df = pd.DataFrame(correlation_matrix, 
                                  index=[ct.replace('TC_', '').replace('_', ' ') for ct in all_cell_types],
                                  columns=[pw.replace('_', ' ') for pw in all_pathways])
     
-    sns.heatmap(correlation_df, ax=axes[0], cmap='RdBu_r', center=0, 
-               annot=True, fmt='.2f', cbar_kws={'label': 'Correlation Coefficient'})
-    axes[0].set_title(f'Cell Type-Pathway Correlations\n{slide_name}\n(Perivascular Region)')
-    axes[0].set_xlabel('Pathways')
-    axes[0].set_ylabel('Cell Types')
+    # Create mask for non-significant correlations (optional)
+    significance_matrix = []
+    for cell_type in all_cell_types:
+        cell_row = []
+        for pathway in all_pathways:
+            if pathway in correlation_results[cell_type]:
+                p_val = correlation_results[cell_type][pathway]['p_value']
+                cell_row.append(p_val < 0.05)  # Significant if p < 0.05
+            else:
+                cell_row.append(False)
+        significance_matrix.append(cell_row)
     
-    # 2. Focus on malignant cells
-    malignant_correlations = {ct: corrs for ct, corrs in correlation_results.items() 
-                            if ct.startswith('TC_')}
+    significance_df = pd.DataFrame(significance_matrix, 
+                                  index=correlation_df.index,
+                                  columns=correlation_df.columns)
     
-    if malignant_correlations:
-        malignant_data = []
-        
-        for cell_type, pathway_corrs in malignant_correlations.items():
-            for pathway, corr_data in pathway_corrs.items():
-                malignant_data.append({
-                    'cell_type': cell_type.replace('TC_', ''),
-                    'pathway': pathway.replace('_', ' '),
-                    'correlation': corr_data['correlation'],
-                    'abs_correlation': corr_data['abs_correlation'],
-                    'p_value': corr_data['p_value']
-                })
-        
-        malignant_df = pd.DataFrame(malignant_data)
-        
-        # Create scatter plot
-        scatter = axes[1].scatter(malignant_df['correlation'], malignant_df['abs_correlation'],
-                                c=malignant_df['p_value'], cmap='viridis_r', 
-                                s=100, alpha=0.7, edgecolors='black')
-        
-        # Add text annotations for significant correlations
-        for _, row in malignant_df.iterrows():
-            if row['p_value'] < 0.01 and row['abs_correlation'] > 0.4:
-                axes[1].annotate(f"{row['cell_type']}\n{row['pathway']}", 
-                               (row['correlation'], row['abs_correlation']),
-                               xytext=(5, 5), textcoords='offset points', 
-                               fontsize=8, alpha=0.8)
-        
-        axes[1].set_xlabel('Correlation Coefficient')
-        axes[1].set_ylabel('Absolute Correlation')
-        axes[1].set_title('Malignant Cell-Pathway Correlations\n(Color: p-value)')
-        
-        # Add colorbar
-        cbar = plt.colorbar(scatter, ax=axes[1])
-        cbar.set_label('p-value')
-        
-        # Add significance thresholds
-        axes[1].axhline(y=0.3, color='red', linestyle='--', alpha=0.5, label='|r| = 0.3')
-        axes[1].axvline(x=0, color='black', linestyle='-', alpha=0.3)
-        axes[1].legend()
+    sns.heatmap(correlation_df, ax=axes[0,0], cmap='RdBu_r', center=0, 
+               annot=True, fmt='.2f', cbar_kws={'label': 'Correlation Coefficient'},
+               mask=~significance_df, annot_kws={'size': 8})
+    axes[0,0].set_title(f'Cell Type-Pathway Correlations\n{slide_name}\n(Only significant correlations shown, p<0.05)')
+    axes[0,0].set_xlabel('Pathways')
+    axes[0,0].set_ylabel('Cell Types')
+    
+    # Panel 2: Bubble plot - much more informative!
+    bubble_data = []
+    for cell_type, pathway_corrs in correlation_results.items():
+        for pathway, corr_data in pathway_corrs.items():
+            bubble_data.append({
+                'cell_type': cell_type.replace('TC_', '').replace('_', ' '),
+                'pathway': pathway.replace('_', ' '),
+                'correlation': corr_data['correlation'],
+                'abs_correlation': corr_data['abs_correlation'],
+                'p_value': corr_data['p_value'],
+                'neg_log_p': -np.log10(corr_data['p_value']),
+                'is_significant': corr_data['p_value'] < 0.05
+            })
+    
+    bubble_df = pd.DataFrame(bubble_data)
+    
+    # Create bubble plot
+    scatter = axes[0,1].scatter(
+        range(len(bubble_df)), 
+        bubble_df['neg_log_p'],
+        s=bubble_df['abs_correlation'] * 400,  # Size represents correlation strength
+        c=bubble_df['correlation'],
+        cmap='RdBu_r',
+        alpha=0.7,
+        edgecolors='black',
+        linewidth=0.5
+    )
+    
+    # Add significance threshold line
+    axes[0,1].axhline(y=-np.log10(0.05), color='red', linestyle='--', alpha=0.7, label='p=0.05')
+    axes[0,1].axhline(y=-np.log10(0.01), color='darkred', linestyle='--', alpha=0.7, label='p=0.01')
+    
+    # Annotate top correlations
+    top_correlations = bubble_df.nlargest(8, 'abs_correlation')
+    for idx, row in top_correlations.iterrows():
+        if row['is_significant']:
+            axes[0,1].annotate(f"{row['cell_type']}\n{row['pathway'][:15]}...", 
+                              (bubble_df.index[bubble_df.index == idx][0], row['neg_log_p']),
+                              xytext=(5, 5), textcoords='offset points', 
+                              fontsize=7, alpha=0.8,
+                              bbox=dict(boxstyle='round,pad=0.2', facecolor='yellow', alpha=0.3))
+    
+    axes[0,1].set_xlabel('Correlation Index')
+    axes[0,1].set_ylabel('-log10(p-value)')
+    axes[0,1].set_title('Correlation Significance vs Strength\n(Bubble size = |correlation|, Color = correlation direction)')
+    axes[0,1].legend()
+    
+    # Add colorbar for correlation direction
+    cbar1 = plt.colorbar(scatter, ax=axes[0,1])
+    cbar1.set_label('Correlation Coefficient')
+    
+    # Panel 3: Volcano plot style - correlation vs significance
+    significant = bubble_df['is_significant']
+    
+    # Plot non-significant points
+    axes[1,0].scatter(bubble_df.loc[~significant, 'correlation'], 
+                     bubble_df.loc[~significant, 'neg_log_p'],
+                     c='lightgray', alpha=0.6, s=50, label='Non-significant')
+    
+    # Plot significant positive correlations
+    pos_sig = significant & (bubble_df['correlation'] > 0)
+    axes[1,0].scatter(bubble_df.loc[pos_sig, 'correlation'], 
+                     bubble_df.loc[pos_sig, 'neg_log_p'],
+                     c='red', alpha=0.8, s=80, label='Positive (p<0.05)')
+    
+    # Plot significant negative correlations
+    neg_sig = significant & (bubble_df['correlation'] < 0)
+    axes[1,0].scatter(bubble_df.loc[neg_sig, 'correlation'], 
+                     bubble_df.loc[neg_sig, 'neg_log_p'],
+                     c='blue', alpha=0.8, s=80, label='Negative (p<0.05)')
+    
+    # Add threshold lines
+    axes[1,0].axhline(y=-np.log10(0.05), color='red', linestyle='--', alpha=0.5)
+    axes[1,0].axvline(x=0, color='black', linestyle='-', alpha=0.3)
+    axes[1,0].axvline(x=0.3, color='orange', linestyle='--', alpha=0.5, label='|r|=0.3')
+    axes[1,0].axvline(x=-0.3, color='orange', linestyle='--', alpha=0.5)
+    
+    # Annotate strongest significant correlations
+    strong_sig = bubble_df[(bubble_df['is_significant']) & (bubble_df['abs_correlation'] > 0.4)]
+    for _, row in strong_sig.iterrows():
+        axes[1,0].annotate(f"{row['cell_type']}\n{row['pathway'][:15]}", 
+                          (row['correlation'], row['neg_log_p']),
+                          xytext=(5, 5), textcoords='offset points', 
+                          fontsize=7, alpha=0.9,
+                          bbox=dict(boxstyle='round,pad=0.2', facecolor='lightyellow', alpha=0.7))
+    
+    axes[1,0].set_xlabel('Correlation Coefficient')
+    axes[1,0].set_ylabel('-log10(p-value)')
+    axes[1,0].set_title('Volcano Plot: Correlation Strength vs Significance')
+    axes[1,0].legend()
+    
+    # Panel 4: Top correlations bar plot
+    top_n = 15
+    top_correlations_plot = bubble_df.nlargest(top_n, 'abs_correlation')
+    
+    # Create labels
+    labels = [f"{row['cell_type']}\n{row['pathway'][:15]}" for _, row in top_correlations_plot.iterrows()]
+    
+    # Color bars by correlation direction and significance
+    colors = []
+    for _, row in top_correlations_plot.iterrows():
+        if not row['is_significant']:
+            colors.append('lightgray')
+        elif row['correlation'] > 0:
+            colors.append('red')
+        else:
+            colors.append('blue')
+    
+    bars = axes[1,1].barh(range(len(top_correlations_plot)), 
+                         top_correlations_plot['abs_correlation'],
+                         color=colors, alpha=0.7, edgecolor='black')
+    
+    # Add correlation values as text
+    for i, (_, row) in enumerate(top_correlations_plot.iterrows()):
+        axes[1,1].text(row['abs_correlation'] + 0.01, i, 
+                      f"{row['correlation']:.3f}\n(p={row['p_value']:.1e})",
+                      va='center', fontsize=8)
+    
+    axes[1,1].set_yticks(range(len(top_correlations_plot)))
+    axes[1,1].set_yticklabels(labels, fontsize=9)
+    axes[1,1].set_xlabel('Absolute Correlation')
+    axes[1,1].set_title(f'Top {top_n} Strongest Correlations\n(Red=Positive, Blue=Negative, Gray=Non-sig)')
+    axes[1,1].grid(axis='x', alpha=0.3)
     
     plt.tight_layout()
-    plt.savefig(os.path.join(slide_dir, f"cell_pathway_correlations_{slide_name}.pdf"), 
+    plt.savefig(os.path.join(slide_dir, f"enhanced_cell_pathway_correlations_{slide_name}.pdf"), 
                bbox_inches='tight', dpi=300)
     plt.show()
