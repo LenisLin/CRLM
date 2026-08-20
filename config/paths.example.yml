@@ -1,0 +1,19 @@
+# Path-reference worksheet for coordinating editable in-script configurations.
+# Analysis scripts read their own editable configurations; this file is reference only.
+project_root: "/path/to/CRLM"
+data_root: "/path/to/processed_data"
+results_root: "/path/to/results"
+
+public_data:
+  fdzs1_imc: "/path/to/processed_data/FDZS-1_IMC/FDZS1_IMC_processed.rds"
+  fdzs3_scrna: "/path/to/processed_data/FDZS-3_scRNA/FDZS3_scRNA_processed.h5ad"
+  fdzs4_st: "/path/to/processed_data/FDZS-4_ST/FDZS4_ST_processed.h5ad"
+  supplementary_tables: "/path/to/processed_data/supplementary_tables/Supplementary_Tables_public.xlsx"
+
+external_inputs:
+  fdzs3_matrixmarket_bundle: "/path/to/external_processed_inputs/FDZS-3_MatrixMarket"
+  fdzs4_bin100_matrixmarket_bundle: "/path/to/external_processed_inputs/FDZS-4_Bin100_MatrixMarket"
+  grch38_gene_gtf: "/path/to/reference/GRCh38.gtf"
+  registered_spmap_tiles: "/path/to/external_processed_inputs/registered_spmap_tile_annotations.tsv"
+  gene_sets: "/path/to/offline/versioned_gene_sets.rds"
+  gene_set_manifest: "/path/to/offline/gene_set_manifest.tsv"

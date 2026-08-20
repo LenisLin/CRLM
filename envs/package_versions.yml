@@ -1,0 +1,79 @@
+schema_version: 1
+purpose: key runtime and package versions for the 35 R/Python scripts
+scope: version reference organized by analysis family
+
+analyses:
+  imc:
+    language: R
+    runtime: "4.2.2"
+    packages:
+      SingleCellExperiment: "1.20.0"
+      SummarizedExperiment: "1.28.0"
+      dplyr: "1.1.0"
+      FNN: "1.1.3.2"
+      survival: "3.5-0"
+      ggplot2: "3.4.0"
+      ComplexHeatmap: "2.14.0"
+
+  spmap:
+    language: Python
+    runtime: "3.12.3"
+    hardware: NVIDIA CUDA GPU
+    packages:
+      pytorch: "2.3.0"
+      pytorch-cuda: "11.8"
+      numpy: "2.3.5"
+      pandas: "2.3.3"
+      scikit-learn: "1.7.2"
+      scipy: "1.16.3"
+      pillow: "12.0.0"
+
+  scrna:
+    language: Python
+    runtime: "3.10.18"
+    packages:
+      scanpy: "1.11.4"
+      anndata: "0.11.4"
+      harmonypy: "0.0.10"
+      infercnvpy: "0.6.0"
+      scikit-learn: "1.7.1"
+      scipy: "1.15.3"
+
+  cellchat:
+    language: R
+    runtime: "4.4.1"
+    packages:
+      CellChat: "2.2.0"
+      Seurat: "5.1.0"
+      igraph: "2.0.3"
+      ggplot2: "4.0.1"
+      patchwork: "1.3.2"
+    source:
+      CellChat_commit: "43f02773b5f915203fd6436755aaa2fa39ac2d7f"
+
+  st_rctd:
+    language: R
+    runtime: "4.3.3"
+    packages:
+      spacexr: "2.2.1"
+      Seurat: "5.3.0"
+      SpatialExperiment: "1.12.0"
+      SummarizedExperiment: "1.32.0"
+
+  st_spatial:
+    language: R
+    runtime: "4.2.2"
+    packages:
+      SpatialExperiment: "1.8.0"
+      SummarizedExperiment: "1.28.0"
+      dplyr: "1.1.0"
+      ggplot2: "3.4.0"
+
+  st_gsea:
+    language: R
+    runtime: "4.3.3"
+    packages:
+      fgsea: "1.26.0"
+      Seurat: "5.3.0"
+      SpatialExperiment: "1.12.0"
+      ggplot2: "3.5.2"
