@@ -1,0 +1,40 @@
+cff-version: 1.2.0
+message: "If you use this code, please cite the associated manuscript and software release."
+title: "Peritumoral Niches Stratify Outcomes after Adjuvant Therapy in Colorectal Liver Metastases"
+type: software
+version: 1.0.0
+license: MIT
+repository-code: "https://github.com/LenisLin/CRLM"
+authors:
+  - family-names: Lin
+    given-names: Yuxiang
+  - family-names: Zhou
+    given-names: Shizhao
+  - family-names: Liu
+    given-names: Yu
+  - family-names: Zhang
+    given-names: Xushi
+  - family-names: Zhang
+    given-names: Lei
+  - family-names: Xiao
+    given-names: Xu
+  - family-names: Lin
+    given-names: Ziyan
+  - family-names: Qin
+    given-names: Xiaorui
+  - family-names: Lu
+    given-names: Yangchao
+  - family-names: Li
+    given-names: Xinyu
+  - family-names: Jiang
+    given-names: Yudong
+  - family-names: Chen
+    given-names: Ying
+  - family-names: Hou
+    given-names: Yingyong
+  - family-names: Xu
+    given-names: Jianmin
+  - family-names: Yu
+    given-names: Rongshan
+  - family-names: Chang
+    given-names: Wenju

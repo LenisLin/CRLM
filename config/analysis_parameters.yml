@@ -1,0 +1,22 @@
+public_contract:
+  tissues:
+    invasive_margin: IM
+    peritumor: PT
+    tumor_core: TC
+  recurrence_event:
+    event: 1
+    censored: 0
+  treatment_groups:
+    chemotherapy: Chemo
+    combination_therapy: Combo
+
+spmap_classes:
+  0: TC
+  1: PIR
+  2: PSM
+  3: OTHER_PT
+
+shared_parameters:
+  imc_neighbor_count: 20
+  spmap_tile_size_pixels: 256
+  st_rctd_seed: 619
