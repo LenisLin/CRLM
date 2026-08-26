@@ -1,6 +1,6 @@
 # Peritumoral Niches Stratify Outcomes after Adjuvant Therapy in Colorectal Liver Metastases
 
-This repository contains 35 R/Python scripts for the CRLM spatial
+This repository contains 38 R/Python scripts for the CRLM spatial
 microenvironment study. Figure entry points are organized by main figure, and
 shared functions are organized by modality.
 
@@ -19,22 +19,17 @@ required inputs, outputs, analysis units, and package-version family.
 
 ## Processed data
 
-The processed-data package uses Zenodo concept DOI
-[`10.5281/zenodo.17638057`](https://doi.org/10.5281/zenodo.17638057) and is
-organized as nine files:
-
-1. `README.md`: package overview and reading instructions.
-2. `LICENSE`: Creative Commons Attribution 4.0 notice for the data package.
-3. `metadata.json`: Zenodo dataset metadata.
-4. `file_manifest.tsv`: canonical nine-file inventory.
-5. `data_dictionary.md`: object schemas, units, identifiers, and worksheet contents.
-6. `FDZS-1_IMC/FDZS1_IMC_processed.rds`: 35 markers x 2,018,260 IM/PT/TC cells from 35 patients and 311 ROIs.
-7. `FDZS-3_scRNA/FDZS3_scRNA_processed.h5ad`: 35,900 scRNA-seq cells with processed and raw count representations.
-8. `FDZS-4_ST/FDZS4_ST_processed.h5ad`: 17,902 Bin100 spots x 56,695 features with 30 normalized RCTD abundance columns.
-9. `supplementary_tables/Supplementary_Tables_public.xlsx`: Supplementary Tables 1-4 with patient, ROI, acquisition-channel, and reagent records.
+The data package uses Zenodo concept DOI
+[`10.5281/zenodo.17638057`](https://doi.org/10.5281/zenodo.17638057). It contains
+the processed FDZS-1 IMC, FDZS-3 scRNA-seq, and FDZS-4 spatial-transcriptomics
+objects; Supplementary Tables 1-4; and derived patient-level ISR, ROI-level
+cell-composition, and SpMap artifacts. The package `file_manifest.tsv` provides
+the complete inventory.
 
 The public fields, object dimensions, and data interfaces are specified in
-[docs/data_contract.md](docs/data_contract.md).
+[docs/data_contract.md](docs/data_contract.md). The
+[public-artifact index](docs/public_artifacts.md) maps each derived data or model
+artifact to its owning analysis and export code.
 
 ## Analysis organization
 

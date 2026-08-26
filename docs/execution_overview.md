@@ -1,6 +1,6 @@
 # Execution overview
 
-This repository uses 35 figure-owned and shared R/Python scripts. Each Figure
+This repository uses 38 figure-owned and shared R/Python scripts. Each Figure
 README specifies script order, editable configuration, required inputs,
 outputs, analysis units, fixed parameters, and package-version family.
 
@@ -19,6 +19,8 @@ path-reference worksheet and is not loaded by the scripts.
    `00_generate_interaction_pvalues.R` to produce ROI `ClosePvalue.csv`
    matrices before `01_pairwise_interactions.R` aggregates the fixed rosters.
 4. Run Figure 4 to generate CN, PTME, and ISR tables from the IMC object.
+5. Run `figures/Figure4/02_export_roi_cell_composition.R` to generate the public
+   311-ROI cell-composition matrix from the processed FDZS-1 object.
 
 ## SpMap and clinical branch
 
@@ -32,6 +34,11 @@ path-reference worksheet and is not loaded by the scripts.
    generated tile/split manifests and evaluation summary tables.
 4. Run Figure 6 with prepared 34-patient discovery and 95-patient test tables
    to generate clinical distributions and recurrence-free-survival outputs.
+5. Run `figures/Figure5/03_prepare_public_spmap_artifacts.py` to prepare the
+   public SpMap labels, partitions, metrics, OOF predictions, feature shards,
+   and selected checkpoints.
+6. Run `figures/Figure6/03_prepare_public_isr_tables.py` to generate the public
+   patient-level ISR/RFS, cohort-assignment, and cutoff tables.
 
 ## scRNA-seq and spatial-transcriptomics branch
 
@@ -61,8 +68,9 @@ The figure/table manifest uses the following factual statuses:
 - `documented`: a manuscript item described by its Figure README; and
 - `data_only`: a public data or table artifact.
 
-The provenance manifest contains all 35 R/Python scripts and four
-public data objects. It uses `current` for analysis code,
+The provenance manifest contains all 38 R/Python scripts and the native and
+derived public data objects. It uses `current` for analysis code,
 `implementation` for figure-specific table-generation code, `interface` for
-shared computational modules, and `processed_data` for public native objects.
+shared computational modules, `processed_data` for public native objects, and
+`derived_data` for public tables, predictions, features, and model artifacts.
 The `decision` field records `release` for all public entries.

@@ -3,17 +3,20 @@
 This directory provides `01_methods_aligned_orchestration.R` for **Figure 4.
 Associations between cholangiocyte-associated peritumor niches and treatment-
 stratified RFS in CRLM.** The script generates cellular-neighborhood, PTME,
-and ISR tables from an IMC SCE.
+and ISR tables from an IMC SCE. `02_export_roi_cell_composition.R` exports the
+public ROI-level cell-composition matrix from the processed FDZS-1 object.
 
 ## Run
 
 ```text
 Rscript figures/Figure4/01_methods_aligned_orchestration.R
+Rscript figures/Figure4/02_export_roi_cell_composition.R
 ```
 
 Before running from the repository root, edit `SCE_INPUT`,
 `OUTPUT_DIRECTORY`, and `SCRIPT_DIRECTORY` near the top of the script. Invoke
-the entry point directly with the no-argument command above.
+the entry point directly with the no-argument command above. For the public
+ROI export, edit `EXPORT_CONFIG` and set `RUN_ROI_EXPORT` to `TRUE`.
 
 The script requires `SingleCellExperiment`, `SummarizedExperiment`, `FNN`,
 `igraph`, and `geometry`. It uses the shared interfaces in
@@ -61,3 +64,4 @@ explicit patient treatment value.
 | `figure4_ptme_classification.tsv` | One row per PTME with subtype counts, fractions, ratio, niche class, and treatment. |
 | `figure4_roi_isr.tsv` | One row per eligible PT patient-ROI with PIR/PSM counts, raw and clipped ISR, and treatment. |
 | `figure4_patient_isr.tsv` | One row per eligible PT patient with PIR/PSM counts, raw and clipped ISR, and treatment. |
+| `FDZS1_ROI_cell_composition.tsv.gz` | One row per patient-ROI-tissue group with total cells and public SubType fractions. |

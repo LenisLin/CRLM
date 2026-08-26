@@ -9,6 +9,7 @@ preparation, and Supplementary Figure 11 evaluation entry points.
 |---|---|---|---|---|
 | Figure 5A/C workflow | `02_run_spmap_workflow.py` | Stage-specific paths and adapter callables in `CONFIG` | Selected reference manifests, paired features, fold checkpoints/metrics, WSI predictions, and WSI ISR tables | structure/ROI tile, parent group, model evaluation, WSI tile, and WSI |
 | Figure 5B | `01_prepare_panel_b_counts.py` | Canonical tile-label manifest; development and internal-holdout split manifests | `Figure5B_training_count_provenance.tsv` | 256 x 256 tile nested in `parent_id` |
+| Public SpMap artifacts | `03_prepare_public_spmap_artifacts.py` | Canonical tile/split manifests; selected C10 five-seed runs; canonical CONCH feature shards | Public label, partition, metric, OOF-prediction, feature, and checkpoint artifacts | Tile, parent group, seed/fold model evaluation |
 | Figure S11A | `supplementary/FigureS11/01_plot_fold_holdout_metrics.R` | Five-row fold-validation and five-row common-internal-holdout metric CSVs | `FigureS11A_fold_holdout_metrics.pdf`, plotted-data TSV, summary TSV | Model evaluation |
 | Figure S11B-C | `supplementary/FigureS11/02_plot_oof_class_metrics.py` | Four-class pooled out-of-fold confusion count and row-proportion tables; five-seed class and macro-F1 metric tables | Two panel PDFs with plotted-data and statistics TSVs | Tile for S11B; seed-by-class metric for S11C |
 | Figure S11D | `supplementary/FigureS11/03_plot_isr_correlation.py` | One-row-per-patient IMC ISR table; discovery H&E ISR table | Matched-patient TSV, correlation-statistics TSV, `FigureS11D_isr_correlation.pdf` | Matched patient |
@@ -27,6 +28,7 @@ in `envs/package_versions.yml`.
 ```text
 python figures/Figure5/02_run_spmap_workflow.py
 python figures/Figure5/01_prepare_panel_b_counts.py
+python figures/Figure5/03_prepare_public_spmap_artifacts.py
 Rscript figures/Figure5/supplementary/FigureS11/01_plot_fold_holdout_metrics.R
 python figures/Figure5/supplementary/FigureS11/02_plot_oof_class_metrics.py
 python figures/Figure5/supplementary/FigureS11/03_plot_isr_correlation.py
@@ -65,7 +67,15 @@ running the no-argument command above.
 For S11A, set `CONFIG$validation`, `holdout`, and `output_dir`. For S11B-C,
 set `CONFIG["confusion_counts"]`, `confusion_row_proportions`,
 `seed_class_metrics`, `seed_overall_metrics`, and `output_dir`. For S11D, set
-`CONFIG["imc_scores"]`, `he_scores`, and `output_dir`.
+`CONFIG["imc_scores"]`, `CONFIG["he_scores"]`, and `CONFIG["output_dir"]`.
+
+For the public SpMap export, set the canonical label, primary split,
+five-fold-validation, five selected seed-run, CONCH-feature, and output paths in
+`03_prepare_public_spmap_artifacts.py` and run it in `Spatial_py`. The script
+writes 61,628 reference labels, the combined primary/five-fold partition table,
+five-seed performance, the seed-24 confusion matrix, 25 fold OOF prediction
+files, 25 selected model
+weights with portable manifests, and the canonical feature shards.
 
 ## Supplementary Figure 11 contracts
 

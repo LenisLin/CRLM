@@ -10,6 +10,14 @@ public_data:
   fdzs4_st: "/path/to/processed_data/FDZS-4_ST/FDZS4_ST_processed.h5ad"
   supplementary_tables: "/path/to/processed_data/supplementary_tables/Supplementary_Tables_public.xlsx"
 
+derived_results:
+  fdzs1_patient_isr: "/path/to/processed_data/derived_results/ISR/FDZS1_patient_level_ISR.tsv"
+  fdzs2_patient_isr_rfs: "/path/to/processed_data/derived_results/ISR/FDZS2_patient_level_ISR_RFS.tsv"
+  patient_cohort_assignment: "/path/to/processed_data/derived_results/ISR/SpMap_patient_cohort_assignment.tsv"
+  isr_definition_cutoff: "/path/to/processed_data/derived_results/ISR/ISR_definition_and_cutoff.tsv"
+  fdzs1_roi_composition: "/path/to/processed_data/derived_results/IMC/FDZS1_ROI_cell_composition.tsv.gz"
+  spmap_directory: "/path/to/processed_data/derived_results/SpMap"
+
 external_inputs:
   fdzs3_matrixmarket_bundle: "/path/to/external_processed_inputs/FDZS-3_MatrixMarket"
   fdzs4_bin100_matrixmarket_bundle: "/path/to/external_processed_inputs/FDZS-4_Bin100_MatrixMarket"

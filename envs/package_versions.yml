@@ -1,8 +1,17 @@
 schema_version: 1
-purpose: key runtime and package versions for the 35 R/Python scripts
+purpose: key runtime and package versions for the 38 R/Python scripts
 scope: version reference organized by analysis family
 
 analyses:
+  public_exports:
+    language: Python
+    runtime: "3.8.15"
+    environment: Spatial_py
+    packages:
+      numpy: "1.22.4"
+      pandas: "1.5.2"
+      openpyxl: "3.1.5"
+
   imc:
     language: R
     runtime: "4.2.2"

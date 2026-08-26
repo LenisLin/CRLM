@@ -2,14 +2,18 @@
 
 `02_cohort_and_rfs.R` generates the Figure 6B clinical-distribution components
 and Figure 6C-D recurrence-free survival panels from prepared patient tables.
-It uses host Conda environment `Spatial` with R 4.2.2; package versions are
-listed under `imc` in `envs/package_versions.yml`.
+`03_prepare_public_isr_tables.py` generates the public FDZS-1 and FDZS-2 ISR/RFS
+tables, discovery/test assignment, and score-definition/cutoff table.
+The R analysis uses host Conda environment `Spatial` with R 4.2.2, and the
+Python table export uses `Spatial_py`; package versions are listed in
+`envs/package_versions.yml`.
 
 Edit `FIGURE6_CONFIG$discovery_rfs`, `test_rfs`, and `output_dir`, set
 `RUN_FIGURE6` to `TRUE`, and run from the repository root without arguments:
 
 ```text
 Rscript figures/Figure6/02_cohort_and_rfs.R
+python figures/Figure6/03_prepare_public_isr_tables.py
 ```
 
 ## Required prepared tables
@@ -52,3 +56,21 @@ The entry point writes:
 
 The entry point reads the editable in-script configuration and consumes
 patient-level ISR tables supplied by the SpMap workflow.
+
+## Public patient-level outputs
+
+Edit the workbook, saved IMC score, discovery H&E score, and output paths in
+`03_prepare_public_isr_tables.py`. The script writes:
+
+- `FDZS1_patient_level_ISR.tsv`: 35 FDZS-1 patients with IMC-derived ISR and
+  available H&E-derived ISR; 34 rows are marked for the Figure 6 discovery set.
+- `FDZS2_patient_level_ISR_RFS.tsv`: 95 pseudonymized independent-test patient
+  rows matching the Figure 6 input schema.
+- `SpMap_patient_cohort_assignment.tsv`: 34 discovery and 95 independent-test
+  patient assignments.
+- `ISR_definition_and_cutoff.tsv`: operational formulas and the discovery
+  median H&E-derived ISR cutoff.
+
+For the discovery input to `02_cohort_and_rfs.R`, select the 34 rows with
+`figure6_included == 1` from `FDZS1_patient_level_ISR.tsv` and retain the
+required analysis columns listed above.
