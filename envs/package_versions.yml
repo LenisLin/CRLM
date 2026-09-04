@@ -1,6 +1,8 @@
 schema_version: 1
-purpose: key runtime and package versions for the 38 R/Python scripts
-scope: version reference organized by analysis family
+release_version: "2.0.0"
+release_date: "2026-09-04"
+purpose: observed runtimes and key direct-package versions for the 44 public R/Python scripts
+scope: version reference organized by analysis family; not a solver lock file
 
 analyses:
   public_exports:
@@ -11,42 +13,69 @@ analyses:
       numpy: "1.22.4"
       pandas: "1.5.2"
       openpyxl: "3.1.5"
+      anndata: "0.7.8"
+      matplotlib: "3.7.3"
 
   imc:
     language: R
     runtime: "4.2.2"
+    environment: Spatial
     packages:
       SingleCellExperiment: "1.20.0"
       SummarizedExperiment: "1.28.0"
       dplyr: "1.1.0"
+      tidyr: "1.3.0"
+      tibble: "3.1.8"
       FNN: "1.1.3.2"
       survival: "3.5-0"
+      survminer: "0.4.9"
       ggplot2: "3.4.0"
+      scales: "1.2.1"
+      cowplot: "1.1.1"
+      patchwork: "1.1.3"
+      gridExtra: "2.3"
       ComplexHeatmap: "2.14.0"
+      circlize: "0.4.15"
+      forestplot: "3.1.1"
+      pheatmap: "1.0.12"
+      geometry: "0.4.7"
+      igraph: "1.3.5"
+      readxl: "1.4.1"
 
   spmap:
     language: Python
     runtime: "3.12.3"
-    hardware: NVIDIA CUDA GPU
+    environment: OSMOSIS_V2
+    executed_primary_1280:
+      evidence: fold run manifests
+      torch: "2.3.0"
+      cuda_runtime: "11.8"
+    torch_cuda_build: "12.6"
     packages:
-      pytorch: "2.3.0"
-      pytorch-cuda: "11.8"
-      numpy: "2.3.5"
+      torch: "2.7.1+cu126"
+      numpy: "2.5.2"
       pandas: "2.3.3"
       scikit-learn: "1.7.2"
-      scipy: "1.16.3"
+      scipy: "1.18.1"
       pillow: "12.0.0"
+      matplotlib: "3.10.7"
 
   scrna:
     language: Python
     runtime: "3.10.18"
+    environment: infercnv
     packages:
       scanpy: "1.11.4"
       anndata: "0.11.4"
       harmonypy: "0.0.10"
       infercnvpy: "0.6.0"
+      numpy: "2.2.6"
+      pandas: "2.3.2"
       scikit-learn: "1.7.1"
       scipy: "1.15.3"
+      matplotlib: "3.10.5"
+      igraph: "0.11.9"
+      leidenalg: "0.10.2"
 
   cellchat:
     language: R
@@ -63,26 +92,44 @@ analyses:
   st_rctd:
     language: R
     runtime: "4.3.3"
+    environment: rctd
     packages:
+      Matrix: "1.6.5"
+      S4Vectors: "0.40.2"
       spacexr: "2.2.1"
       Seurat: "5.3.0"
+      SeuratObject: "5.2.0"
       SpatialExperiment: "1.12.0"
       SummarizedExperiment: "1.32.0"
 
   st_spatial:
     language: R
     runtime: "4.2.2"
+    environment: Spatial
     packages:
+      Matrix: "1.6.4"
+      S4Vectors: "0.36.0"
       SpatialExperiment: "1.8.0"
       SummarizedExperiment: "1.28.0"
       dplyr: "1.1.0"
+      tidyr: "1.3.0"
+      tidyselect: "1.2.0"
       ggplot2: "3.4.0"
+      scales: "1.2.1"
+      rstatix: "0.7.2"
+      ggpubr: "0.5.0"
 
   st_gsea:
     language: R
-    runtime: "4.3.3"
+    runtime: "rctd 4.3.3; RNA 4.3.2"
+    environment: "rctd; RNA"
     packages:
+      Matrix: "1.6.5"
+      S4Vectors: "0.40.2"
       fgsea: "1.26.0"
       Seurat: "5.3.0"
+      SeuratObject: "5.2.0"
       SpatialExperiment: "1.12.0"
+      SummarizedExperiment: "1.32.0"
       ggplot2: "3.5.2"
+      patchwork: "1.3.2"

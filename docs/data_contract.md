@@ -75,20 +75,27 @@ development tile.
 performance values for seeds 24, 101, 202, 303, and 404.
 `SpMap_confusion_matrix.tsv` contains the seed-24 pooled out-of-fold four-class
 confusion counts and true-class fractions. The OOF archive contains the 25
-fold-specific validation-prediction tables. The model archive contains the 25
-selected C10 checkpoints and portable model manifests. The CONCH archive
-contains the canonical feature tar shards and their member inventories.
+fold-specific validation-prediction tables. The final-model archive contains
+exactly five `primary_1280` fold checkpoints, one per fold, with portable model
+manifests. The model uses paired 768- and 512-dimensional CONCH
+representations (`768 + 512 = 1280` input) in a `1280 -> 450 -> 4` MLP with
+ReLU, dropout 0.25, no BatchNorm, and validation-accuracy checkpoint selection.
+The CONCH archive contains the canonical feature tar shards and their member
+inventories.
 
 ## Script interfaces
 
-The IMC entry points consume `FDZS1_IMC_processed.rds`. Figure 7 entry points
-consume processed FDZS-3 and FDZS-4 MatrixMarket bundles, registered SpMap
-tile annotations, RCTD weights, and offline pathway resources. Each entry
-point reads its editable in-script configuration and uses no-argument direct
-execution. `config/paths.example.yml` is a path-reference worksheet, and the
-required file schemas are specified in `figures/Figure7/README.md`. Figure 4,
-Figure 5, and Figure 6 provide dedicated entry points for generating the public
-derived artifacts from their documented source tables and objects.
+The IMC entry points consume `FDZS1_IMC_processed.rds`. Figure 1B consumes
+Supplementary Tables 1 and 5 and writes a treatment-stratified RFS PDF and
+summary table. Figure 6E-F consumes those tables plus
+`FDZS1_patient_level_ISR.tsv` and writes the cohort-specific continuous-ISR Cox
+table and two PDFs. Figure 7 entry points consume processed FDZS-3 and FDZS-4
+MatrixMarket bundles, registered SpMap tile annotations, RCTD weights, and
+offline pathway resources. Each entry point reads its editable in-script
+configuration and uses no-argument direct execution. The required file schemas
+are specified in `figures/Figure7/README.md`. Figure 4, Figure 5, and Figure 6
+provide dedicated entry points for generating public derived artifacts from
+their documented source tables and objects.
 
 ## Privacy model
 

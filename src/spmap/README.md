@@ -21,17 +21,21 @@ structure IDs. Supply selected TC and OTHER_PT source ROIs in the tile manifest.
 structure, image, and class columns; `build_complete_tile_manifest` accepts the
 selected structure and ROI regions.
 
-The canonical MLP concatenates a 768-dimensional CONCH representation followed
-by a 512-dimensional representation and uses
-`1280 -> 450 -> ReLU -> dropout 0.25 -> 4`. Training uses inverse-frequency
-weighted cross-entropy, AdamW, learning rate 0.001, weight decay 0.0001,
-batch size 256, 100 epochs, seed 24, and validation-accuracy checkpoint
-selection. Splitting uses seed 42, an explicit structure/source-tile
-`parent_id`, an 80% development and 20% common internal holdout split, and
-five-fold `StratifiedGroupKFold` inside development.
+The final public model uses paired 768- and 512-dimensional CONCH
+representations (`768 + 512 = 1280` input) in a `1280 -> 450 -> 4` MLP with
+ReLU, dropout 0.25, and no BatchNorm. Checkpoints are selected by validation
+accuracy. The public final-model archive contains exactly five `primary_1280`
+fold checkpoints, one per fold, with portable manifests. Training uses
+inverse-frequency weighted cross-entropy, AdamW, learning rate 0.001, weight
+decay 0.0001, batch size 256, 100 epochs, and seed 24. Splitting uses seed 42,
+an explicit structure/source-tile `parent_id`, an 80% development and 20%
+common internal holdout split, and five-fold `StratifiedGroupKFold` inside
+development.
 
-H&E ISR is the literal predicted PIR tile count divided by the predicted PSM
-tile count and is defined for WSIs with at least one predicted PSM tile.
+For patient-level analysis, tile predictions are aggregated within each WSI to
+produce one H&E-derived ISR. The score is the predicted PIR tile count divided
+by the predicted PSM tile count and is defined only when the predicted PSM tile
+count is nonzero.
 
 ## Modules and execution order
 
@@ -72,9 +76,8 @@ The tar archive root is supplied by configuration. Its expected layout is:
 Archive members are NPZ files keyed by the split manifest's explicit tile key.
 Construct exactly one `InMemoryFeatureStore` from all fold and holdout manifests
 before entering the fold loop, then pass that store to every `train_fold` call.
-Training and inference require the selected CUDA GPU, which is checked before
-feature extraction, training, or inference begins. Key package versions are
-listed under `spmap` in `envs/package_versions.yml`.
+Training and inference use CUDA. Key package versions are listed under `spmap`
+in `envs/package_versions.yml`.
 
 ## Required runtime inputs
 

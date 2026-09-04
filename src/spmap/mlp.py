@@ -280,11 +280,11 @@ class SpMapMLP(nn.Module):
             dropout: Dropout probability between the hidden ReLU and output layer.
 
         Returns:
-            ``None``. The sequential model layers are assigned to ``self.layers``.
+            ``None``. The sequential model layers are assigned to ``self.net``.
         """
         # Instantiate the fixed hidden width, activation, dropout, and class head.
         super().__init__()
-        self.layers = nn.Sequential(
+        self.net = nn.Sequential(
             nn.Linear(INPUT_DIM, HIDDEN_DIM),
             nn.ReLU(inplace=True),
             nn.Dropout(dropout),
@@ -300,7 +300,7 @@ class SpMapMLP(nn.Module):
         Returns:
             Unnormalized four-class logits with one row per input feature vector.
         """
-        return self.layers(features)
+        return self.net(features)
 
 
 def inverse_frequency_weights(

@@ -6,7 +6,7 @@ the published Zenodo file names.
 
 | Public artifact | Analysis unit | Owning public code |
 |---|---|---|
-| `FDZS1_patient_level_ISR.tsv` | FDZS-1 patient | `figures/Figure6/03_prepare_public_isr_tables.py`; Supplementary Figure 11D consumer |
+| `FDZS1_patient_level_ISR.tsv` | FDZS-1 patient | `figures/Figure6/03_prepare_public_isr_tables.py`; `figures/Figure6/04_continuous_isr_multivariable_cox.R`; Supplementary Figure 11D consumer |
 | `FDZS2_patient_level_ISR_RFS.tsv` | FDZS-2 patient | `figures/Figure6/03_prepare_public_isr_tables.py`; `figures/Figure6/02_cohort_and_rfs.R` |
 | `SpMap_patient_cohort_assignment.tsv` | Patient | `figures/Figure6/03_prepare_public_isr_tables.py` |
 | `ISR_definition_and_cutoff.tsv` | Score definition | `figures/Figure6/03_prepare_public_isr_tables.py`; `figures/Figure6/02_cohort_and_rfs.R` |
@@ -16,7 +16,7 @@ the published Zenodo file names.
 | `SpMap_model_performance_5seeds.tsv` | Seed/class/metric | `figures/Figure5/03_prepare_public_spmap_artifacts.py`; Supplementary Figure 11B-C consumer |
 | `SpMap_confusion_matrix.tsv` | True/predicted class | `figures/Figure5/03_prepare_public_spmap_artifacts.py`; Supplementary Figure 11B consumer |
 | `SpMap_OOF_predictions_C10_5seeds_5folds.tar.gz` | Seed-fold tile prediction | `figures/Figure5/03_prepare_public_spmap_artifacts.py` |
-| `SpMap_model_weights_C10_5seeds_5folds.tar.gz` | Seed-fold model | `figures/Figure5/03_prepare_public_spmap_artifacts.py`; `src/spmap/mlp.py` |
+| `SpMap_model_weights_primary_1280_5folds.tar.gz` | Exactly five final `primary_1280` fold checkpoints and manifests | `figures/Figure5/03_prepare_public_spmap_artifacts.py`; `src/spmap/mlp.py` |
 | `SpMap_CONCH_features.tar.gz` | Reference-tile feature | `figures/Figure5/03_prepare_public_spmap_artifacts.py`; `src/spmap/conch_features.py` |
 
 The exact fields, identifiers, formulas, and archive contents are defined in

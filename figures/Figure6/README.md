@@ -2,18 +2,23 @@
 
 `02_cohort_and_rfs.R` generates the Figure 6B clinical-distribution components
 and Figure 6C-D recurrence-free survival panels from prepared patient tables.
+`04_continuous_isr_multivariable_cox.R` is the single Figure 6E-F
+continuous-ISR multivariable Cox entry point. It applies the same model
+specification separately to the two cohorts using the Supplementary Tables
+workbook and the FDZS-1 patient-level H&E-derived ISR table.
 `03_prepare_public_isr_tables.py` generates the public FDZS-1 and FDZS-2 ISR/RFS
 tables, discovery/test assignment, and score-definition/cutoff table.
 The R analysis uses host Conda environment `Spatial` with R 4.2.2, and the
 Python table export uses `Spatial_py`; package versions are listed in
 `envs/package_versions.yml`.
 
-Edit `FIGURE6_CONFIG$discovery_rfs`, `test_rfs`, and `output_dir`, set
-`RUN_FIGURE6` to `TRUE`, and run from the repository root without arguments:
+Edit the top-level input and output paths in the relevant script, enable its run
+switch, and run from the repository root without arguments:
 
 ```text
 Rscript figures/Figure6/02_cohort_and_rfs.R
 python figures/Figure6/03_prepare_public_isr_tables.py
+Rscript figures/Figure6/04_continuous_isr_multivariable_cox.R
 ```
 
 ## Required prepared tables
@@ -56,6 +61,33 @@ The entry point writes:
 
 The entry point reads the editable in-script configuration and consumes
 patient-level ISR tables supplied by the SpMap workflow.
+
+## Continuous-ISR multivariable Cox model
+
+The single Figure 6E-F entry point reads the 35 FDZS-1 clinical rows in Supplementary
+Table 1, merges the 34 rows marked `figure6_included == 1` in
+`FDZS1_patient_level_ISR.tsv`, and reads all 95 FDZS-2 rows directly from
+Supplementary Table 5. It fits the same model separately in each cohort:
+
+```text
+Surv(rfs_time_months, rfs_event) ~ isr * treatment + age + gender + kras +
+  fong + cea + ca199 + tbs + crlm_number + crlm_size +
+  differentiation_grade + t_stage + lymph_positive
+```
+
+ISR is retained as a continuous score, and `Chemo` is the treatment reference.
+Age, TBS, CRLM number, largest CRLM size, CEA, and CA19-9 are standardized
+within cohort before fitting. Fong score and pathological T stage remain
+unstandardized numeric covariates; gender is a two-level cohort-specific factor,
+and the remaining binary fields retain their displayed coding. Each model has
+15 coefficients: the ISR and treatment main effects, their interaction, and 12
+clinicopathological covariates.
+
+The entry point writes:
+
+- `Figure6EF_continuous_ISR_multivariable_Cox.tsv`
+- `Figure6E_continuous_ISR_multivariable_Cox.pdf`
+- `Figure6F_continuous_ISR_multivariable_Cox.pdf`
 
 ## Public patient-level outputs
 

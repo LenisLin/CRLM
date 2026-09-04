@@ -23,6 +23,11 @@ commands from the repository root in order:
 4. `Rscript figures/Figure7/04_run_deg_gsea.R` uses the RCTD-intersection spot table with the Bin100
    bundle and versioned pathway resources to generate Figure 7F-H PDFs.
 
+For direct plotting from the released processed object, run
+`python figures/Figure7/05_plot_public_scrna_annotations.py` after editing its
+`CONFIG`. It reads `FDZS3_scRNA_processed.h5ad` directly and renders Figure 7B
+and Supplementary Figure 15.
+
 `Rscript figures/Figure7/supplementary/FigureS16/01_run_plot_cellchat.R`
 uses the annotated scRNA R bundle after step 1 to generate the five
 Supplementary Figure 16 PDFs.
@@ -37,6 +42,13 @@ contains `processed_matrix.mtx[.gz]`, `processed_features.tsv[.gz]`,
 `processed_barcodes.tsv[.gz]`, and `processed_metadata.csv`. The on-disk
 matrix has genes as rows and cells as columns. Metadata contains `patient`,
 `doublet`, and `sample_id`.
+
+For `05_plot_public_scrna_annotations.py`, set `CONFIG["input_h5ad"]` and
+`CONFIG["output_dir"]`. The H5AD must provide `Major_type`, `Sub_type`, the
+two-dimensional `X_umap` embedding, and `raw.X` with the configured marker
+genes. The public object contains 35,900 cells. This consumer uses stored
+annotations and coordinates; lineage-specific views subset the stored global
+UMAP.
 
 For `02_run_rctd.R`, set `CONFIG$sc_bundle`, `st_bundle`, `output_dir`,
 `st_functions`, and `scrna_functions`. For repository-root execution, set the
@@ -109,6 +121,10 @@ execution.
 `major_anno_all.h5ad`, `final_annotated_scRNA.h5ad`,
 `scrna_run_summary.tsv`, Figure 7B and Supplementary Figure 15 PDFs, and the
 `r_bundle` MatrixMarket directory.
+
+`05_plot_public_scrna_annotations.py` writes the Figure 7B annotation UMAP and
+eight Supplementary Figure 15 major-type, myeloid, T/NK, and B/plasma UMAP or
+marker-dot-plot PDFs from the released H5AD.
 
 `02_run_rctd.R` writes `rctd_normalized_weights.tsv`,
 `rctd_spot_audit.tsv`, `rctd_reference_subtype_counts.tsv`, and

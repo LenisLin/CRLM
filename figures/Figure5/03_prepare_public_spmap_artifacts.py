@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 """Prepare SpMap labels, partitions, metrics, predictions, and model archives.
 
-Target/purpose: convert the selected SpMap C10 five-seed/five-fold artifacts to
-portable public files. Inputs: canonical tile and split manifests, the five
-selected run directories, and canonical CONCH feature shards set in ``CONFIG``.
-Outputs: two compressed TSVs, two metric TSVs, and three tar.gz archives in
-``output_dir``. Ordered workflow: reconcile labels and grouped partitions,
-collect saved metrics, validate each seed's out-of-fold coverage, write portable
-model metadata, and package the selected artifacts.
+Target/purpose: convert the selected SpMap evaluation and final-model artifacts
+to portable public files. Inputs: canonical tile and split manifests, five
+evaluation run directories, the primary 1,280-input run, and canonical
+CONCH feature shards set in ``CONFIG``. Outputs: two compressed TSVs, two metric
+TSVs, and three tar.gz archives in ``output_dir``. Ordered workflow: reconcile
+labels and grouped partitions, collect saved metrics, validate each seed's
+out-of-fold coverage, and package those predictions together with the five
+primary fold checkpoints and canonical feature shards.
 """
 
 from __future__ import annotations
@@ -38,6 +39,7 @@ CONFIG = {
         303: Path("/path/to/seed303"),
         404: Path("/path/to/seed404"),
     },
+    "primary_run": Path("/path/to/primary_1280"),
     "conch_features": Path("/path/to/03_conch_features"),
     "output_dir": Path("/path/to/derived_results/SpMap"),
 }
@@ -278,49 +280,80 @@ def _add_bytes(archive: tarfile.TarFile, arcname: str, content: bytes) -> None:
     archive.addfile(member, io.BytesIO(content))
 
 
-def public_model_manifest(path: Path, seed: int, fold: int) -> dict[str, object]:
+def public_model_manifest(path: Path, fold: int) -> dict[str, object]:
     """Select portable training metadata from one saved run manifest.
 
-    Parameters: ``path`` identifies a private saved manifest; ``seed`` and
-    ``fold`` identify the public model member.
+    Parameters: ``path`` identifies a private saved manifest and ``fold``
+    identifies the public primary-model member.
     Returns: a dictionary containing portable model and training fields.
     """
-    # Preserve model, optimization, performance, and environment metadata only.
+    # Keep only the fixed model contract and portable numeric run summaries.
     source = json.loads(path.read_text(encoding="utf-8"))
-    data_summary = {
-        role: {key: value for key, value in details.items() if key in {"rows", "parent_ids"}}
-        for role, details in source.get("data", {}).items()
-        if isinstance(details, dict)
+    parameters = source.get("parameters")
+    metric_names = ("accuracy", "precision_macro", "recall_macro", "f1_macro")
+    if not isinstance(parameters, dict):
+        raise ValueError(f"{path} must contain a parameters mapping")
+    if source.get("fold") != fold:
+        raise ValueError(f"{path} does not match fold {fold}")
+    if (
+        source.get("feature_mode") != "concat_1280"
+        or source.get("input_dim") != 1280
+        or source.get("class_map") != {str(index): name for index, name in CLASS_NAMES.items()}
+        or source.get("architecture") != [1280, 450, 4]
+        or source.get("activation") != "ReLU"
+        or source.get("dropout") != 0.25
+        or source.get("loss") != "inverse-frequency weighted cross-entropy"
+        or source.get("optimizer") != "AdamW"
+        or parameters.get("select_metric") != "accuracy"
+        or source.get("terminal_evaluation_role") != "common_internal_holdout"
+    ):
+        raise ValueError(f"{path} does not satisfy the primary_1280 model contract")
+
+    def portable_metrics(name: str) -> dict[str, float]:
+        metrics = source.get(name)
+        if not isinstance(metrics, dict) or set(metric_names) - set(metrics):
+            raise ValueError(f"{path} is missing {name} fields")
+        result = {metric: float(metrics[metric]) for metric in metric_names}
+        if not np.isfinite(list(result.values())).all():
+            raise ValueError(f"{path} has non-finite {name} values")
+        return result
+
+    parameter_names = ("batch", "epochs", "learning_rate", "weight_decay", "seed")
+    if set(parameter_names) - set(parameters):
+        raise ValueError(f"{path} is missing portable training parameters")
+    selected_value = float(source["best_selection_value"])
+    if not np.isfinite(selected_value):
+        raise ValueError(f"{path} has a non-finite best_selection_value")
+    return {
+        "model_id": f"spmap_primary_1280_fold{fold}",
+        "model_run": "primary_1280",
+        "fold": fold,
+        "seed": int(parameters["seed"]),
+        "feature_mode": "paired_768_plus_512",
+        "feature_dimensions": {"semantic": 768, "alignment": 512},
+        "input_dim": 1280,
+        "class_map": {str(index): name for index, name in CLASS_NAMES.items()},
+        "architecture": [1280, 450, 4],
+        "activation": "ReLU",
+        "dropout": 0.25,
+        "depth": 1,
+        "batch_norm": False,
+        "loss": "inverse-frequency weighted cross-entropy",
+        "optimizer": "AdamW",
+        "parameters": {
+            "batch": int(parameters["batch"]),
+            "epochs": int(parameters["epochs"]),
+            "learning_rate": float(parameters["learning_rate"]),
+            "weight_decay": float(parameters["weight_decay"]),
+            "select_metric": "validation_accuracy",
+        },
+        "checkpoint_selection": "validation_accuracy",
+        "selected_epoch": int(source["selected_epoch"]),
+        "best_selection_value": selected_value,
+        "validation_metrics": portable_metrics("validation_metrics"),
+        "holdout_metrics": portable_metrics("holdout_metrics"),
+        "terminal_evaluation_role": "common_internal_holdout",
     }
-    keys = (
-        "feature_mode",
-        "input_dim",
-        "class_map",
-        "architecture",
-        "activation",
-        "dropout",
-        "depth",
-        "batch_norm",
-        "input_normalization",
-        "loss",
-        "class_weight_mode",
-        "target_multiplier",
-        "aux_pir_psm_binary_weight",
-        "aux_target_ovr_weight",
-        "sampler",
-        "focal_gamma",
-        "optimizer",
-        "parameters",
-        "selected_epoch",
-        "best_selection_value",
-        "validation_metrics",
-        "runtime_seconds",
-        "environment",
-        "feature_preload_seconds",
-    )
-    result = {key: source.get(key) for key in keys}
-    result.update({"seed": seed, "fold": fold, "data": data_summary})
-    return result
 
 
 def write_prediction_archive(seed_runs: dict[int, Path], output: Path) -> None:
@@ -338,23 +371,26 @@ def write_prediction_archive(seed_runs: dict[int, Path], output: Path) -> None:
                 archive.add(source, arcname=f"seed{seed}/fold{fold}/validation_predictions.csv")
 
 
-def write_weight_archive(seed_runs: dict[int, Path], output: Path) -> None:
-    """Archive 25 selected checkpoints with portable model manifests.
+def write_weight_archive(primary_run: Path, output: Path) -> None:
+    """Archive five primary fold checkpoints with portable model manifests.
 
-    Parameters: ``seed_runs`` maps seeds to selected run roots and ``output`` is
-    the target tar.gz path.
+    Parameters: ``primary_run`` is the selected 1,280-input run root and
+    ``output`` is the target tar.gz path.
     Returns: no value after writing the archive.
     """
-    # Every checkpoint is paired with its portable model and training metadata.
+    # Every primary checkpoint is paired with portable model/training metadata.
     with tarfile.open(output, "w:gz") as archive:
-        for seed in SEEDS:
-            for fold in FOLDS:
-                fold_root = seed_runs[seed] / f"fold{fold}"
-                prefix = f"seed{seed}/fold{fold}"
-                archive.add(fold_root / "best.pt", arcname=f"{prefix}/best.pt")
-                manifest = public_model_manifest(fold_root / "run_manifest.json", seed, fold)
-                content = json.dumps(manifest, indent=2, sort_keys=True).encode("utf-8")
-                _add_bytes(archive, f"{prefix}/model_manifest.json", content)
+        for fold in FOLDS:
+            fold_root = primary_run / f"fold{fold}"
+            prefix = f"fold{fold}"
+            checkpoint = fold_root / "best.pt"
+            manifest_path = fold_root / "run_manifest.json"
+            if not checkpoint.is_file() or not manifest_path.is_file():
+                raise FileNotFoundError(f"Fold {fold} is missing best.pt or run_manifest.json")
+            archive.add(checkpoint, arcname=f"{prefix}/best.pt")
+            manifest = public_model_manifest(manifest_path, fold)
+            content = json.dumps(manifest, indent=2, sort_keys=True).encode("utf-8")
+            _add_bytes(archive, f"{prefix}/model_manifest.json", content)
 
 
 def write_feature_archive(source_root: Path, output: Path) -> None:
@@ -418,7 +454,8 @@ def run(config: dict[str, object]) -> None:
         seed_runs, output_dir / "SpMap_OOF_predictions_C10_5seeds_5folds.tar.gz"
     )
     write_weight_archive(
-        seed_runs, output_dir / "SpMap_model_weights_C10_5seeds_5folds.tar.gz"
+        config["primary_run"],
+        output_dir / "SpMap_model_weights_primary_1280_5folds.tar.gz",
     )
     write_feature_archive(
         config["conch_features"], output_dir / "SpMap_CONCH_features.tar.gz"

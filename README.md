@@ -1,8 +1,14 @@
 # Peritumoral Niches Stratify Outcomes after Adjuvant Therapy in Colorectal Liver Metastases
 
-This repository contains 38 R/Python scripts for the CRLM spatial
+This repository contains 44 R/Python scripts for the CRLM spatial
 microenvironment study. Figure entry points are organized by main figure, and
 shared functions are organized by modality.
+
+## Release 2.0.0
+
+Released 2026-09-04. This release documents the Figure 1B supplementary-table
+producer, the Figure 6E-F continuous-ISR multivariable Cox entry point, and
+the final five-checkpoint `primary_1280` SpMap model archive.
 
 ## Repository layout
 
@@ -33,20 +39,21 @@ artifact to its owning analysis and export code.
 
 ## Analysis organization
 
-Run figure entry points from the repository root in the order recorded in each
-Figure README. Before direct execution, edit the paths in the script's top-level
-configuration and enable its run switch where present. Entry points take no
-command-line flags or positional arguments. `config/paths.example.yml` is a
-path-reference worksheet for matching the same inputs across scripts; each
-script reads its own editable configuration.
+Run figure entry points from the repository root after editing the paths in the
+script's top-level configuration and enabling its run switch where present.
+Entry points take no command-line flags or positional arguments.
+`config/paths.example.yml` provides shared path references; each script reads
+its own editable configuration.
 `config/analysis_parameters.yml` records shared fixed values, and
 `envs/package_versions.yml` records key versions for each analysis family.
 
 The repository contains analytical code for IMC, SpMap, scRNA-seq, and spatial
-transcriptomics stages. Figure 7 scripts use processed MatrixMarket bundles,
-registered SpMap tile annotations, and offline pathway resources specified in
-the path configuration. Figure 6 uses prepared discovery and test patient
-tables. Each script documents its required columns and output tables.
+transcriptomics stages. Figure 7 includes the full MatrixMarket workflow and a
+direct plot entry point for the released FDZS-3 H5AD; later spatial stages use
+registered SpMap tile annotations and offline pathway resources. Figure 1B
+reads Supplementary Tables 1 and 5. Figure 6E-F reads those tables together
+with the FDZS-1 patient-level H&E-derived ISR table. Each script documents its
+required fields and output tables.
 
 The machine-readable [figure/table manifest](docs/figure_table_manifest.tsv)
 lists panel and table coverage. The [provenance manifest](docs/provenance_manifest.tsv)
@@ -55,5 +62,5 @@ maps analysis code and public data objects to their inputs and outputs.
 ## License and citation
 
 Code is available under the [MIT License](LICENSE). Cite the software metadata
-in [CITATION.cff](CITATION.cff) and the version-specific Zenodo DOI associated
-with the processed-data package.
+in [CITATION.cff](CITATION.cff) and cite the processed data through the Zenodo
+concept DOI above.

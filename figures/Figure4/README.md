@@ -1,25 +1,36 @@
 # Figure 4
 
-This directory provides `01_methods_aligned_orchestration.R` for **Figure 4.
+This directory provides analysis and plot entry points for **Figure 4.
 Associations between cholangiocyte-associated peritumor niches and treatment-
-stratified RFS in CRLM.** The script generates cellular-neighborhood, PTME,
-and ISR tables from an IMC SCE. `02_export_roi_cell_composition.R` exports the
-public ROI-level cell-composition matrix from the processed FDZS-1 object.
+stratified RFS in CRLM.** `01_methods_aligned_orchestration.R` generates
+cellular-neighborhood, PTME, and ISR tables from an IMC SCE;
+`02_export_roi_cell_composition.R` exports the public ROI-level cell-composition
+matrix; `03_plot_epithelial_identity.R` generates Figure 4D and Supplementary
+Figure 9A-B; and `04_plot_ptme_isr_panels.R` renders the supported
+Supplementary Figure 9C PTME-size panel.
 
 ## Run
 
 ```text
 Rscript figures/Figure4/01_methods_aligned_orchestration.R
 Rscript figures/Figure4/02_export_roi_cell_composition.R
+Rscript figures/Figure4/03_plot_epithelial_identity.R
+Rscript figures/Figure4/04_plot_ptme_isr_panels.R
 ```
 
 Before running from the repository root, edit `SCE_INPUT`,
 `OUTPUT_DIRECTORY`, and `SCRIPT_DIRECTORY` near the top of the script. Invoke
 the entry point directly with the no-argument command above. For the public
-ROI export, edit `EXPORT_CONFIG` and set `RUN_ROI_EXPORT` to `TRUE`.
+ROI export, edit `EXPORT_CONFIG` and set `RUN_ROI_EXPORT` to `TRUE`. For the
+epithelial-identity consumer, edit `EPITHELIAL_IDENTITY_CONFIG` and set
+`RUN_EPITHELIAL_IDENTITY` to `TRUE`. For the PTME plot consumer, set
+`TABLE_DIRECTORY`, `OUTPUT_DIRECTORY`, and
+`RUN_FIGURE4_PLOT_CONSUMERS <- TRUE`.
 
-The script requires `SingleCellExperiment`, `SummarizedExperiment`, `FNN`,
-`igraph`, and `geometry`. It uses the shared interfaces in
+The orchestration script requires `SingleCellExperiment`,
+`SummarizedExperiment`, `FNN`, `igraph`, and `geometry`. The epithelial
+consumer additionally uses `ggplot2` and `scales`; the PTME plot consumer uses
+`ggplot2`. The orchestration script uses the shared interfaces in
 `../../src/imc/coordinates.R`, `../../src/imc/cellular_neighborhoods.R`, and
 `../../src/imc/ptme.R`.
 
@@ -30,6 +41,15 @@ The SCE `colData()` must contain complete `CellID`, `PID`, `ID`, `Tissue`,
 unique. `Treatment` is the explicit clinical field, uses `Chemo` or `Combo`,
 and is constant within each patient. Execution requires the listed packages,
 the three shared IMC interface files, complete required fields, and PT cells.
+
+The epithelial-identity entry point uses the same current SCE and requires the
+TC, IM, and PT tissue labels; the four configured epithelial `SubType` labels;
+and PRPS1, FASN, GLUT1, HK2, Ki67, VEGF, and CAIX expression rows. It aggregates
+cells to ROI means and then to one patient-tissue mean before nominal two-sided
+Wilcoxon rank-sum testing.
+
+The PTME plot consumer reads `figure4_ptme_classification.tsv` written by the
+orchestration script and uses its `ptme_id`, `PID`, `ID`, and `n_cells` fields.
 
 ## Fixed analysis parameters
 
@@ -65,3 +85,11 @@ explicit patient treatment value.
 | `figure4_roi_isr.tsv` | One row per eligible PT patient-ROI with PIR/PSM counts, raw and clipped ISR, and treatment. |
 | `figure4_patient_isr.tsv` | One row per eligible PT patient with PIR/PSM counts, raw and clipped ISR, and treatment. |
 | `FDZS1_ROI_cell_composition.tsv.gz` | One row per patient-ROI-tissue group with total cells and public SubType fractions. |
+| `figureS9A_epithelial_tissue_distribution.tsv` | Epithelial cell counts and fractions across TC, IM, and PT. |
+| `epithelial_roi_marker_means.tsv` | One row per patient, ROI, tissue, and epithelial marker. |
+| `epithelial_patient_tissue_marker_means.tsv` | One patient-level mean per tissue and epithelial marker. |
+| `epithelial_patient_tissue_wilcoxon.tsv` | Nominal two-sided tissue-pair Wilcoxon results. |
+| `FigureS9A_epithelial_tissue_distribution.pdf` | Supplementary Figure 9A epithelial distribution. |
+| `Figure4D_CAIX_Ki67_expression.pdf` | Figure 4D CAIX and Ki67 comparison. |
+| `FigureS9B_epithelial_metabolic_marker_expression.pdf` | Supplementary Figure 9B marker comparison. |
+| `SupplementaryFigure9C_ptme_size_distribution.pdf` | Supplementary Figure 9C PTME-size histogram. |
