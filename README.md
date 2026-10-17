@@ -1,6 +1,6 @@
 # Peritumoral Niches Stratify Outcomes after Adjuvant Therapy in Colorectal Liver Metastases
 
-This repository contains 44 R/Python scripts for the CRLM spatial
+This repository contains 45 R/Python scripts for the CRLM spatial
 microenvironment study. Figure entry points are organized by main figure, and
 shared functions are organized by modality.
 
@@ -22,6 +22,13 @@ src/          Shared IMC, SpMap, scRNA-seq, and ST functions
 
 Each `figures/FigureN/README.md` records the covered panels, execution order,
 required inputs, outputs, analysis units, and package-version family.
+
+## Figure reports
+
+The [Figure 1–7 reports](docs/rmd_display.md) present analysis code by step,
+with current publication figures displayed alongside the relevant analyses.
+R workflows have GitHub Markdown and R Markdown versions. Python workflows for
+Figures 5–7 are provided as Jupyter notebooks with embedded figures.
 
 ## Processed data
 

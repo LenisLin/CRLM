@@ -1,5 +1,9 @@
 # Figure 7
 
+Read the [Python notebook](Figure7_python.ipynb) for scRNA-seq workflows and
+embedded publication figures, or the [R report](Figure7.md) for the spatial
+and communication analyses.
+
 This directory provides the Figure 7 workflow for processed FDZS-3 scRNA-seq
 and FDZS-4 Stereo-seq data. The workflow constructs the annotated scRNA
 reference, estimates Bin100 spot composition with RCTD, maps registered SpMap

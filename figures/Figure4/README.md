@@ -1,5 +1,9 @@
 # Figure 4
 
+[Read the Figure 4 report](Figure4.md) for the complete publication Figure 4 and
+Figures S9–S10 alongside the full analysis code. The displayed marker violins
+use ROI means; the epithelial entry point below computes patient-tissue means.
+
 This directory provides analysis and plot entry points for **Figure 4.
 Associations between cholangiocyte-associated peritumor niches and treatment-
 stratified RFS in CRLM.** `01_methods_aligned_orchestration.R` generates

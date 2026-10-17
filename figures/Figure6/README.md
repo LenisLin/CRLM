@@ -1,11 +1,17 @@
 # Figure 6
 
+Read the [Python notebook](Figure6_python.ipynb) for patient-level ISR table
+preparation and the embedded publication figure, or the [R report](Figure6.md)
+for the clinical and survival analyses.
+
 `02_cohort_and_rfs.R` generates the Figure 6B clinical-distribution components
 and Figure 6C-D recurrence-free survival panels from prepared patient tables.
-`04_continuous_isr_multivariable_cox.R` is the single Figure 6E-F
-continuous-ISR multivariable Cox entry point. It applies the same model
+`04_continuous_isr_multivariable_cox.R` fits adjusted continuous-ISR Cox models.
+It applies the same model
 specification separately to the two cohorts using the Supplementary Tables
 workbook and the FDZS-1 patient-level H&E-derived ISR table.
+`05_continuous_and_binary_isr_cox.R` fits continuous and binary ISR models
+in both cohorts with the current supplementary workbook.
 `03_prepare_public_isr_tables.py` generates the public FDZS-1 and FDZS-2 ISR/RFS
 tables, discovery/test assignment, and score-definition/cutoff table.
 The R analysis uses host Conda environment `Spatial` with R 4.2.2, and the
@@ -19,6 +25,7 @@ switch, and run from the repository root without arguments:
 Rscript figures/Figure6/02_cohort_and_rfs.R
 python figures/Figure6/03_prepare_public_isr_tables.py
 Rscript figures/Figure6/04_continuous_isr_multivariable_cox.R
+Rscript figures/Figure6/05_continuous_and_binary_isr_cox.R
 ```
 
 ## Required prepared tables
@@ -64,7 +71,7 @@ patient-level ISR tables supplied by the SpMap workflow.
 
 ## Continuous-ISR multivariable Cox model
 
-The single Figure 6E-F entry point reads the 35 FDZS-1 clinical rows in Supplementary
+The continuous entry point reads the 35 FDZS-1 clinical rows in Supplementary
 Table 1, merges the 34 rows marked `figure6_included == 1` in
 `FDZS1_patient_level_ISR.tsv`, and reads all 95 FDZS-2 rows directly from
 Supplementary Table 5. It fits the same model separately in each cohort:
@@ -88,6 +95,46 @@ The entry point writes:
 - `Figure6EF_continuous_ISR_multivariable_Cox.tsv`
 - `Figure6E_continuous_ISR_multivariable_Cox.pdf`
 - `Figure6F_continuous_ISR_multivariable_Cox.pdf`
+
+## Continuous and binary ISR models for both cohorts
+
+The [display report](Figure6.md) contains the complete current Figure 6,
+Figure S13, and Figure S14.
+
+`05_continuous_and_binary_isr_cox.R` fits both continuous and binary ISR
+models separately in FDZS-1 and FDZS-2. Each model adjusts for the same 12
+clinicopathological covariates and includes treatment and its interaction
+with ISR. The fixed binary cutoff is `0.581262877`; High is strictly above
+this cutoff. High ISR and Chemo are the reference levels. The six continuous
+clinical covariates listed above are standardized within cohort. Binary
+forest tables express the interaction as the High/Low treatment-HR ratio.
+
+The entry reads the current supplementary workbook and the public discovery
+ISR table. The workbook has a title row and headers on row 2. Configure sheet
+names as `Supplementary Table 1` / `Supplementary Table 5`, or `S1` / `S5`
+for the proof workbook. The current test sheet uses
+`SpMap-derived immune-stromal ratio (ISR)`, `Recurrence status during follow-up`,
+`Postoperative adjuvant treatment group`, and the reader-facing clinical
+labels listed in the code. Categories are `Male` / `Female`,
+`FOLFOX alone` / `FOLFOX plus targeted therapy`, and
+`No recurrence` / `Recurrence`.
+
+Edit `ISR_MODEL_CONFIG`, set `RUN_ISR_MODELS <- TRUE`, and run from the
+repository root in `Spatial`:
+
+```sh
+Rscript figures/Figure6/05_continuous_and_binary_isr_cox.R
+```
+
+The entry uses normalization and plotting functions from entry 04, with
+`RUN_FIGURE6_COX <- FALSE`. It writes:
+
+- `Figure6_continuous_binary_Cox_coefficients.tsv`
+- `Figure6_continuous_binary_Cox_displayed_contrasts.tsv`
+- `Figure6E_continuous_ISR_Cox.pdf`
+- `Figure6E_binary_ISR_Cox.pdf`
+- `Figure6F_continuous_ISR_Cox.pdf`
+- `Figure6F_binary_ISR_Cox.pdf`
 
 ## Public patient-level outputs
 

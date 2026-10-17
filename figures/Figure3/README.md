@@ -5,6 +5,11 @@ neighborhood patterns in tumor core and invasive margin.** It also contains the
 Supplementary Figure 6 workflow for pairwise cell-cell interaction frequency
 matrices across CRLM regions.
 
+[Read the illustrated report](Figure3.md) or its [R Markdown source](Figure3.Rmd).
+The report displays the current publication Figure 3A–F and complete Figures
+S6–S8 alongside the full R entry points. Figure 3 abundance comparisons use
+patients; Figure S8 comparisons use ROIs.
+
 ## Figure 3B-F cellular neighborhoods
 
 Edit `figure3_config$sce_path`, `output_dir`, and `script_dir`, set

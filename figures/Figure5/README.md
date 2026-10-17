@@ -3,6 +3,9 @@
 This directory provides the SpMap workflow, Figure 5B count
 preparation, and Supplementary Figure 11 evaluation entry points.
 
+Read the [Python notebook](Figure5_python.ipynb) for the Python workflows and
+embedded publication figures, or the [R report](Figure5.md) for the R analysis.
+
 ## Entry points
 
 | Panel | Entry point | Required inputs | Outputs | Analysis unit |

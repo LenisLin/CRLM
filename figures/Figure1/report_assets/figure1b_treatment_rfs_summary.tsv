@@ -1,0 +1,3 @@
+cohort	n_total	n_chemo	n_combo	recurrence_events	nominal_logrank_p_value
+FDZS-1	35	22	13	18	0.222512144808341
+FDZS-2	95	64	31	62	0.0702311547700347
