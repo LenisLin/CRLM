@@ -1,0 +1,21 @@
+tissue,cn,treatment,cn_order,treatment_order,comparison_group1,comparison_group2,p_value_displayed,p_label,p_type,label_position,label_color,value_origin,numeric_precision
+IM,CN1,Chemo,1,1,No recurrence,Recurrence,1,p = 1,nominal Wilcoxon,top of facet,black,figure_transcribed,as displayed
+IM,CN10,Chemo,2,1,No recurrence,Recurrence,0.14399999999999999,p = 0.144,nominal Wilcoxon,top of facet,black,figure_transcribed,as displayed
+IM,CN2,Chemo,3,1,No recurrence,Recurrence,0.55300000000000005,p = 0.553,nominal Wilcoxon,top of facet,black,figure_transcribed,as displayed
+IM,CN3,Chemo,4,1,No recurrence,Recurrence,1,p = 1,nominal Wilcoxon,top of facet,black,figure_transcribed,as displayed
+IM,CN4,Chemo,5,1,No recurrence,Recurrence,0.94799999999999995,p = 0.948,nominal Wilcoxon,top of facet,black,figure_transcribed,as displayed
+IM,CN5,Chemo,6,1,No recurrence,Recurrence,0.43099999999999999,p = 0.431,nominal Wilcoxon,top of facet,black,figure_transcribed,as displayed
+IM,CN6,Chemo,7,1,No recurrence,Recurrence,0.84499999999999997,p = 0.845,nominal Wilcoxon,top of facet,black,figure_transcribed,as displayed
+IM,CN7,Chemo,8,1,No recurrence,Recurrence,0.69499999999999995,p = 0.695,nominal Wilcoxon,top of facet,black,figure_transcribed,as displayed
+IM,CN8,Chemo,9,1,No recurrence,Recurrence,0.89600000000000002,p = 0.896,nominal Wilcoxon,top of facet,black,figure_transcribed,as displayed
+IM,CN9,Chemo,10,1,No recurrence,Recurrence,0.60099999999999998,p = 0.601,nominal Wilcoxon,top of facet,black,figure_transcribed,as displayed
+IM,CN1,Combo,1,2,No recurrence,Recurrence,0.83299999999999996,p = 0.833,nominal Wilcoxon,top of facet,black,figure_transcribed,as displayed
+IM,CN10,Combo,2,2,No recurrence,Recurrence,1,p = 1,nominal Wilcoxon,top of facet,black,figure_transcribed,as displayed
+IM,CN2,Combo,3,2,No recurrence,Recurrence,1,p = 1,nominal Wilcoxon,top of facet,black,figure_transcribed,as displayed
+IM,CN3,Combo,4,2,No recurrence,Recurrence,0.019,p = 0.019,nominal Wilcoxon,top of facet,red,figure_transcribed,as displayed
+IM,CN4,Combo,5,2,No recurrence,Recurrence,0.127,p = 0.127,nominal Wilcoxon,top of facet,black,figure_transcribed,as displayed
+IM,CN5,Combo,6,2,No recurrence,Recurrence,0.83299999999999996,p = 0.833,nominal Wilcoxon,top of facet,black,figure_transcribed,as displayed
+IM,CN6,Combo,7,2,No recurrence,Recurrence,0.94299999999999995,p = 0.943,nominal Wilcoxon,top of facet,black,figure_transcribed,as displayed
+IM,CN7,Combo,8,2,No recurrence,Recurrence,0.127,p = 0.127,nominal Wilcoxon,top of facet,black,figure_transcribed,as displayed
+IM,CN8,Combo,9,2,No recurrence,Recurrence,0.092999999999999999,p = 0.093,nominal Wilcoxon,top of facet,black,figure_transcribed,as displayed
+IM,CN9,Combo,10,2,No recurrence,Recurrence,0.435,p = 0.435,nominal Wilcoxon,top of facet,black,figure_transcribed,as displayed

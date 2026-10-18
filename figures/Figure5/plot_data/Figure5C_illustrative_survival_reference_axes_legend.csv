@@ -1,0 +1,35 @@
+command_order,command,x_pdf_pt,y_pdf_pt,control1_x_pdf_pt,control1_y_pdf_pt,control2_x_pdf_pt,control2_y_pdf_pt,path_id,layer_role,curve,stroke_hex,fill_hex,stroke_width_pdf_pt,dash_array_pdf_pt,dash_phase_pdf_pt,stroke_linecap,stroke_linejoin,fill_rule,coordinate_origin,approx_precision_pdf_pt,geometry_meaning
+1,M,421.48046875,190.515625,NA,NA,NA,NA,2090,horizontal_reference,shared,#0e0f0e,none,0.5,4.27;4.27,0,butt,round,nonzero,PDF page top left; x right; y down,0.004,illustrative diagram geometry
+2,L,435.140625,190.515625,NA,NA,NA,NA,2090,horizontal_reference,shared,#0e0f0e,none,0.5,4.27;4.27,0,butt,round,nonzero,PDF page top left; x right; y down,0.004,illustrative diagram geometry
+1,M,435.140625,216.53125,NA,NA,NA,NA,2091,vertical_reference,shared,#0e0f0e,none,0.5,4.27;4.27,0,butt,round,nonzero,PDF page top left; x right; y down,0.004,illustrative diagram geometry
+2,L,435.140625,190.515625,NA,NA,NA,NA,2091,vertical_reference,shared,#0e0f0e,none,0.5,4.27;4.27,0,butt,round,nonzero,PDF page top left; x right; y down,0.004,illustrative diagram geometry
+1,M,418.12109375,219.1328125,NA,NA,NA,NA,2092,y_axis,shared,#0e0f0e,none,0.5,none,0,butt,round,nonzero,PDF page top left; x right; y down,0.004,illustrative diagram geometry
+2,L,418.12109375,161.894531,NA,NA,NA,NA,2092,y_axis,shared,#0e0f0e,none,0.5,none,0,butt,round,nonzero,PDF page top left; x right; y down,0.004,illustrative diagram geometry
+1,M,417.65234375,216.53125,NA,NA,NA,NA,2093,y_axis_tick,shared,#0e0f0e,none,0.75,none,0,butt,round,nonzero,PDF page top left; x right; y down,0.004,illustrative diagram geometry
+2,L,418.12109399999997,216.53125,NA,NA,NA,NA,2093,y_axis_tick,shared,#0e0f0e,none,0.75,none,0,butt,round,nonzero,PDF page top left; x right; y down,0.004,illustrative diagram geometry
+1,M,417.65234375,203.5234375,NA,NA,NA,NA,2094,y_axis_tick,shared,#0e0f0e,none,0.75,none,0,butt,round,nonzero,PDF page top left; x right; y down,0.004,illustrative diagram geometry
+2,L,418.12109399999997,203.5234375,NA,NA,NA,NA,2094,y_axis_tick,shared,#0e0f0e,none,0.75,none,0,butt,round,nonzero,PDF page top left; x right; y down,0.004,illustrative diagram geometry
+1,M,417.65234375,190.515625,NA,NA,NA,NA,2095,y_axis_tick,shared,#0e0f0e,none,0.75,none,0,butt,round,nonzero,PDF page top left; x right; y down,0.004,illustrative diagram geometry
+2,L,418.12109399999997,190.515625,NA,NA,NA,NA,2095,y_axis_tick,shared,#0e0f0e,none,0.75,none,0,butt,round,nonzero,PDF page top left; x right; y down,0.004,illustrative diagram geometry
+1,M,417.65234375,177.50390625,NA,NA,NA,NA,2096,y_axis_tick,shared,#0e0f0e,none,0.75,none,0,butt,round,nonzero,PDF page top left; x right; y down,0.004,illustrative diagram geometry
+2,L,418.12109399999997,177.50390625,NA,NA,NA,NA,2096,y_axis_tick,shared,#0e0f0e,none,0.75,none,0,butt,round,nonzero,PDF page top left; x right; y down,0.004,illustrative diagram geometry
+1,M,417.65234375,164.49609375,NA,NA,NA,NA,2097,y_axis_tick,shared,#0e0f0e,none,0.75,none,0,butt,round,nonzero,PDF page top left; x right; y down,0.004,illustrative diagram geometry
+2,L,418.12109399999997,164.49609375,NA,NA,NA,NA,2097,y_axis_tick,shared,#0e0f0e,none,0.75,none,0,butt,round,nonzero,PDF page top left; x right; y down,0.004,illustrative diagram geometry
+1,M,418.12109375,219.1328125,NA,NA,NA,NA,2098,x_axis,shared,#0e0f0e,none,0.5,none,0,butt,round,nonzero,PDF page top left; x right; y down,0.004,illustrative diagram geometry
+2,L,492.050781,219.1328125,NA,NA,NA,NA,2098,x_axis,shared,#0e0f0e,none,0.5,none,0,butt,round,nonzero,PDF page top left; x right; y down,0.004,illustrative diagram geometry
+1,M,411.820312,214.648438,NA,NA,NA,NA,2099,lower_left_hollow_anchor,shared,none,#0e0f0f,0.0,none,0,butt,none,nonzero,PDF page top left; x right; y down,0.004,illustrative diagram geometry
+2,C,410.832031,215.714844,411.253906,214.671875,410.808594,215.148438,2099,lower_left_hollow_anchor,shared,none,#0e0f0f,0.0,none,0,butt,none,nonzero,PDF page top left; x right; y down,0.004,illustrative diagram geometry
+3,C,411.898438,216.707031,410.851562,216.285156,411.332031,216.726562,2099,lower_left_hollow_anchor,shared,none,#0e0f0f,0.0,none,0,butt,none,nonzero,PDF page top left; x right; y down,0.004,illustrative diagram geometry
+4,C,412.890625,215.636719,412.46875,216.683594,412.910156,216.207031,2099,lower_left_hollow_anchor,shared,none,#0e0f0f,0.0,none,0,butt,none,nonzero,PDF page top left; x right; y down,0.004,illustrative diagram geometry
+5,C,411.820312,214.648438,412.867188,215.070312,412.386719,214.625,2099,lower_left_hollow_anchor,shared,none,#0e0f0f,0.0,none,0,butt,none,nonzero,PDF page top left; x right; y down,0.004,illustrative diagram geometry
+6,C,411.820312,214.648438,411.253906,214.671875,412.386719,214.625,2099,lower_left_hollow_anchor,shared,none,#0e0f0f,0.0,none,0,butt,none,nonzero,PDF page top left; x right; y down,0.004,illustrative diagram geometry
+7,M,411.910156,217.023438,NA,NA,NA,NA,2099,lower_left_hollow_anchor,shared,none,#0e0f0f,0.0,none,0,butt,none,nonzero,PDF page top left; x right; y down,0.004,illustrative diagram geometry
+8,C,410.515625,215.726562,411.171875,217.050781,410.542969,216.472656,2099,lower_left_hollow_anchor,shared,none,#0e0f0f,0.0,none,0,butt,none,nonzero,PDF page top left; x right; y down,0.004,illustrative diagram geometry
+9,C,411.808594,214.332031,410.484375,214.988281,411.066406,214.359375,2099,lower_left_hollow_anchor,shared,none,#0e0f0f,0.0,none,0,butt,none,nonzero,PDF page top left; x right; y down,0.004,illustrative diagram geometry
+10,C,413.207031,215.625,412.550781,214.300781,413.179688,214.882812,2099,lower_left_hollow_anchor,shared,none,#0e0f0f,0.0,none,0,butt,none,nonzero,PDF page top left; x right; y down,0.004,illustrative diagram geometry
+11,C,411.910156,217.023438,413.234375,216.367188,412.65625,216.992188,2099,lower_left_hollow_anchor,shared,none,#0e0f0f,0.0,none,0,butt,none,nonzero,PDF page top left; x right; y down,0.004,illustrative diagram geometry
+12,C,411.910156,217.023438,411.171875,217.050781,412.65625,216.992188,2099,lower_left_hollow_anchor,shared,none,#0e0f0f,0.0,none,0,butt,none,nonzero,PDF page top left; x right; y down,0.004,illustrative diagram geometry
+1,M,461.640625,161.46484375,NA,NA,NA,NA,2102,legend_line,High ISR,#3a409f,none,1.0,none,0,butt,round,nonzero,PDF page top left; x right; y down,0.004,illustrative diagram geometry
+2,L,471.664063,161.46484375,NA,NA,NA,NA,2102,legend_line,High ISR,#3a409f,none,1.0,none,0,butt,round,nonzero,PDF page top left; x right; y down,0.004,illustrative diagram geometry
+1,M,461.640625,171.16015625,NA,NA,NA,NA,2103,legend_line,Low ISR,#bf3328,none,1.0,none,0,butt,round,nonzero,PDF page top left; x right; y down,0.004,illustrative diagram geometry
+2,L,471.664063,171.16015625,NA,NA,NA,NA,2103,legend_line,Low ISR,#bf3328,none,1.0,none,0,butt,round,nonzero,PDF page top left; x right; y down,0.004,illustrative diagram geometry

@@ -1,0 +1,6 @@
+x_tick,tick_label,x_scale,x_unit,x_label,reference_x,reference_line,estimate,lower_bound,upper_bound
+-100,−100%,linear,percentage points,Benefit (% reduction in hazard rate),0,dashed,100*(1-HR),100*(1-HR upper 95% CI),100*(1-HR lower 95% CI)
+-50,−50%,linear,percentage points,Benefit (% reduction in hazard rate),0,dashed,100*(1-HR),100*(1-HR upper 95% CI),100*(1-HR lower 95% CI)
+0,0%,linear,percentage points,Benefit (% reduction in hazard rate),0,dashed,100*(1-HR),100*(1-HR upper 95% CI),100*(1-HR lower 95% CI)
+50,50%,linear,percentage points,Benefit (% reduction in hazard rate),0,dashed,100*(1-HR),100*(1-HR upper 95% CI),100*(1-HR lower 95% CI)
+100,100%,linear,percentage points,Benefit (% reduction in hazard rate),0,dashed,100*(1-HR),100*(1-HR upper 95% CI),100*(1-HR lower 95% CI)

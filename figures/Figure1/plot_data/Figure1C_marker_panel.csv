@@ -1,0 +1,38 @@
+column_order,group_order,display_group,row_in_group,marker_label,marker_type,assay_marker
+1,1,DNA,1,DNA1,DNA,NA
+1,1,DNA,2,DNA3,DNA,NA
+1,2,Lymphoid,1,CD20,Cell type,CD20
+1,2,Lymphoid,2,CD3,Cell type,CD3
+1,2,Lymphoid,3,CD8a,Cell type,CD8a
+1,2,Lymphoid,4,CD4,Cell type,CD4
+1,2,Lymphoid,5,FoxP3,Cell type,FoxP3
+1,2,Lymphoid,6,CD57,Cell type,CD57
+1,3,Pan-immune,1,CD45,Cell type,CD45
+1,4,MHC,1,HLA-DR,Cell type,HLADR
+2,1,Myeloid,1,CD14,Cell type,CD14
+2,1,Myeloid,2,CD16,Cell type,CD16
+2,1,Myeloid,3,CD68,Cell type,CD68
+2,1,Myeloid,4,CD11b,Cell type,CD11b
+2,1,Myeloid,5,CD163,Cell type,CD163
+2,1,Myeloid,6,CD169,Cell type,CD169
+2,1,Myeloid,7,CD11c,Cell type,CD11c
+2,1,Myeloid,8,CLEC9A,Cell type,CLEC9A
+2,2,Mesenchymal,1,EpCAM,Cell type,EpCAM
+2,2,Mesenchymal,2,Vimentin,Cell type,Vimentin
+2,2,Mesenchymal,3,AlphaSMA,Cell type,AlphaSMA
+2,2,Mesenchymal,4,FAP,Cell type,FAP
+2,2,Mesenchymal,5,Collagen-I,Cell type,CollagenI
+2,2,Mesenchymal,6,VEGF,Cell type,VEGF
+3,1,Metabolism,1,Ki67,Cell state,Ki67
+3,1,Metabolism,2,HK2,Cell state,HK2
+3,1,Metabolism,3,GLUT1,Cell state,GLUT1
+3,1,Metabolism,4,CA-IX,Cell state,CAIX
+3,1,Metabolism,5,FASN,Cell state,FASN
+3,1,Metabolism,6,PRPS1,Cell state,PRPS1
+3,2,Co-stimulator,1,CD127,Cell state,CD127
+3,2,Co-stimulator,2,CD80,Cell state,CD80
+3,2,Co-stimulator,3,CD27,Cell state,CD27
+3,3,Checkpoint,1,CD366,Cell state,CD366
+3,3,Checkpoint,2,PD-1 (CD279),Cell state,CD279
+3,3,Checkpoint,3,PD-L1 (CD274),Cell state,CD274
+3,3,Checkpoint,4,TIGIT,Cell state,TIGIT

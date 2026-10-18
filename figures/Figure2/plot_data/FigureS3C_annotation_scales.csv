@@ -1,0 +1,34 @@
+variable,variable_label,unit,scale_type,scale_value,legend_label,fill,scale_min,scale_max
+RFS_status,RFS status,code,discrete,0.0,0,#BC3C29,NA,NA
+RFS_status,RFS status,code,discrete,1.0,1,#0072B5,NA,NA
+Gender,Gender,code,discrete,0.0,0,#7876B1,NA,NA
+Gender,Gender,code,discrete,1.0,1,#EE4C97,NA,NA
+KRAS_mutation,KRAS mutation,code,discrete,0.0,0,#BEBEBE,NA,NA
+KRAS_mutation,KRAS mutation,code,discrete,1.0,1,#E18727,NA,NA
+BRAF_mutation,BRAF mutation,code,discrete,0.0,0,#BEBEBE,NA,NA
+BRAF_mutation,BRAF mutation,code,discrete,1.0,1,#E18727,NA,NA
+CRC_site,CRC site,code,discrete,1.0,1,#90EE90,NA,NA
+CRC_site,CRC site,code,discrete,2.0,2,#228B22,NA,NA
+CRC_site,CRC site,code,discrete,3.0,3,#006400,NA,NA
+Differential_grade,Differentiation grade,code,discrete,0.0,0,#ADD8E6,NA,NA
+Differential_grade,Differentiation grade,code,discrete,1.0,1,#00008B,NA,NA
+T_stage,T stage,code,discrete,1.0,1,#FFFACD,NA,NA
+T_stage,T stage,code,discrete,2.0,2,#EEE9BF,NA,NA
+T_stage,T stage,code,discrete,3.0,3,#CDC9A5,NA,NA
+T_stage,T stage,code,discrete,4.0,4,#8B8970,NA,NA
+Lymph_positive,Lymph node positive,code,discrete,0.0,0,#FFFFFF,NA,NA
+Lymph_positive,Lymph node positive,code,discrete,1.0,1,#999999,NA,NA
+RFS_time,RFS time (months),months,CIELAB,5.1,5.1,#FFFFFF,5.1,45.07
+RFS_time,RFS time (months),months,CIELAB,45.07,45.07,#8B0000,5.1,45.07
+Age,Age,years,CIELAB,49.0,49,#FFFFFF,49.0,86.0
+Age,Age,years,CIELAB,86.0,86,#708090,49.0,86.0
+TBS,TBS,score,CIELAB,1.41,1.41,#FFFFFF,1.41,51.64
+TBS,TBS,score,CIELAB,51.64,51.64,#9ACD32,1.41,51.64
+CRLM_number,CRLM number,count,CIELAB,1.0,1,#FFFFFF,1.0,30.0
+CRLM_number,CRLM number,count,CIELAB,30.0,30,#FF4500,1.0,30.0
+CRLM_size,CRLM diameter,cm,CIELAB,1.0,1.0,#FFFFFF,1.0,11.0
+CRLM_size,CRLM diameter,cm,CIELAB,11.0,11.0,#CD3700,1.0,11.0
+CEA,CEA,ng/mL,CIELAB,1.3,1.3,#FFFFFF,1.3,1000.0
+CEA,CEA,ng/mL,CIELAB,1000.0,1000.0,#CD4F39,1.3,1000.0
+CA199,CA19-9,U/mL,CIELAB,0.6,0.6,#FFFFFF,0.6,495.6
+CA199,CA19-9,U/mL,CIELAB,495.6,495.6,#FF6347,0.6,495.6

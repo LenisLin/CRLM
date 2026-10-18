@@ -1,0 +1,8 @@
+thumbnail,display_label,geometry_type,xmin_svg_pt,xmax_svg_pt,ymin_svg_pt,ymax_svg_pt,x_axis_scale,y_axis_scale,source_width_px,source_height_px
+ptme,PTME around cholangiocytes,raster_bounds,121.875699,156.384003,21.749566,56.25787,unnumbered,unnumbered,144.0,144.0
+spatial_profile,Spatial profile,raster_bounds,77.355059,103.71556899999999,59.489261,85.849771,unnumbered,unnumbered,110.0,110.0
+single_cell,Single-cell profile,raster_bounds,80.23075,100.839876,96.330215,124.128571,unnumbered,unnumbered,86.0,116.0
+cellular_composition,Cellular composition,raster_bounds,121.995751,156.264414,81.79479,116.06345300000001,unnumbered,unnumbered,143.0,143.0
+volcano,Differential expression analysis,raster_bounds,179.764445,222.22055,69.675759,97.979829,unnumbered,unnumbered,177.0,118.0
+comparison,Cell composition comparison,vector_plot_bounds,179.7656,222.2188,33.0507,59.5234,unnumbered,unnumbered,,
+enrichment,Pathway enrichment,vector_plot_bounds,179.7656,222.2188,108.1328,136.4336,unnumbered,unnumbered,,

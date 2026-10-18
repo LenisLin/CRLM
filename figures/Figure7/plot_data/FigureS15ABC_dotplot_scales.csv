@@ -1,0 +1,4 @@
+panel,expression_color_label,expression_min,expression_max,expression_ticks,cmap,fraction_size_label,fraction_legend_values,fraction_legend_labels,dot_min,dot_max,size_exponent,smallest_dot_pt2,largest_dot_pt2,group_order_direction,gene_order_direction
+A,Expression level,0.0,1.0,0;0.5;1,Reds,Fraction of cells in group (%),0.2;0.4;0.6;0.8,20;40;60;80,0.1,0.8,1.5,0.0,200.0,top_to_bottom,left_to_right
+B,Expression level,0.0,1.0,0;0.5;1,Reds,Fraction of cells in group (%),0.2;0.4;0.6;0.8,20;40;60;80,0.1,0.8,1.5,0.0,200.0,top_to_bottom,left_to_right
+C,Expression level,0.0,1.0,0;0.5;1,Reds,Fraction of cells in group (%),0.2;0.4;0.6;0.8,20;40;60;80,0.1,0.8,1.5,0.0,200.0,top_to_bottom,left_to_right

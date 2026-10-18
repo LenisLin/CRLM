@@ -1,0 +1,58 @@
+plot,panel,axis,axis_order,label,publication_axis,publication_axis_order,publication_label,publication_order_direction,source_axis_order_direction
+fibroblast,B,source_target,1,Chol_HypoxiaHigh -> Fibroblast,y,2,Chol(hypoxia-high),bottom_to_top,left_to_right
+fibroblast,B,source_target,2,Chol_HypoxiaLow -> Fibroblast,y,1,Chol(hypoxia-low),bottom_to_top,left_to_right
+fibroblast,B,interaction,1,SPP1 - (ITGA8+ITGB1),x,1,SPP1 – (ITGA8 + ITGB1),left_to_right,bottom_to_top
+fibroblast,B,interaction,2,SPP1 - (ITGAV+ITGB1),x,2,SPP1 – (ITGAV + ITGB1),left_to_right,bottom_to_top
+fibroblast,B,interaction,3,SPP1 - (ITGAV+ITGB5),x,3,SPP1 – (ITGAV + ITGB5),left_to_right,bottom_to_top
+endothelial,B,source_target,1,Chol_HypoxiaHigh -> Endothelial,y,2,Chol(hypoxia-high),bottom_to_top,left_to_right
+endothelial,B,source_target,2,Chol_HypoxiaLow -> Endothelial,y,1,Chol(hypoxia-low),bottom_to_top,left_to_right
+endothelial,B,interaction,1,SPP1 - (ITGA5+ITGB1),x,5,SPP1 – (ITGA5 + ITGB1),left_to_right,bottom_to_top
+endothelial,B,interaction,2,VEGFA - VEGFR1,x,4,VEGFA – VEGFR1,left_to_right,bottom_to_top
+endothelial,B,interaction,3,VEGFA - VEGFR1R2,x,3,VEGFA – VEGFR1R2,left_to_right,bottom_to_top
+endothelial,B,interaction,4,VEGFA - VEGFR2,x,2,VEGFA – VEGFR2,left_to_right,bottom_to_top
+endothelial,B,interaction,5,VEGFB - VEGFR1,x,1,VEGFB – VEGFR1,left_to_right,bottom_to_top
+vascular,C,source_target,1,B_IGHM -> Endothelial,x,1,B_IGHM,left_to_right,left_to_right
+vascular,C,source_target,2,CD8T_CXCL13 -> Endothelial,x,2,CD8T_CXCL13,left_to_right,left_to_right
+vascular,C,source_target,3,CD8T_GZMK -> Endothelial,x,3,CD8T_GZMK,left_to_right,left_to_right
+vascular,C,source_target,4,Fibroblast -> Endothelial,x,4,Fibroblast,left_to_right,left_to_right
+vascular,C,source_target,5,Macro_CD163 -> Endothelial,x,5,Macro_CD163,left_to_right,left_to_right
+vascular,C,source_target,6,Macro_SPP1 -> Endothelial,x,6,Macro_SPP1,left_to_right,left_to_right
+vascular,C,source_target,7,MAIT_KLRB1 -> Endothelial,x,7,MAIT_KLRB1,left_to_right,left_to_right
+vascular,C,interaction,1,ANGPT1 - TEK,y,1,ANGPT1 – TEK,bottom_to_top,bottom_to_top
+vascular,C,interaction,2,ANGPT2 - (ITGA5+ITGB1),y,2,ANGPT2 – (ITGA5 + ITGB1),bottom_to_top,bottom_to_top
+vascular,C,interaction,3,ANGPT2 - TEK,y,3,ANGPT2 – TEK,bottom_to_top,bottom_to_top
+vascular,C,interaction,4,CXCL12 - ACKR3,y,4,CXCL12 – ACKR3,bottom_to_top,bottom_to_top
+vascular,C,interaction,5,CXCL12 - CXCR4,y,5,CXCL12 – CXCR4,bottom_to_top,bottom_to_top
+vascular,C,interaction,6,PGF - VEGFR1,y,6,PGF – VEGFR1,bottom_to_top,bottom_to_top
+vascular,C,interaction,7,VEGFA - VEGFR1,y,7,VEGFA – VEGFR1,bottom_to_top,bottom_to_top
+vascular,C,interaction,8,VEGFA - VEGFR1R2,y,8,VEGFA – VEGFR1R2,bottom_to_top,bottom_to_top
+vascular,C,interaction,9,VEGFA - VEGFR2,y,9,VEGFA – VEGFR2,bottom_to_top,bottom_to_top
+vascular,C,interaction,10,VEGFB - VEGFR1,y,10,VEGFB – VEGFR1,bottom_to_top,bottom_to_top
+recruitment,D,source_target,1,cDC_CD1C -> CD8T_CXCL13,x,1,cDC_CD1C → CD8T_CXCL13,left_to_right,left_to_right
+recruitment,D,source_target,2,cDC_CD1C -> CD8T_GZMK,x,2,cDC_CD1C → CD8T_GZMK,left_to_right,left_to_right
+recruitment,D,source_target,3,cDC_CD1C -> Treg_FOXP3,x,3,cDC_CD1C → Treg_FOXP3,left_to_right,left_to_right
+recruitment,D,source_target,4,Fibroblast -> CD8T_CXCL13,x,4,Fibroblast → CD8T_CXCL13,left_to_right,left_to_right
+recruitment,D,source_target,5,Fibroblast -> CD8T_GZMK,x,5,Fibroblast → CD8T_GZMK,left_to_right,left_to_right
+recruitment,D,source_target,6,Fibroblast -> Treg_FOXP3,x,6,Fibroblast → Treg_FOXP3,left_to_right,left_to_right
+recruitment,D,source_target,7,Macro_CD163 -> CD8T_CXCL13,x,7,Macro_CD163 → CD8T_CXCL13,left_to_right,left_to_right
+recruitment,D,source_target,8,Macro_CD163 -> CD8T_GZMK,x,8,Macro_CD163 → CD8T_GZMK,left_to_right,left_to_right
+recruitment,D,source_target,9,Macro_CD163 -> Treg_FOXP3,x,9,Macro_CD163 → Treg_FOXP3,left_to_right,left_to_right
+recruitment,D,source_target,10,Macro_SPP1 -> CD8T_CXCL13,x,10,Macro_SPP1 → CD8T_CXCL13,left_to_right,left_to_right
+recruitment,D,source_target,11,Macro_SPP1 -> CD8T_GZMK,x,11,Macro_SPP1 → CD8T_GZMK,left_to_right,left_to_right
+recruitment,D,source_target,12,Macro_SPP1 -> Treg_FOXP3,x,12,Macro_SPP1 → Treg_FOXP3,left_to_right,left_to_right
+recruitment,D,interaction,1,CXCL12 - CXCR4,y,1,CXCL12 – CXCR4,bottom_to_top,bottom_to_top
+recruitment,D,interaction,2,CXCL16 - CXCR6,y,2,CXCL16 – CXCR6,bottom_to_top,bottom_to_top
+suppression,D,source_target,1,cDC_CD1C -> CD8T_CXCL13,x,1,cDC_CD1C → CD8T_CXCL13,left_to_right,left_to_right
+suppression,D,source_target,2,cDC_CD1C -> CD8T_GZMK,x,2,cDC_CD1C → CD8T_GZMK,left_to_right,left_to_right
+suppression,D,source_target,3,cDC_CD1C -> Treg_FOXP3,x,3,cDC_CD1C → Treg_FOXP3,left_to_right,left_to_right
+suppression,D,source_target,4,Fibroblast -> CD8T_CXCL13,x,4,Fibroblast → CD8T_CXCL13,left_to_right,left_to_right
+suppression,D,source_target,5,Fibroblast -> CD8T_GZMK,x,5,Fibroblast → CD8T_GZMK,left_to_right,left_to_right
+suppression,D,source_target,6,Fibroblast -> Treg_FOXP3,x,6,Fibroblast → Treg_FOXP3,left_to_right,left_to_right
+suppression,D,source_target,7,Macro_CD163 -> CD8T_CXCL13,x,7,Macro_CD163 → CD8T_CXCL13,left_to_right,left_to_right
+suppression,D,source_target,8,Macro_CD163 -> CD8T_GZMK,x,8,Macro_CD163 → CD8T_GZMK,left_to_right,left_to_right
+suppression,D,source_target,9,Macro_CD163 -> Treg_FOXP3,x,9,Macro_CD163 → Treg_FOXP3,left_to_right,left_to_right
+suppression,D,source_target,10,Macro_SPP1 -> CD8T_CXCL13,x,10,Macro_SPP1 → CD8T_CXCL13,left_to_right,left_to_right
+suppression,D,source_target,11,Macro_SPP1 -> CD8T_GZMK,x,11,Macro_SPP1 → CD8T_GZMK,left_to_right,left_to_right
+suppression,D,source_target,12,Macro_SPP1 -> Treg_FOXP3,x,12,Macro_SPP1 → Treg_FOXP3,left_to_right,left_to_right
+suppression,D,interaction,1,SPP1 - (ITGA4+ITGB1),y,1,SPP1 – (ITGA4 + ITGB1),bottom_to_top,bottom_to_top
+suppression,D,interaction,2,SPP1 - CD44,y,2,SPP1 – CD44,bottom_to_top,bottom_to_top

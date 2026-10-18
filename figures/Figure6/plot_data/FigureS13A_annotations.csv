@@ -1,0 +1,4 @@
+cohort,annotation_order,group1,group2,test,p_value,display_label
+discovery,1,Combo_High,Chemo_High,log-rank,0.012592665292790794,p = 0.013
+discovery,2,Chemo_High,Chemo_Low,log-rank,0.23093566027524171,p = 0.231
+discovery,3,Combo_High,Combo_Low,log-rank,0.083264516663550614,p = 0.083

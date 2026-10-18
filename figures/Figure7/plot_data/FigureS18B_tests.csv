@@ -1,0 +1,25 @@
+cell_type,original_test_family,p_nominal_saved,significance_saved,p_adj_BH,facet_order,test,p_precision,p_adjustment_family_size,n_source_PIR,n_source_PSM,U_source_PIR,display_groups_reversed
+B_AIM2,Spot_Other,0.00014300000000000001,***,0.00034319999999999999,1,unpaired two-sided Wilcoxon rank sum,three significant figures retained from rstatix saved output,24,377,1522,250649,False
+B_HSP,Spot_Other,0.00013899999999999999,***,0.00034319999999999999,2,unpaired two-sided Wilcoxon rank sum,three significant figures retained from rstatix saved output,24,377,1522,323205,False
+CD4T_IL7R,Spot_Other,0.000103,***,0.00030899999999999998,3,unpaired two-sided Wilcoxon rank sum,three significant figures retained from rstatix saved output,24,377,1522,249873,False
+CD8T_CXCL13,Spot_Other,9.2399999999999996e-06,***,7.3919999999999997e-05,4,unpaired two-sided Wilcoxon rank sum,three significant figures retained from rstatix saved output,24,377,1522,244632,False
+cDC_CD1C,Spot_Other,0.0011800000000000001,**,0.0018880000000000001,5,unpaired two-sided Wilcoxon rank sum,three significant figures retained from rstatix saved output,24,377,1522,255971,False
+cDC_CLEC9A,Spot_Other,0.0096699999999999998,**,0.012214736842105264,6,unpaired two-sided Wilcoxon rank sum,three significant figures retained from rstatix saved output,24,377,1522,262235,False
+Cholangiocyte,Spot_Other,0.00099299999999999996,***,0.0017828571428571427,7,unpaired two-sided Wilcoxon rank sum,three significant figures retained from rstatix saved output,24,377,1522,255515,False
+Endothelial,Spot_Other,0.24399999999999999,NS,0.27885714285714286,8,unpaired two-sided Wilcoxon rank sum,three significant figures retained from rstatix saved output,24,377,1522,298001,False
+Epithelial,Spot_Other,1.14e-07,***,2.7360000000000001e-06,9,unpaired two-sided Wilcoxon rank sum,three significant figures retained from rstatix saved output,24,377,1522,236350,False
+Hepatocyte,Spot_Other,0.97599999999999998,NS,0.97599999999999998,10,unpaired two-sided Wilcoxon rank sum,three significant figures retained from rstatix saved output,24,377,1522,287189,False
+Macro_CD169,Spot_Other,0.82299999999999995,NS,0.85878260869565215,11,unpaired two-sided Wilcoxon rank sum,three significant figures retained from rstatix saved output,24,377,1522,289032,False
+Malignant,Spot_Other,0.0015100000000000001,**,0.0022650000000000001,12,unpaired two-sided Wilcoxon rank sum,three significant figures retained from rstatix saved output,24,377,1522,256663,False
+Monocyte,Spot_Other,0.0010399999999999999,**,0.0017828571428571427,13,unpaired two-sided Wilcoxon rank sum,three significant figures retained from rstatix saved output,24,377,1522,255647,False
+Myeloid_Other,Spot_Other,9.9199999999999999e-07,***,1.1904e-05,14,unpaired two-sided Wilcoxon rank sum,three significant figures retained from rstatix saved output,24,377,1522,240257,False
+Neutrophil,Spot_Other,0.17100000000000001,NS,0.20519999999999999,15,unpaired two-sided Wilcoxon rank sum,three significant figures retained from rstatix saved output,24,377,1522,273862,False
+NK_FCGR3A,Spot_Other,2.3300000000000001e-05,***,0.00013980000000000001,16,unpaired two-sided Wilcoxon rank sum,three significant figures retained from rstatix saved output,24,377,1522,246569,False
+NK_KLRB1,Spot_Other,6.5099999999999997e-05,***,0.00022319999999999998,17,unpaired two-sided Wilcoxon rank sum,three significant figures retained from rstatix saved output,24,377,1522,248832,False
+pDC_LILRA4,Spot_Other,0.0027699999999999999,**,0.0036933333333333332,18,unpaired two-sided Wilcoxon rank sum,three significant figures retained from rstatix saved output,24,377,1522,258379,False
+Plasma,Spot_Other,0.29099999999999998,NS,0.31745454545454543,19,unpaired two-sided Wilcoxon rank sum,three significant figures retained from rstatix saved output,24,377,1522,296967,False
+T_HSP,Spot_Other,0.00017799999999999999,***,0.00038836363636363634,20,unpaired two-sided Wilcoxon rank sum,three significant figures retained from rstatix saved output,24,377,1522,251175,False
+T_MKI67,Spot_Other,4.6400000000000003e-05,***,0.00021880000000000001,21,unpaired two-sided Wilcoxon rank sum,three significant figures retained from rstatix saved output,24,377,1522,248074,False
+T_TCF7,Spot_Other,5.4700000000000001e-05,***,0.00021880000000000001,22,unpaired two-sided Wilcoxon rank sum,three significant figures retained from rstatix saved output,24,377,1522,325355,False
+Treg_FOXP3,Spot_Other,0.0022300000000000002,**,0.0031482352941176474,23,unpaired two-sided Wilcoxon rank sum,three significant figures retained from rstatix saved output,24,377,1522,257753,False
+Unknown,Spot_Other,0.000435,***,0.00087000000000000001,24,unpaired two-sided Wilcoxon rank sum,three significant figures retained from rstatix saved output,24,377,1522,253367,False

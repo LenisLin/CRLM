@@ -1,0 +1,6 @@
+plot,panel,requested_sources,requested_targets,requested_pathways,available_selected_pathways,absent_requested_pathways
+fibroblast,B,Chol_HypoxiaHigh;Chol_HypoxiaLow,Fibroblast,TGFb;SPP1;PDGF;TNF;COL1A1;FN1,TGFb;SPP1;PDGF;TNF;FN1,COL1A1
+endothelial,B,Chol_HypoxiaHigh;Chol_HypoxiaLow,Endothelial,VEGF;SPP1;TGFb;ANGPT,VEGF;SPP1;TGFb;ANGPT,
+vascular,C,Fibroblast;Macro_CD163;Macro_SPP1;B_IGHM;CD8T_GZMK;CD8T_CXCL13;MAIT_KLRB1,Endothelial,ANGPT;FGF;CXCL;PDGF;VEGF,ANGPT;CXCL;PDGF;VEGF,FGF
+recruitment,D,Fibroblast;Macro_SPP1;Macro_CD163;cDC_CD1C,CD8T_GZMK;CD8T_CXCL13;Treg_FOXP3,CXCL;CCL,CXCL;CCL,
+suppression,D,Fibroblast;Macro_SPP1;Macro_CD163;cDC_CD1C,CD8T_GZMK;CD8T_CXCL13;Treg_FOXP3,TGFb;SPP1;LGALS9,TGFb;SPP1,LGALS9

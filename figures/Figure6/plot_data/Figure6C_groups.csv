@@ -1,0 +1,5 @@
+group,risk_row_order,legend_order,display_label,color,n,events_as_used,isr_cutoff,high_rule,confidence_level,confidence_type,curve_step_direction,x_label,y_label,display_title,x_limit_min,x_limit_max,x_break_interval_months,y_limit_min,y_limit_max,axis_expansion_fraction
+Chemo_High,1,2,ISRHigh+Chemo,#1f77b4,11,6,0.58126287700000001,ISR > cutoff,0.94999999999999996,log,hv,Time (months),Recurrence-free survival,Discovery set (n = 34),0,47.07,6,0,1,0.050000000000000003
+Chemo_Low,2,4,ISRLow+Chemo,#aec7e8,11,7,0.58126287700000001,ISR > cutoff,0.94999999999999996,log,hv,Time (months),Recurrence-free survival,Discovery set (n = 34),0,47.07,6,0,1,0.050000000000000003
+Combo_High,3,1,ISRHigh+Combo,#d62728,6,0,0.58126287700000001,ISR > cutoff,0.94999999999999996,log,hv,Time (months),Recurrence-free survival,Discovery set (n = 34),0,47.07,6,0,1,0.050000000000000003
+Combo_Low,4,3,ISRLow+Combo,#ff9896,6,5,0.58126287700000001,ISR > cutoff,0.94999999999999996,log,hv,Time (months),Recurrence-free survival,Discovery set (n = 34),0,47.07,6,0,1,0.050000000000000003

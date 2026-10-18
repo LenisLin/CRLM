@@ -1,0 +1,16 @@
+marker,marker_order,tissue_1,tissue_2,comparison_order,n_rois_1,n_rois_2,nominal_p_value,display_label,test
+VEGF,1,TC,IM,1,92,117,0.00047613106704570002,***,unpaired Welch t test
+VEGF,1,TC,PT,2,92,102,2.2688775342636099e-13,****,unpaired Welch t test
+VEGF,1,IM,PT,3,117,102,6.0988659728688703e-06,****,unpaired Welch t test
+FASN,2,TC,IM,1,92,117,5.8011555419734203e-05,****,unpaired Welch t test
+FASN,2,TC,PT,2,92,102,1.1460981519287902e-19,****,unpaired Welch t test
+FASN,2,IM,PT,3,117,102,5.0978818345056302e-21,****,unpaired Welch t test
+GLUT1,3,TC,IM,1,92,117,0.0016776563384420999,**,unpaired Welch t test
+GLUT1,3,TC,PT,2,92,102,2.6240987314479901e-15,****,unpaired Welch t test
+GLUT1,3,IM,PT,3,117,102,2.9177569061389696e-11,****,unpaired Welch t test
+HK2,4,TC,IM,1,92,117,0.67941445192046801,n.s.,unpaired Welch t test
+HK2,4,TC,PT,2,92,102,2.7196474570947101e-15,****,unpaired Welch t test
+HK2,4,IM,PT,3,117,102,2.9607141783716502e-26,****,unpaired Welch t test
+PRPS1,5,TC,IM,1,92,117,5.4984352506938699e-05,****,unpaired Welch t test
+PRPS1,5,TC,PT,2,92,102,1.5216785138072599e-06,****,unpaired Welch t test
+PRPS1,5,IM,PT,3,117,102,0.101469605618338,n.s.,unpaired Welch t test

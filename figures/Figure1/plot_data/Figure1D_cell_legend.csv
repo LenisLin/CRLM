@@ -1,0 +1,9 @@
+legend_order,cell_type,cell_letter,display_label,original_fill_hex
+1,B,A,B cells,#F0E442
+2,EC,B,Epithelial cells,#009E73
+3,Mono,C,Monocytes,#E69F00
+4,Mph,D,Macrophages,#CC79A7
+5,NK,E,NK cells,#56B4E9
+6,SC,F,Stromal cells,#D55E00
+7,T,G,T cells,#0072B2
+8,UNKNOWN,H,Undefined,#B3B3B3

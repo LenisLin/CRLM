@@ -1,0 +1,25 @@
+CN_order,facet_order,CN,regimen,group1_label,group2_label,n_no_recurrence_ROIs,n_recurrence_ROIs,wilcoxon_statistic,nominal_p_original_rounded,adjusted_p_display,label,significance_source,method,adjustment,BH_family_size
+1,1,CN_0,FOLFOX,No recurrence,Recurrence,24,40,452,0.705,0.8892,p.adj = 0.8892,ns,Wilcoxon rank sum,BH,30
+1,2,CN_0,FOLFOX_Bev,No recurrence,Recurrence,15,6,40,0.733,0.8892,p.adj = 0.8892,ns,Wilcoxon rank sum,BH,30
+1,3,CN_0,FOLFOX_Cet,No recurrence,Recurrence,8,8,32,1.0,1.0,p.adj = 1,ns,Wilcoxon rank sum,BH,30
+2,1,CN_2,FOLFOX,No recurrence,Recurrence,24,40,684,0.00422,0.0316,p.adj = 0.0316,*,Wilcoxon rank sum,BH,30
+2,2,CN_2,FOLFOX_Bev,No recurrence,Recurrence,15,6,55,0.47,0.6871,p.adj = 0.6871,ns,Wilcoxon rank sum,BH,30
+2,3,CN_2,FOLFOX_Cet,No recurrence,Recurrence,8,9,37,0.963,1.0,p.adj = 1,ns,Wilcoxon rank sum,BH,30
+3,1,CN_3,FOLFOX,No recurrence,Recurrence,24,39,756,2.22e-05,0.0007,p.adj = 7e-04,***,Wilcoxon rank sum,BH,30
+3,2,CN_3,FOLFOX_Bev,No recurrence,Recurrence,15,6,24,0.112,0.2593,p.adj = 0.2593,ns,Wilcoxon rank sum,BH,30
+3,3,CN_3,FOLFOX_Cet,No recurrence,Recurrence,8,9,19,0.114,0.2593,p.adj = 0.2593,ns,Wilcoxon rank sum,BH,30
+4,1,CN_5,FOLFOX,No recurrence,Recurrence,22,31,360,0.741,0.8892,p.adj = 0.8892,ns,Wilcoxon rank sum,BH,30
+4,2,CN_5,FOLFOX_Bev,No recurrence,Recurrence,11,5,44,0.0687,0.229,p.adj = 0.229,ns,Wilcoxon rank sum,BH,30
+4,3,CN_5,FOLFOX_Cet,No recurrence,Recurrence,8,7,42,0.121,0.2593,p.adj = 0.2593,ns,Wilcoxon rank sum,BH,30
+5,1,CN_6,FOLFOX,No recurrence,Recurrence,24,40,420,0.412,0.6871,p.adj = 0.6871,ns,Wilcoxon rank sum,BH,30
+5,2,CN_6,FOLFOX_Bev,No recurrence,Recurrence,15,6,71,0.0449,0.1924,p.adj = 0.1924,ns,Wilcoxon rank sum,BH,30
+5,3,CN_6,FOLFOX_Cet,No recurrence,Recurrence,8,9,60,0.0206,0.1236,p.adj = 0.1236,ns,Wilcoxon rank sum,BH,30
+6,1,CN_7,FOLFOX,No recurrence,Recurrence,24,40,537,0.436,0.6871,p.adj = 0.6871,ns,Wilcoxon rank sum,BH,30
+6,2,CN_7,FOLFOX_Bev,No recurrence,Recurrence,15,6,48,0.85,0.9444,p.adj = 0.9444,ns,Wilcoxon rank sum,BH,30
+6,3,CN_7,FOLFOX_Cet,No recurrence,Recurrence,8,9,28,0.481,0.6871,p.adj = 0.6871,ns,Wilcoxon rank sum,BH,30
+7,1,CN_8,FOLFOX,No recurrence,Recurrence,24,39,441,0.71,0.8892,p.adj = 0.8892,ns,Wilcoxon rank sum,BH,30
+7,2,CN_8,FOLFOX_Bev,No recurrence,Recurrence,15,4,38,0.469,0.6871,p.adj = 0.6871,ns,Wilcoxon rank sum,BH,30
+7,3,CN_8,FOLFOX_Cet,No recurrence,Recurrence,8,9,53,0.114,0.2593,p.adj = 0.2593,ns,Wilcoxon rank sum,BH,30
+8,1,CN_9,FOLFOX,No recurrence,Recurrence,24,37,385,0.391,0.6871,p.adj = 0.6871,ns,Wilcoxon rank sum,BH,30
+8,2,CN_9,FOLFOX_Bev,No recurrence,Recurrence,15,6,20,0.0548,0.2055,p.adj = 0.2055,ns,Wilcoxon rank sum,BH,30
+8,3,CN_9,FOLFOX_Cet,No recurrence,Recurrence,8,9,53,0.114,0.2593,p.adj = 0.2593,ns,Wilcoxon rank sum,BH,30

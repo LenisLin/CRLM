@@ -1,0 +1,6 @@
+variable,variable_order,display_title,value_unit,layer,x_tick_labels,y_label,scale,color
+TBS,1,Tumor burden score,score,histogram;density,0;5;10;15;20,Density,linear,#4E79A7
+CRLM_number,2,Metastases count,metastases,histogram;density,0;5;10;15;20,Density,linear,#4E79A7
+CRLM_size,3,Largest metastasis size (cm),cm,histogram;density,2.5;7.5;12.5,Density,linear,#4E79A7
+fong_score,4,Fong’s score,score,bar;count_label,1;2;3;4;5,N,linear,#4E79A7
+KRAS_mutation,5,KRAS mutation,binary mutation code,bar;count_label,0;1,N,linear,#4E79A7

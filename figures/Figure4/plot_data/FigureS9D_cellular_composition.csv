@@ -1,0 +1,17 @@
+cell_type_source,cell_count,region_source,region,cell_type,fraction,cell_type_order,region_order
+B,997,PTME,Putative cholangiocyte PTMEs,B,0.055876253993162588,1,1
+B,18192,Overall,Overall,B,0.025216164293179494,1,2
+EC,6450,PTME,Putative cholangiocyte PTMEs,EC,0.36148629714734071,2,1
+EC,10914,Overall,Overall,EC,0.015128035240532156,2,2
+Mono,971,PTME,Putative cholangiocyte PTMEs,Mono,0.054419099927142299,3,1
+Mono,224485,Overall,Overall,Mono,0.31116153481499553,3,2
+Mph,1978,PTME,Putative cholangiocyte PTMEs,Mph,0.11085579779185115,4,1
+Mph,166160,Overall,Overall,Mph,0.2303165049997089,4,2
+NK,495,PTME,Putative cholangiocyte PTMEs,NK,0.0277419716415401,5,1
+NK,40746,Overall,Overall,NK,0.056478552676445228,5,2
+SC,3871,PTME,Putative cholangiocyte PTMEs,SC,0.21694782267555904,6,1
+SC,73965,Overall,Overall,SC,0.10252383420981867,6,2
+T,2533,PTME,Putative cholangiocyte PTMEs,T,0.14196043266266883,7,1
+T,105124,Overall,Overall,T,0.1457137233485159,7,2
+UNKNOWN,548,PTME,Putative cholangiocyte PTMEs,Undefined,0.030712324160735303,8,1
+UNKNOWN,81856,Overall,Overall,Undefined,0.11346165041680412,8,2

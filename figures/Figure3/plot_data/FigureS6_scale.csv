@@ -1,0 +1,6 @@
+association_score,source_color_hex,legend_title,interpolation_space,color_control_point
+-1.0,#2166ACFF,Association score,CIELAB,True
+-0.5,#98ABD2FF,Association score,CIELAB,False
+0.0,#F7F7F7FF,Association score,CIELAB,True
+0.5,#E0908AFF,Association score,CIELAB,False
+1.0,#B2182BFF,Association score,CIELAB,True

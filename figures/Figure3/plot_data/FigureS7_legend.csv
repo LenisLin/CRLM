@@ -1,0 +1,32 @@
+layer,legend_order,source_label,display_label,saved_color,publication_color_hex
+CN,1,CN1,CN1,#1F77B4FF,#3778AA
+CN,2,CN10,CN10,#17BECFFF,#28B7C3
+CN,3,CN2,CN2,#FF7F0EFF,#F47E39
+CN,4,CN3,CN3,#2CA02CFF,#4B9E4B
+CN,5,CN4,CN4,#D62728FF,#CA393B
+CN,6,CN5,CN5,#9467BDFF,#866BAF
+CN,7,CN6,CN6,#8C564BFF,#865A55
+CN,8,CN7,CN7,#E377C2FF,#C979B1
+CN,9,CN8,CN8,#7F7F7FFF,#7F8084
+CN,10,CN9,CN9,#BCBD22FF,#B0B246
+subtype,1,B,CD20+ B cells,#F0E442,#E2D65B
+subtype,2,CD4T,CD4+ T cells,#044F7E,#2D597F
+subtype,3,CD8T,CD8+ T cells,#0072B2,#2D74A8
+subtype,4,Macro_CD11b,CD11b+ Macs,#64204A,#632D50
+subtype,5,Macro_CD163,CD163+ Macs,#863C68,#83476D
+subtype,6,Macro_CD169,CD169+ Macs,#CC79A7,#BE77A1
+subtype,7,Macro_HLADR,HLA-DR+ Macs,#A85B86,#9F6086
+subtype,8,Mono_CD11c,DCs,#E69F00,#DB9738
+subtype,9,Mono_Classic,Cl Mo,#5B3D00,#57432A
+subtype,10,Mono_Intermediate,Int Mo,#9D6C06,#956D3A
+subtype,11,NK,NK cells,#56B4E9,#53ACD9
+subtype,12,SC_aSMA,aSMA+ SCs,#5A2400,#552F23
+subtype,13,SC_COLLAGEN,Collagen-I+ SCs,#D55E00,#CB6433
+subtype,14,SC_FAP,FAP+ SCs,#A94A08,#9E5236
+subtype,15,SC_Vimentin,Vimentin+ SCs,#813600,#783F2E
+subtype,16,TC_CAIX,CAIX+ ECs,#065D43,#2C5F49
+subtype,17,TC_EpCAM,EpCAM+ ECs,#009E73,#359C7A
+subtype,18,TC_Ki67,Ki67+ ECs,#077D5B,#367E62
+subtype,19,TC_VEGF,VEGF+ ECs,#00402C,#214433
+subtype,20,Treg,Tregs,#012F4E,#273751
+subtype,21,UNKNOWN,Undefined,grey70,#ABACAF

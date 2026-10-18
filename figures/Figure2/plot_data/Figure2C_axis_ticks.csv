@@ -1,0 +1,7 @@
+axis,tick_order,label,value,x_svg_pt,y_svg_pt,axis_scale,coordinate_unit
+hazard_ratio,1,NA,NA,434.71874982585285,294.41015640465338,linear,converted-SVG canvas unit (1 viewBox unit; canvas sized in pt); top-left; x right; y down; frame F2proof
+hazard_ratio,2,1,1,438.9218748500324,294.41015640465338,linear,converted-SVG canvas unit (1 viewBox unit; canvas sized in pt); top-left; x right; y down; frame F2proof
+hazard_ratio,3,3,3,452.9218750277463,294.41015640465338,linear,converted-SVG canvas unit (1 viewBox unit; canvas sized in pt); top-left; x right; y down; frame F2proof
+hazard_ratio,4,5,5,466.92578164929108,294.41015640465338,linear,converted-SVG canvas unit (1 viewBox unit; canvas sized in pt); top-left; x right; y down; frame F2proof
+hazard_ratio,5,7,7,480.92578082700498,294.41015640465338,linear,converted-SVG canvas unit (1 viewBox unit; canvas sized in pt); top-left; x right; y down; frame F2proof
+hazard_ratio,6,10,10,501.92968703640832,294.41015640465338,linear,converted-SVG canvas unit (1 viewBox unit; canvas sized in pt); top-left; x right; y down; frame F2proof

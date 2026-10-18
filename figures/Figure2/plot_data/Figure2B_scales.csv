@@ -1,0 +1,10 @@
+scale,value,label,color_hex,transformation
+marker_z_score,-2,-2,#4575b4,LAB interpolation; clamp at endpoints
+marker_z_score,-1,-1,#91bfdb,LAB interpolation; clamp at endpoints
+marker_z_score,0,0,#f7f7f7,LAB interpolation; clamp at endpoints
+marker_z_score,1,1,#fc8d59,LAB interpolation; clamp at endpoints
+marker_z_score,2,2,#d73027,LAB interpolation; clamp at endpoints
+cell_count_bar,0,1,NA,log10(cell_count+1)
+cell_count_bar,2,100,NA,log10(cell_count+1)
+cell_count_bar,4,10K,NA,log10(cell_count+1)
+cell_count_bar,6,1M,NA,log10(cell_count+1)

@@ -1,0 +1,5 @@
+level,treatment,p_displayed,label
+ROI,Chemo,0.073999999999999996,p = 0.074
+ROI,Combo,0.012999999999999999,p = 0.013
+Patient,Chemo,0.38,p = 0.38
+Patient,Combo,0.044999999999999998,p = 0.045

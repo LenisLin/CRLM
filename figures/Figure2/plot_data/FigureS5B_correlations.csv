@@ -1,0 +1,121 @@
+SubType,clinical_variable,correlation,Treatment,Tissue,SubType_label,clinical_label,x_order,y_order_top_to_bottom,p_level,p_adjusted_lower_bound_exclusive,p_adjusted_upper_bound_inclusive,significance_origin,point_size_mm,color_scale_min,color_scale_max
+CD8T,fong_score,0.0316312821617128,Chemo,TC,CD8⁺ T cells,Fong’s score,1,1,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+CD8T,TBS,0.22555130299852,Chemo,TC,CD8⁺ T cells,TBS,2,1,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+CD8T,CRLM_number,0.0866259047426896,Chemo,TC,CD8⁺ T cells,Number of CRLM,3,1,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+CD8T,CEA,-0.241106719367589,Chemo,TC,CD8⁺ T cells,CEA,4,1,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+CD8T,CA199,-0.125917560700169,Chemo,TC,CD8⁺ T cells,CA19-9,5,1,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+Treg,fong_score,-0.130783185860928,Chemo,TC,Tregs,Fong’s score,1,2,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+Treg,TBS,0.0689655613178431,Chemo,TC,Tregs,TBS,2,2,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+Treg,CRLM_number,0.0111965455109599,Chemo,TC,Tregs,Number of CRLM,3,2,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+Treg,CEA,-0.143986448334274,Chemo,TC,Tregs,CEA,4,2,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+Treg,CA199,0.238848108413326,Chemo,TC,Tregs,CA19-9,5,2,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+NK,fong_score,0.147815414717235,Chemo,TC,NK cells,Fong’s score,1,3,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+NK,TBS,0.200678477605199,Chemo,TC,NK cells,TBS,2,3,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+NK,CRLM_number,-0.0253395503669092,Chemo,TC,NK cells,Number of CRLM,3,3,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+NK,CEA,-0.375494071146245,Chemo,TC,NK cells,CEA,4,3,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+NK,CA199,-0.107848673066064,Chemo,TC,NK cells,CA19-9,5,3,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+Mono_CD11c,fong_score,0.201953570724782,Chemo,TC,DCs,Fong’s score,1,4,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+Mono_CD11c,TBS,0.310910317416506,Chemo,TC,DCs,TBS,2,4,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+Mono_CD11c,CRLM_number,0.132001378655527,Chemo,TC,DCs,Number of CRLM,3,4,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+Mono_CD11c,CEA,-0.228684359119142,Chemo,TC,DCs,CEA,4,4,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+Mono_CD11c,CA199,0.151891586674195,Chemo,TC,DCs,CA19-9,5,4,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+SC_aSMA,fong_score,0.237234616212846,Chemo,TC,aSMA⁺ SCs,Fong’s score,1,5,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+SC_aSMA,TBS,0.201243769091411,Chemo,TC,aSMA⁺ SCs,TBS,2,5,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+SC_aSMA,CRLM_number,-0.114911914454588,Chemo,TC,aSMA⁺ SCs,Number of CRLM,3,5,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+SC_aSMA,CEA,-0.215132693393563,Chemo,TC,aSMA⁺ SCs,CEA,4,5,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+SC_aSMA,CA199,0.114624505928854,Chemo,TC,aSMA⁺ SCs,CA19-9,5,5,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+SC_COLLAGEN,fong_score,0.408773492551365,Chemo,TC,Collagen-I⁺ SCs,Fong’s score,1,6,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+SC_COLLAGEN,TBS,0.464669601666123,Chemo,TC,Collagen-I⁺ SCs,TBS,2,6,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+SC_COLLAGEN,CRLM_number,0.383039714848628,Chemo,TC,Collagen-I⁺ SCs,Number of CRLM,3,6,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+SC_COLLAGEN,CEA,0.00959909655561829,Chemo,TC,Collagen-I⁺ SCs,CEA,4,6,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+SC_COLLAGEN,CA199,0.0649350649350649,Chemo,TC,Collagen-I⁺ SCs,CA19-9,5,6,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+SC_FAP,fong_score,0.108276312015094,Chemo,TC,FAP⁺ SCs,Fong’s score,1,7,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+SC_FAP,TBS,0.22272484556746,Chemo,TC,FAP⁺ SCs,TBS,2,7,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+SC_FAP,CRLM_number,-0.186805522472331,Chemo,TC,FAP⁺ SCs,Number of CRLM,3,7,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+SC_FAP,CEA,0.112365894974591,Chemo,TC,FAP⁺ SCs,CEA,4,7,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+SC_FAP,CA199,0.13382269904009,Chemo,TC,FAP⁺ SCs,CA19-9,5,7,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+SC_Vimentin,fong_score,-0.0924606709342373,Chemo,TC,Vimentin⁺ SCs,Fong’s score,1,8,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+SC_Vimentin,TBS,0.265121707033348,Chemo,TC,Vimentin⁺ SCs,TBS,2,8,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+SC_Vimentin,CRLM_number,0.0147322967249472,Chemo,TC,Vimentin⁺ SCs,Number of CRLM,3,8,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+SC_Vimentin,CEA,0.0163749294184077,Chemo,TC,Vimentin⁺ SCs,CEA,4,8,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+SC_Vimentin,CA199,0.35742518351214,Chemo,TC,Vimentin⁺ SCs,CA19-9,5,8,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+TC_CAIX,fong_score,-0.0444054538039429,Chemo,TC,CAIX⁺ ECs,Fong’s score,1,9,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+TC_CAIX,TBS,-0.174109777753243,Chemo,TC,CAIX⁺ ECs,TBS,2,9,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+TC_CAIX,CRLM_number,0.104304660812626,Chemo,TC,CAIX⁺ ECs,Number of CRLM,3,9,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+TC_CAIX,CEA,-0.260304912478825,Chemo,TC,CAIX⁺ ECs,CEA,4,9,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+TC_CAIX,CA199,-0.380011293054771,Chemo,TC,CAIX⁺ ECs,CA19-9,5,9,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+TC_EpCAM,fong_score,0.0863777320569849,Chemo,TC,EpCAM⁺ ECs,Fong’s score,1,10,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+TC_EpCAM,TBS,-0.137365831149474,Chemo,TC,EpCAM⁺ ECs,TBS,2,10,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+TC_EpCAM,CRLM_number,-0.172073225747383,Chemo,TC,EpCAM⁺ ECs,Number of CRLM,3,10,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+TC_EpCAM,CEA,0.153020892151327,Chemo,TC,EpCAM⁺ ECs,CEA,4,10,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+TC_EpCAM,CA199,0.0107284020327499,Chemo,TC,EpCAM⁺ ECs,CA19-9,5,10,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+TC_Ki67,fong_score,-0.109492899790544,Chemo,TC,Ki67⁺ ECs,Fong’s score,1,11,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+TC_Ki67,TBS,0.0847937229317743,Chemo,TC,Ki67⁺ ECs,TBS,2,11,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+TC_Ki67,CRLM_number,0.179734020044356,Chemo,TC,Ki67⁺ ECs,Number of CRLM,3,11,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+TC_Ki67,CEA,0.174477696216827,Chemo,TC,Ki67⁺ ECs,CEA,4,11,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+TC_Ki67,CA199,0.307735742518351,Chemo,TC,Ki67⁺ ECs,CA19-9,5,11,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+TC_VEGF,fong_score,0.115575838667797,Chemo,TC,VEGF⁺ ECs,Fong’s score,1,12,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+TC_VEGF,TBS,0.0079140808069656,Chemo,TC,VEGF⁺ ECs,TBS,2,12,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+TC_VEGF,CRLM_number,-0.210377197232246,Chemo,TC,VEGF⁺ ECs,Number of CRLM,3,12,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+TC_VEGF,CEA,0.038961038961039,Chemo,TC,VEGF⁺ ECs,CEA,4,12,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+TC_VEGF,CA199,-0.0638057594579334,Chemo,TC,VEGF⁺ ECs,CA19-9,5,12,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+CD8T,fong_score,0.0333990305699435,Combo,TC,CD8⁺ T cells,Fong’s score,1,1,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+CD8T,TBS,-0.105859849879344,Combo,TC,CD8⁺ T cells,TBS,2,1,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+CD8T,CRLM_number,-0.255016327572195,Combo,TC,CD8⁺ T cells,Number of CRLM,3,1,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+CD8T,CEA,0.21978021978022,Combo,TC,CD8⁺ T cells,CEA,4,1,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+CD8T,CA199,0.115384615384615,Combo,TC,CD8⁺ T cells,CA19-9,5,1,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+Treg,fong_score,-0.294518724116775,Combo,TC,Tregs,Fong’s score,1,2,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+Treg,TBS,-0.406724686378533,Combo,TC,Tregs,TBS,2,2,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+Treg,CRLM_number,0.127508163786098,Combo,TC,Tregs,Number of CRLM,3,2,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+Treg,CEA,-0.324175824175824,Combo,TC,Tregs,CEA,4,2,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+Treg,CA199,-0.0879120879120879,Combo,TC,Tregs,CA19-9,5,2,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+NK,fong_score,0.091088265190755,Combo,TC,NK cells,Fong’s score,1,3,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+NK,TBS,-0.114217206448766,Combo,TC,NK cells,TBS,2,3,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+NK,CRLM_number,-0.154351987741066,Combo,TC,NK cells,Number of CRLM,3,3,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+NK,CEA,0.379120879120879,Combo,TC,NK cells,CEA,4,3,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+NK,CA199,0.543956043956044,Combo,TC,NK cells,CA19-9,5,3,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+Mono_CD11c,fong_score,-0.252010867027756,Combo,TC,DCs,Fong’s score,1,4,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+Mono_CD11c,TBS,-0.0947167077867817,Combo,TC,DCs,TBS,2,4,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+Mono_CD11c,CRLM_number,0.00671095598874199,Combo,TC,DCs,Number of CRLM,3,4,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+Mono_CD11c,CEA,0.0,Combo,TC,DCs,CEA,4,4,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+Mono_CD11c,CA199,0.21978021978022,Combo,TC,DCs,CA19-9,5,4,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+SC_aSMA,fong_score,0.0212539285445095,Combo,TC,aSMA⁺ SCs,Fong’s score,1,5,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+SC_aSMA,TBS,-0.128146134064469,Combo,TC,aSMA⁺ SCs,TBS,2,5,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+SC_aSMA,CRLM_number,0.0738205158761618,Combo,TC,aSMA⁺ SCs,Number of CRLM,3,5,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+SC_aSMA,CEA,0.236263736263736,Combo,TC,aSMA⁺ SCs,CEA,4,5,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+SC_aSMA,CA199,-0.0714285714285714,Combo,TC,aSMA⁺ SCs,CA19-9,5,5,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+SC_COLLAGEN,fong_score,0.0030362755063585,Combo,TC,Collagen-I⁺ SCs,Fong’s score,1,6,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+SC_COLLAGEN,TBS,-0.030643640754547,Combo,TC,Collagen-I⁺ SCs,TBS,2,6,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+SC_COLLAGEN,CRLM_number,-0.0805314718649038,Combo,TC,Collagen-I⁺ SCs,Number of CRLM,3,6,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+SC_COLLAGEN,CEA,0.252747252747253,Combo,TC,Collagen-I⁺ SCs,CEA,4,6,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+SC_COLLAGEN,CA199,0.395604395604396,Combo,TC,Collagen-I⁺ SCs,CA19-9,5,6,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+SC_FAP,fong_score,-0.100197091709831,Combo,TC,FAP⁺ SCs,Fong’s score,1,7,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+SC_FAP,TBS,-0.125360348541329,Combo,TC,FAP⁺ SCs,TBS,2,7,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+SC_FAP,CRLM_number,0.0,Combo,TC,FAP⁺ SCs,Number of CRLM,3,7,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+SC_FAP,CEA,0.32967032967033,Combo,TC,FAP⁺ SCs,CEA,4,7,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+SC_FAP,CA199,0.010989010989011,Combo,TC,FAP⁺ SCs,CA19-9,5,7,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+SC_Vimentin,fong_score,-0.006072551012717,Combo,TC,Vimentin⁺ SCs,Fong’s score,1,8,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+SC_Vimentin,TBS,-0.0947167077867817,Combo,TC,Vimentin⁺ SCs,TBS,2,8,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+SC_Vimentin,CRLM_number,0.0536876479099359,Combo,TC,Vimentin⁺ SCs,Number of CRLM,3,8,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+SC_Vimentin,CEA,0.186813186813187,Combo,TC,Vimentin⁺ SCs,CEA,4,8,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+SC_Vimentin,CA199,0.258241758241758,Combo,TC,Vimentin⁺ SCs,CA19-9,5,8,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+TC_CAIX,fong_score,0.288446173104058,Combo,TC,CAIX⁺ ECs,Fong’s score,1,9,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+TC_CAIX,TBS,0.314793764114892,Combo,TC,CAIX⁺ ECs,TBS,2,9,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+TC_CAIX,CRLM_number,0.120797207797356,Combo,TC,CAIX⁺ ECs,Number of CRLM,3,9,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+TC_CAIX,CEA,-0.225274725274725,Combo,TC,CAIX⁺ ECs,CEA,4,9,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+TC_CAIX,CA199,-0.225274725274725,Combo,TC,CAIX⁺ ECs,CA19-9,5,9,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+TC_EpCAM,fong_score,-0.066798061139887,Combo,TC,EpCAM⁺ ECs,Fong’s score,1,10,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+TC_EpCAM,TBS,-0.0139289276157032,Combo,TC,EpCAM⁺ ECs,TBS,2,10,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+TC_EpCAM,CRLM_number,0.0,Combo,TC,EpCAM⁺ ECs,Number of CRLM,3,10,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+TC_EpCAM,CEA,0.192307692307692,Combo,TC,EpCAM⁺ ECs,CEA,4,10,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+TC_EpCAM,CA199,-0.148351648351648,Combo,TC,EpCAM⁺ ECs,CA19-9,5,10,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+TC_Ki67,fong_score,-0.006072551012717,Combo,TC,Ki67⁺ ECs,Fong’s score,1,11,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+TC_Ki67,TBS,-0.00557157104628128,Combo,TC,Ki67⁺ ECs,TBS,2,11,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+TC_Ki67,CRLM_number,0.0335547799437099,Combo,TC,Ki67⁺ ECs,Number of CRLM,3,11,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+TC_Ki67,CEA,0.0604395604395604,Combo,TC,Ki67⁺ ECs,CEA,4,11,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+TC_Ki67,CA199,0.428571428571429,Combo,TC,Ki67⁺ ECs,CA19-9,5,11,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+TC_VEGF,fong_score,0.215575560951454,Combo,TC,VEGF⁺ ECs,Fong’s score,1,12,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+TC_VEGF,TBS,0.325936906207455,Combo,TC,VEGF⁺ ECs,TBS,2,12,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+TC_VEGF,CRLM_number,0.275149195538421,Combo,TC,VEGF⁺ ECs,Number of CRLM,3,12,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+TC_VEGF,CEA,0.357142857142857,Combo,TC,VEGF⁺ ECs,CEA,4,12,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0
+TC_VEGF,CA199,0.181318681318681,Combo,TC,VEGF⁺ ECs,CA19-9,5,12,p.adj > 0.25,0.25,1.0,figure_transcribed,2,-1.0,1.0

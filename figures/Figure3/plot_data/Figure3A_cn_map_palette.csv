@@ -1,0 +1,9 @@
+color_order,visible_color_class,associated_callout_label,source_map_color_hex,publication_center_median_hex,glyph_count,publication_color_measure
+1,red,CN3,#F3626A,#C8918B,1917,pixel at saved-center projection; median per class
+2,orange,CN4,#F49D55,#DEB191,1250,pixel at saved-center projection; median per class
+3,green,CN6,#9DD860,#C2CEA7,284,pixel at saved-center projection; median per class
+4,gray,unlabeled,#D1D1D1,#E0DBD8,2085,pixel at saved-center projection; median per class
+5,pink,unlabeled,#F7B4DE,#EDD4D5,76,pixel at saved-center projection; median per class
+6,yellow,unlabeled,#F2F69D,#F4F2D4,70,pixel at saved-center projection; median per class
+7,purple,unlabeled,#AB69BB,#A48BB0,22,pixel at saved-center projection; median per class
+8,teal,unlabeled,#82D2B9,#BEB0CA,4,pixel at saved-center projection; median per class

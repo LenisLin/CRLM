@@ -1,0 +1,9 @@
+layer,path_order,subpath_order,vertex_order,command,x_svg_pt,y_svg_pt,fill,stroke,source_svg_local_stroke_width,dash_pattern
+spatial_profile_y_axis,1,1,1,M,76.38281279538413,86.82031248734314,none,"rgb(5.480957%,5.906677%,5.592346%)",0.25,solid
+spatial_profile_y_axis,1,1,2,L,76.38281279538413,58.51952787799999,none,"rgb(5.480957%,5.906677%,5.592346%)",0.25,solid
+spatial_profile_x_axis,2,1,1,M,76.38281279538413,86.82031248734314,none,"rgb(5.480957%,5.906677%,5.592346%)",0.25,solid
+spatial_profile_x_axis,2,1,2,L,104.687502903265,86.82031248734314,none,"rgb(5.480957%,5.906677%,5.592346%)",0.25,solid
+single_cell_y_axis,3,1,1,M,76.38281279538413,124.7343745410231,none,"rgb(5.480957%,5.906677%,5.592346%)",0.25,solid
+single_cell_y_axis,3,1,2,L,76.38281279538413,98.769528484845,none,"rgb(5.480957%,5.906677%,5.592346%)",0.25,solid
+single_cell_x_axis,4,1,1,M,76.38281279538413,124.7343745410231,none,"rgb(5.480957%,5.906677%,5.592346%)",0.25,solid
+single_cell_x_axis,4,1,2,L,104.687502903265,124.7343745410231,none,"rgb(5.480957%,5.906677%,5.592346%)",0.25,solid

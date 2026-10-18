@@ -1,0 +1,3 @@
+cohort,cohort_order,x_min_months,x_max_months,x_tick_step_months,y_min_probability,y_max_probability,y_tick_step,x_label,y_label,ci_level,ci_method,ribbon_alpha,step_direction,censor_shape,censor_size_source,legend_title
+Discovery,1,0,50,10,0,1,0.25,RFS time (months),Survival probability,0.95,log,0.16,hv,3,2.1,Treatment strategy
+Test,2,0,60,10,0,1,0.25,RFS time (months),Survival probability,0.95,log,0.16,hv,3,2.1,Treatment strategy

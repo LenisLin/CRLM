@@ -1,0 +1,2 @@
+ROI,page_width_pt,page_height_pt,embedded_map_width_px,embedded_map_height_px,pdf_origin,x_um_direction,y_um_direction,axes_visible,scale_bar_visible,pdf_x_per_x_um,pdf_y_per_x_um,pdf_x_per_y_um,pdf_y_per_y_um,pdf_x_intercept,pdf_y_intercept,glyph_width_pdf_pt_approx,glyph_height_pdf_pt_approx,placement_precision_pdf_pt_approx
+B10_ROI11,510.236,467.717,265,267,top-left,increasing right,increasing upward,False,False,0.06306817076176213,-0.00011750671694665597,-0.0001184964527477917,-0.06357684623540606,206.4254495210332,88.98077782175278,0.59,0.7,0.06

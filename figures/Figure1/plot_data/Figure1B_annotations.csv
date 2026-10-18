@@ -1,0 +1,12 @@
+cohort,annotation_type,treatment,x_months,y_survival,xend_months,yend_survival,label,value,anchor,hjust,vjust
+Discovery,log_rank,all,50.0,0.92,NA,NA,Log-rank p = 0.22,0.22251214480834064,right_boundary,1.05,0.0
+Discovery,cohort_title,all,NA,NA,NA,NA,Discovery cohort (n = 35),35.0,top_center,NA,NA
+Discovery,risk_table_title,all,NA,NA,NA,NA,Number at risk,NA,risk_table_top_left,NA,NA
+Discovery,median_horizontal,all,0.0,0.5,12.785,0.5,0.5 survival reference,0.5,data,NA,NA
+Discovery,median_vertical,Chemo,12.785,0.0,12.785,0.5,median survival,12.785,data,NA,NA
+Test,log_rank,all,60.0,0.92,NA,NA,Log-rank p = 0.070,0.07023115477003469,right_boundary,1.05,0.0
+Test,cohort_title,all,NA,NA,NA,NA,Test cohort (n = 95),95.0,top_center,NA,NA
+Test,risk_table_title,all,NA,NA,NA,NA,Number at risk,NA,risk_table_top_left,NA,NA
+Test,median_horizontal,all,0.0,0.5,30.86666667,0.5,0.5 survival reference,0.5,data,NA,NA
+Test,median_vertical,Chemo,12.16666667,0.0,12.16666667,0.5,median survival,12.16666667,data,NA,NA
+Test,median_vertical,Combo,30.86666667,0.0,30.86666667,0.5,median survival,30.86666667,data,NA,NA

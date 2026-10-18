@@ -1,0 +1,7 @@
+marker,group1,group2,label,comparison_order
+CAIX,TC,IM,n.s.,1
+CAIX,TC,PT,****,2
+CAIX,IM,PT,****,3
+Ki67,TC,IM,n.s.,1
+Ki67,TC,PT,****,2
+Ki67,IM,PT,****,3

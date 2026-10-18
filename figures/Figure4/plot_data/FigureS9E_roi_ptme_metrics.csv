@@ -1,0 +1,103 @@
+roi,patient,treatment,recurrence_status,total_cells,n_ptmes,mean_ptme_size_cells,outcome,outcome_order,treatment_order,facets,plotted_in_count_panel,plotted_in_mean_size_panel
+B11_ROI10,B11,Chemo,1,5851,0,NA,Recurrence,1,2,Overall;Chemo,False,False
+B11_ROI5,B11,Chemo,1,6661,3,31.333333333333332,Recurrence,1,2,Overall;Chemo,True,True
+B11_ROI9,B11,Chemo,1,6616,3,30,Recurrence,1,2,Overall;Chemo,True,True
+B13_ROI10,B13,Chemo,1,7433,6,34.833333333333336,Recurrence,1,2,Overall;Chemo,True,True
+B13_ROI12,B13,Chemo,1,8191,6,22.333333333333332,Recurrence,1,2,Overall;Chemo,True,True
+B13_ROI13,B13,Chemo,1,7521,1,17,Recurrence,1,2,Overall;Chemo,True,True
+B14_ROI5,B14,Chemo,1,7501,0,NA,Recurrence,1,2,Overall;Chemo,False,False
+B14_ROI7,B14,Chemo,1,5465,1,20,Recurrence,1,2,Overall;Chemo,True,True
+B14_ROI8,B14,Chemo,1,5089,1,22,Recurrence,1,2,Overall;Chemo,True,True
+B15_ROI5,B15,Chemo,1,8031,5,25.600000000000001,Recurrence,1,2,Overall;Chemo,True,True
+B15_ROI6,B15,Chemo,1,6625,10,23.399999999999999,Recurrence,1,2,Overall;Chemo,True,True
+B15_ROI9,B15,Chemo,1,5679,0,NA,Recurrence,1,2,Overall;Chemo,False,False
+B18_ROI10,B18,Chemo,1,8649,2,23.5,Recurrence,1,2,Overall;Chemo,True,True
+B18_ROI7,B18,Chemo,1,9082,5,28.600000000000001,Recurrence,1,2,Overall;Chemo,True,True
+B18_ROI8,B18,Chemo,1,6131,2,19.5,Recurrence,1,2,Overall;Chemo,True,True
+B21_ROI10,B21,Chemo,1,7371,3,33.333333333333336,Recurrence,1,2,Overall;Chemo,True,True
+B21_ROI5,B21,Chemo,1,9492,3,16,Recurrence,1,2,Overall;Chemo,True,True
+B21_ROI8,B21,Chemo,1,8082,3,18.666666666666668,Recurrence,1,2,Overall;Chemo,True,True
+B22_ROI5,B22,Chemo,1,7975,15,24.266666666666666,Recurrence,1,2,Overall;Chemo,True,True
+B22_ROI6,B22,Chemo,1,8784,1,14,Recurrence,1,2,Overall;Chemo,True,True
+B22_ROI8,B22,Chemo,1,8383,0,NA,Recurrence,1,2,Overall;Chemo,False,False
+B2_ROI1,B2,Chemo,1,4726,1,13,Recurrence,1,2,Overall;Chemo,True,True
+B2_ROI2,B2,Chemo,1,5047,5,20.199999999999999,Recurrence,1,2,Overall;Chemo,True,True
+B2_ROI3,B2,Chemo,1,4737,1,14,Recurrence,1,2,Overall;Chemo,True,True
+B3_ROI5,B3,Chemo,1,1774,1,22,Recurrence,1,2,Overall;Chemo,True,True
+B3_ROI6,B3,Chemo,1,5282,5,25,Recurrence,1,2,Overall;Chemo,True,True
+B3_ROI7,B3,Chemo,1,5299,6,24.833333333333332,Recurrence,1,2,Overall;Chemo,True,True
+B3_ROI8,B3,Chemo,1,4810,4,22.25,Recurrence,1,2,Overall;Chemo,True,True
+B4_ROI11,B4,Chemo,1,5844,0,NA,Recurrence,1,2,Overall;Chemo,False,False
+B4_ROI12,B4,Chemo,1,5865,7,35.714285714285715,Recurrence,1,2,Overall;Chemo,True,True
+B4_ROI5,B4,Chemo,1,5336,4,21.5,Recurrence,1,2,Overall;Chemo,True,True
+B5_ROI12,B5,Chemo,1,4462,0,NA,Recurrence,1,2,Overall;Chemo,False,False
+B5_ROI5,B5,Chemo,1,5287,4,40,Recurrence,1,2,Overall;Chemo,True,True
+B5_ROI6,B5,Chemo,1,5136,5,29.800000000000001,Recurrence,1,2,Overall;Chemo,True,True
+B6_ROI10,B6,Chemo,1,5887,10,36.700000000000003,Recurrence,1,2,Overall;Chemo,True,True
+B6_ROI11,B6,Chemo,1,6009,5,36.799999999999997,Recurrence,1,2,Overall;Chemo,True,True
+B6_ROI9,B6,Chemo,1,6294,5,30.399999999999999,Recurrence,1,2,Overall;Chemo,True,True
+B8_ROI11,B8,Chemo,1,6259,3,29.666666666666668,Recurrence,1,2,Overall;Chemo,True,True
+B8_ROI7,B8,Chemo,1,6211,3,26.333333333333332,Recurrence,1,2,Overall;Chemo,True,True
+B8_ROI8,B8,Chemo,1,6185,6,25.333333333333332,Recurrence,1,2,Overall;Chemo,True,True
+W10_ROI5,W10,Chemo,0,5624,0,NA,No recurrence,2,2,Overall;Chemo,False,False
+W10_ROI8,W10,Chemo,0,5436,6,38.666666666666664,No recurrence,2,2,Overall;Chemo,True,True
+W10_ROI9,W10,Chemo,0,5805,0,NA,No recurrence,2,2,Overall;Chemo,False,False
+W15_ROI13,W15,Chemo,0,7929,25,31.440000000000001,No recurrence,2,2,Overall;Chemo,True,True
+W15_ROI5,W15,Chemo,0,8059,10,28.100000000000001,No recurrence,2,2,Overall;Chemo,True,True
+W15_ROI6,W15,Chemo,0,8227,8,37,No recurrence,2,2,Overall;Chemo,True,True
+W16_ROI11,W16,Chemo,0,7623,2,42.5,No recurrence,2,2,Overall;Chemo,True,True
+W16_ROI13,W16,Chemo,0,7286,4,26.75,No recurrence,2,2,Overall;Chemo,True,True
+W16_ROI6,W16,Chemo,0,8435,12,34.666666666666664,No recurrence,2,2,Overall;Chemo,True,True
+W17_ROI12,W17,Chemo,0,8104,5,24.399999999999999,No recurrence,2,2,Overall;Chemo,True,True
+W17_ROI13,W17,Chemo,0,8379,3,26,No recurrence,2,2,Overall;Chemo,True,True
+W17_ROI7,W17,Chemo,0,8249,9,25.666666666666668,No recurrence,2,2,Overall;Chemo,True,True
+W19_ROI11,W19,Chemo,0,7378,0,NA,No recurrence,2,2,Overall;Chemo,False,False
+W19_ROI5,W19,Chemo,0,8865,18,28,No recurrence,2,2,Overall;Chemo,True,True
+W19_ROI6,W19,Chemo,0,9179,13,29.76923076923077,No recurrence,2,2,Overall;Chemo,True,True
+W20_ROI11,W20,Chemo,0,8479,2,22,No recurrence,2,2,Overall;Chemo,True,True
+W20_ROI5,W20,Chemo,0,9907,9,23.555555555555557,No recurrence,2,2,Overall;Chemo,True,True
+W20_ROI6,W20,Chemo,0,8943,8,26,No recurrence,2,2,Overall;Chemo,True,True
+W25_ROI10,W25,Chemo,0,7576,5,33.399999999999999,No recurrence,2,2,Overall;Chemo,True,True
+W25_ROI5,W25,Chemo,0,7975,11,27.09090909090909,No recurrence,2,2,Overall;Chemo,True,True
+W25_ROI9,W25,Chemo,0,7811,4,22,No recurrence,2,2,Overall;Chemo,True,True
+W3_ROI12,W3,Chemo,0,5630,4,30.75,No recurrence,2,2,Overall;Chemo,True,True
+W3_ROI5,W3,Chemo,0,6404,2,21.5,No recurrence,2,2,Overall;Chemo,True,True
+W3_ROI8,W3,Chemo,0,5821,4,48.75,No recurrence,2,2,Overall;Chemo,True,True
+B10_ROI7,B10,Combo,1,4352,11,28.272727272727273,Recurrence,1,3,Overall;Combo,True,True
+B10_ROI8,B10,Combo,1,3515,5,33,Recurrence,1,3,Overall;Combo,True,True
+B10_ROI9,B10,Combo,1,4786,11,30.272727272727273,Recurrence,1,3,Overall;Combo,True,True
+B12_ROI10,B12,Combo,1,8355,5,18.800000000000001,Recurrence,1,3,Overall;Combo,True,True
+B12_ROI5,B12,Combo,1,9914,8,31,Recurrence,1,3,Overall;Combo,True,True
+B12_ROI8,B12,Combo,1,7716,9,50.444444444444443,Recurrence,1,3,Overall;Combo,True,True
+B16_ROI10,B16,Combo,1,8133,2,16,Recurrence,1,3,Overall;Combo,True,True
+B16_ROI11,B16,Combo,1,8327,15,33.06666666666667,Recurrence,1,3,Overall;Combo,True,True
+B16_ROI6,B16,Combo,1,8314,4,19,Recurrence,1,3,Overall;Combo,True,True
+B20_ROI5,B20,Combo,1,9498,16,45.9375,Recurrence,1,3,Overall;Combo,True,True
+B20_ROI6,B20,Combo,1,9041,11,42.454545454545453,Recurrence,1,3,Overall;Combo,True,True
+B20_ROI7,B20,Combo,1,9583,6,23.666666666666668,Recurrence,1,3,Overall;Combo,True,True
+W21_ROI12,W21,Combo,1,8764,0,NA,Recurrence,1,3,Overall;Combo,False,False
+W21_ROI13,W21,Combo,1,8368,0,NA,Recurrence,1,3,Overall;Combo,False,False
+W21_ROI9,W21,Combo,1,9099,7,29.285714285714285,Recurrence,1,3,Overall;Combo,True,True
+W12_ROI11,W12,Combo,0,5235,0,NA,No recurrence,2,3,Overall;Combo,False,False
+W12_ROI16,W12,Combo,0,5146,10,28.199999999999999,No recurrence,2,3,Overall;Combo,True,True
+W12_ROI6,W12,Combo,0,5687,4,34,No recurrence,2,3,Overall;Combo,True,True
+W18_ROI5,W18,Combo,0,9338,2,25.5,No recurrence,2,3,Overall;Combo,True,True
+W18_ROI9,W18,Combo,0,8325,0,NA,No recurrence,2,3,Overall;Combo,False,False
+W22_ROI12,W22,Combo,0,9240,13,23.384615384615383,No recurrence,2,3,Overall;Combo,True,True
+W22_ROI14,W22,Combo,0,7991,21,34.523809523809526,No recurrence,2,3,Overall;Combo,True,True
+W22_ROI7,W22,Combo,0,7758,5,25.399999999999999,No recurrence,2,3,Overall;Combo,True,True
+W23_ROI11,W23,Combo,0,8954,6,22.5,No recurrence,2,3,Overall;Combo,True,True
+W23_ROI13,W23,Combo,0,9505,4,32.75,No recurrence,2,3,Overall;Combo,True,True
+W23_ROI5,W23,Combo,0,10589,7,27.285714285714285,No recurrence,2,3,Overall;Combo,True,True
+W2_ROI11,W2,Combo,0,7283,12,39,No recurrence,2,3,Overall;Combo,True,True
+W2_ROI13,W2,Combo,0,4514,6,24,No recurrence,2,3,Overall;Combo,True,True
+W2_ROI9,W2,Combo,0,4636,4,27,No recurrence,2,3,Overall;Combo,True,True
+W4_ROI12,W4,Combo,0,5913,8,42,No recurrence,2,3,Overall;Combo,True,True
+W4_ROI13,W4,Combo,0,5821,5,28,No recurrence,2,3,Overall;Combo,True,True
+W4_ROI7,W4,Combo,0,6385,15,37,No recurrence,2,3,Overall;Combo,True,True
+W6_ROI10,W6,Combo,0,8776,11,35.636363636363633,No recurrence,2,3,Overall;Combo,True,True
+W6_ROI15,W6,Combo,0,8995,0,NA,No recurrence,2,3,Overall;Combo,False,False
+W6_ROI9,W6,Combo,0,8996,4,28.5,No recurrence,2,3,Overall;Combo,True,True
+W7_ROI5,W7,Combo,0,5665,9,48.888888888888886,No recurrence,2,3,Overall;Combo,True,True
+W7_ROI6,W7,Combo,0,5463,5,37.799999999999997,No recurrence,2,3,Overall;Combo,True,True
+W7_ROI8,W7,Combo,0,5276,7,39.142857142857146,No recurrence,2,3,Overall;Combo,True,True

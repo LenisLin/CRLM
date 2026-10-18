@@ -1,0 +1,33 @@
+figure,panel,object,kind,status,files,notes
+Figure6,Figure6A,cohort flow counts,statistical_plot,complete,Figure6A_flow.csv,
+Figure6,Figure6A,cohort flow diagram,schematic,asset,report_assets/figure6_publication.png,Current complete Figure6 artwork
+Figure6,Figure6B,TBS histogram,statistical_plot,complete,Figure6B_observations.csv;Figure6B_histograms.csv;Figure6B_plot_spec.csv,
+Figure6,Figure6B,TBS density,statistical_plot,complete,Figure6B_observations.csv;Figure6B_densities.csv;Figure6B_plot_spec.csv,
+Figure6,Figure6B,CRLM_number histogram,statistical_plot,complete,Figure6B_observations.csv;Figure6B_histograms.csv;Figure6B_plot_spec.csv,
+Figure6,Figure6B,CRLM_number density,statistical_plot,complete,Figure6B_observations.csv;Figure6B_densities.csv;Figure6B_plot_spec.csv,
+Figure6,Figure6B,CRLM_size histogram,statistical_plot,complete,Figure6B_observations.csv;Figure6B_histograms.csv;Figure6B_plot_spec.csv,
+Figure6,Figure6B,CRLM_size density,statistical_plot,complete,Figure6B_observations.csv;Figure6B_densities.csv;Figure6B_plot_spec.csv,
+Figure6,Figure6B,fong_score bars and labels,statistical_plot,complete,Figure6B_observations.csv;Figure6B_categorical_counts.csv;Figure6B_plot_spec.csv,
+Figure6,Figure6B,KRAS_mutation bars and labels,statistical_plot,complete,Figure6B_observations.csv;Figure6B_categorical_counts.csv;Figure6B_plot_spec.csv,
+Figure6,Figure6C,RFS four-group curves,statistical_plot,complete,Figure6C_curves.csv;Figure6C_groups.csv;Figure6C_observations.csv,
+Figure6,Figure6C,RFS confidence ribbons,statistical_plot,complete,Figure6C_confidence_band.csv;Figure6C_curves.csv;Figure6C_groups.csv,
+Figure6,Figure6C,RFS censor marks,statistical_plot,complete,Figure6C_censors.csv;Figure6C_groups.csv,
+Figure6,Figure6C,RFS risk table,statistical_plot,complete,Figure6C_risk.csv;Figure6C_groups.csv,
+Figure6,Figure6C,RFS log-rank annotations and legend,statistical_plot,complete,Figure6C_annotations.csv;Figure6C_groups.csv,
+Figure6,Figure6D,RFS four-group curves,statistical_plot,complete,Figure6D_curves.csv;Figure6D_groups.csv;Figure6D_observations.csv,
+Figure6,Figure6D,RFS confidence ribbons,statistical_plot,complete,Figure6D_confidence_band.csv;Figure6D_curves.csv;Figure6D_groups.csv,
+Figure6,Figure6D,RFS censor marks,statistical_plot,complete,Figure6D_censors.csv;Figure6D_groups.csv,
+Figure6,Figure6D,RFS risk table,statistical_plot,complete,Figure6D_risk.csv;Figure6D_groups.csv,
+Figure6,Figure6D,RFS log-rank annotations and legend,statistical_plot,complete,Figure6D_annotations.csv;Figure6D_groups.csv,
+Figure6,Figure6E,forest points CIs and labels,statistical_plot,complete,Figure6E_forest.csv,
+Figure6,Figure6F,forest points CIs and labels,statistical_plot,complete,Figure6F_forest.csv,
+FigureS13,FigureS13A,KM curves and CI,statistical_plot,complete,FigureS13A_curves.csv;FigureS13A_display.csv,Original OS cutoff rule and saved 34/62-row input; current artwork matched
+FigureS13,FigureS13A,censor marks,statistical_plot,complete,FigureS13A_censors.csv,Original OS cutoff rule and saved 34/62-row input; current artwork matched
+FigureS13,FigureS13A,number at risk,statistical_plot,complete,FigureS13A_risk.csv,Original OS cutoff rule and saved 34/62-row input; current artwork matched
+FigureS13,FigureS13A,statistical annotations,statistical_plot,complete,FigureS13A_annotations.csv,Original OS cutoff rule and saved 34/62-row input; current artwork matched
+FigureS13,FigureS13B,KM curves and CI,statistical_plot,complete,FigureS13B_curves.csv;FigureS13B_display.csv,Original OS cutoff rule and saved 34/62-row input; current artwork matched
+FigureS13,FigureS13B,censor marks,statistical_plot,complete,FigureS13B_censors.csv,Original OS cutoff rule and saved 34/62-row input; current artwork matched
+FigureS13,FigureS13B,number at risk,statistical_plot,complete,FigureS13B_risk.csv,Original OS cutoff rule and saved 34/62-row input; current artwork matched
+FigureS13,FigureS13B,statistical annotations,statistical_plot,complete,FigureS13B_annotations.csv,Original OS cutoff rule and saved 34/62-row input; current artwork matched
+FigureS14,FigureS14,subgroup HR benefit points and 95% CI,statistical_plot,complete,FigureS14_estimates.csv;FigureS14_display.csv,All ten printed reduction/P/N rows and order matched
+FigureS14,FigureS14,grouped interaction P annotations,statistical_plot,complete,FigureS14_annotations.csv,All five displayed interaction P values matched

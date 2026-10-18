@@ -1,0 +1,18 @@
+kind,label,value,svg_x_pt,svg_y_pt,svg_radius_pt,notes
+x_axis_title,Average log2 fold change (PIR/PSM),NA,NA,NA,NA,linear log2FC; values clipped at -8 and 8
+y_axis_title,−lg(p),NA,NA,NA,NA,-log10 nominal P; no P cap
+x_tick,-5,-5.0,61.35139075899086,NA,NA,NA
+x_tick,0,0.0,111.22260768266783,NA,NA,NA
+x_tick,5,5.0,161.0938246063448,NA,NA,NA
+y_tick,0,0.0,NA,422.8003849708659,NA,NA
+y_tick,2.5,2.5,NA,390.9304338724777,NA,NA
+y_tick,5,5.0,NA,359.06048277408945,NA,NA
+y_tick,7.5,7.5,NA,327.19053167570127,NA,NA
+horizontal_reference,p = 0.05,1.3010299956639813,NA,406.21488003512695,NA,red dashed
+vertical_reference,log2FC = 0,0.0,111.22260768266783,NA,NA,grey dashed
+size_legend,0.01 < p ≤ 0.05,NA,209.49804699999999,306.019531,0.6894530000000003,displayed legend glyph; plotted point radii stored per gene
+size_legend,0.001 < p ≤ 0.01,NA,209.4960935,314.7558595,1.1757814999999994,displayed legend glyph; plotted point radii stored per gene
+size_legend,p ≤ 0.001,NA,209.4960935,323.4921875,2.1367185000000006,displayed legend glyph; plotted point radii stored per gene
+color_legend,Not significant,NA,NA,NA,NA,#A8A9AB
+color_legend,Up in PIR,NA,NA,NA,NA,#4778B2
+color_legend,Up in PSM,NA,NA,NA,NA,#F4A95F

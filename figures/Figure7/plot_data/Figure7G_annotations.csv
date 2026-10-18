@@ -1,0 +1,12 @@
+kind,label,value,svg_x_pt,svg_y_pt,svg_radius_pt,notes
+x_axis_title,Normalized enrichment score (NES),NA,NA,NA,NA,linear NES
+y_axis_title,Pathway,NA,NA,NA,NA,display_order_top_to_bottom in pathways table
+caption,Positive NES = enriched in PIR−Niche,NA,NA,NA,NA,NA
+x_tick,-1,-1.0,302.83984412968385,NA,NA,NA
+x_tick,0,0.0,323.0078122687453,NA,NA,NA
+x_tick,1,1.0,343.17187530889174,NA,NA,NA
+x_tick,2,2.0,363.33984328945166,NA,NA,NA
+database_legend,Hallmark,NA,299.703125,295.8632815,1.5546870000000013,NA
+database_legend,KEGG,NA,328.2382815,295.8632815,1.5546875,NA
+database_legend,Reactome,NA,351.4375,295.8632815,1.5546879999999987,NA
+bubble_size,-log10(p-value),NA,NA,NA,NA,original continuous size mapping range 3 to 10; current vector radii retained

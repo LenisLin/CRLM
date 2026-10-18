@@ -1,0 +1,5 @@
+display_order,cohort,workflow_block,modality,n,unit
+1,Cohort 1,Spatial proteomic landscape,IMC,35,patient
+2,Cohort 2,Clinical model,H&E image,95,patient
+3,Cohort 3,Molecular mechanism,scRNA-seq,6,patient
+4,Cohort 4,Molecular mechanism,ST,9,patient

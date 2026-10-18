@@ -1,0 +1,3 @@
+tissue,treatment,treatment_order,x_scale,x_values,x_group_labels,x_tick_labels_visible,y_scale,y_axis_label,y_tick_values,source_panel_ymin_fraction,source_panel_ymax_fraction
+IM,Chemo,1,discrete,0;1,No recurrence;Recurrence,False,linear,Fraction of cells in neighborhood,0;0.2;0.4,-0.028233749179251477,0.59409061063690083
+IM,Combo,2,discrete,0;1,No recurrence;Recurrence,False,linear,Fraction of cells in neighborhood,0;0.2;0.4,-0.02764143407220453,0.59194290680540862

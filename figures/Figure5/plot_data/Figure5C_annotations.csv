@@ -1,0 +1,5 @@
+annotation_order,object,label,value,unit,asset
+1,whole slide image,Scale bar: 100 μm,100.0,μm,report_assets/figure5_publication.pdf
+2,H&E example patches,Patch scale bars: 50 μm,50.0,μm,report_assets/figure5_publication.pdf
+3,PTME distribution map scale bar,map scale bar without numeric label,NA,unlabelled,report_assets/figure5_publication.pdf
+4,ISR formula,ISR = N (PIR-Niche) / N (PSM-Niche),NA,tile-count ratio,report_assets/figure5_publication.pdf

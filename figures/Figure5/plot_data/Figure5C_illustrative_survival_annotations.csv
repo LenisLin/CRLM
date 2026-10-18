@@ -1,0 +1,6 @@
+annotation_id,role,label,curve,anchor_x_pdf_pt,anchor_y_pdf_pt,rotation_degrees,text_hex,coordinate_origin,anchor_meaning,scale_meaning,approx_precision_pdf_pt
+1,title,Survival analysis,shared,431.556,139.2886,0,#231f20,PDF page top left; x right; y down,first glyph baseline origin,unnumbered drawing axes; PDF points only,0.004
+2,legend_title,Strata,shared,461.6394,154.0214,0,#231f20,PDF page top left; x right; y down,first glyph baseline origin,unnumbered drawing axes; PDF points only,0.004
+3,legend_label,High ISR,High ISR,474.498,163.6303,0,#231f20,PDF page top left; x right; y down,first glyph baseline origin,unnumbered drawing axes; PDF points only,0.004
+4,legend_label,Low ISR,Low ISR,474.498,173.3266,0,#231f20,PDF page top left; x right; y down,first glyph baseline origin,unnumbered drawing axes; PDF points only,0.004
+5,y_axis_label,Survival probability,shared,413.1943,211.4955,-90,#231f20,PDF page top left; x right; y down,first glyph baseline origin,unnumbered drawing axes; PDF points only,0.004

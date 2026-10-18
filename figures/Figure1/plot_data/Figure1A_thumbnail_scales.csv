@@ -1,0 +1,9 @@
+thumbnail,x_left_svg_pt,y_top_svg_pt,x_right_svg_pt,y_bottom_svg_pt,x_label,y_label,ticks,coordinate_system,geometry_role
+mass_spectrum,185.0,54.0,217.0,80.0,m/z,Intensity,unnumbered,converted-SVG canvas unit (1 viewBox unit; canvas sized in pt); top-left; x right; y down; frame F1proof,workflow diagram
+phenotype_heatmap,174.7148,100.2617,216.5664,138.4727,,,unnumbered,converted-SVG canvas unit (1 viewBox unit; canvas sized in pt); top-left; x right; y down; frame F1proof,workflow diagram
+spatial_analysis,228.634431,100.589543,266.906751,138.146298,,,unnumbered,converted-SVG canvas unit (1 viewBox unit; canvas sized in pt); top-left; x right; y down; frame F1proof,workflow diagram
+recurrence_prediction,298.710938,92.195313,356.832037,134.648443,RFS,Survival,unnumbered,converted-SVG canvas unit (1 viewBox unit; canvas sized in pt); top-left; x right; y down; frame F1proof,workflow diagram
+scRNA-seq,387.382812,43.0,432.148442,93.007813,,,unnumbered,converted-SVG canvas unit (1 viewBox unit; canvas sized in pt); top-left; x right; y down; frame F1proof,workflow diagram
+ST,441.1875,47.3398,487.7695,93.007813,,,unnumbered,converted-SVG canvas unit (1 viewBox unit; canvas sized in pt); top-left; x right; y down; frame F1proof,workflow diagram
+interaction_analysis,389.0,98.0,431.0,142.0,,,unnumbered,converted-SVG canvas unit (1 viewBox unit; canvas sized in pt); top-left; x right; y down; frame F1proof,workflow diagram
+pathway_enrichment,443.0,104.144528,489.0,135.652344,,,unnumbered,converted-SVG canvas unit (1 viewBox unit; canvas sized in pt); top-left; x right; y down; frame F1proof,workflow diagram

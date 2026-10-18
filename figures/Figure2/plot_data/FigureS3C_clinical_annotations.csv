@@ -1,0 +1,526 @@
+PID,variable,value,row_order,annotation_order,variable_label,unit,scale_type,discrete_fill
+W1,RFS_status,0.0,1,1,RFS status,code,discrete,#BC3C29
+W1,Gender,0.0,1,2,Gender,code,discrete,#7876B1
+W1,KRAS_mutation,0.0,1,3,KRAS mutation,code,discrete,#BEBEBE
+W1,BRAF_mutation,0.0,1,4,BRAF mutation,code,discrete,#BEBEBE
+W1,CRC_site,2.0,1,5,CRC site,code,discrete,#228B22
+W1,Differential_grade,0.0,1,6,Differentiation grade,code,discrete,#ADD8E6
+W1,T_stage,3.0,1,7,T stage,code,discrete,#CDC9A5
+W1,Lymph_positive,1.0,1,8,Lymph node positive,code,discrete,#999999
+W1,RFS_time,33.23,1,9,RFS time (months),months,linear color interpolation in CIELAB,
+W1,Age,64.0,1,10,Age,years,linear color interpolation in CIELAB,
+W1,TBS,3.64,1,11,TBS,score,linear color interpolation in CIELAB,
+W1,CRLM_number,1.0,1,12,CRLM number,count,linear color interpolation in CIELAB,
+W1,CRLM_size,3.5,1,13,CRLM diameter,cm,linear color interpolation in CIELAB,
+W1,CEA,131.4,1,14,CEA,ng/mL,linear color interpolation in CIELAB,
+W1,CA199,142.4,1,15,CA19-9,U/mL,linear color interpolation in CIELAB,
+W10,RFS_status,0.0,2,1,RFS status,code,discrete,#BC3C29
+W10,Gender,0.0,2,2,Gender,code,discrete,#7876B1
+W10,KRAS_mutation,1.0,2,3,KRAS mutation,code,discrete,#E18727
+W10,BRAF_mutation,0.0,2,4,BRAF mutation,code,discrete,#BEBEBE
+W10,CRC_site,2.0,2,5,CRC site,code,discrete,#228B22
+W10,Differential_grade,0.0,2,6,Differentiation grade,code,discrete,#ADD8E6
+W10,T_stage,1.0,2,7,T stage,code,discrete,#FFFACD
+W10,Lymph_positive,1.0,2,8,Lymph node positive,code,discrete,#999999
+W10,RFS_time,34.6,2,9,RFS time (months),months,linear color interpolation in CIELAB,
+W10,Age,49.0,2,10,Age,years,linear color interpolation in CIELAB,
+W10,TBS,3.64,2,11,TBS,score,linear color interpolation in CIELAB,
+W10,CRLM_number,1.0,2,12,CRLM number,count,linear color interpolation in CIELAB,
+W10,CRLM_size,3.5,2,13,CRLM diameter,cm,linear color interpolation in CIELAB,
+W10,CEA,27.8,2,14,CEA,ng/mL,linear color interpolation in CIELAB,
+W10,CA199,178.0,2,15,CA19-9,U/mL,linear color interpolation in CIELAB,
+W12,RFS_status,0.0,3,1,RFS status,code,discrete,#BC3C29
+W12,Gender,0.0,3,2,Gender,code,discrete,#7876B1
+W12,KRAS_mutation,1.0,3,3,KRAS mutation,code,discrete,#E18727
+W12,BRAF_mutation,0.0,3,4,BRAF mutation,code,discrete,#BEBEBE
+W12,CRC_site,3.0,3,5,CRC site,code,discrete,#006400
+W12,Differential_grade,0.0,3,6,Differentiation grade,code,discrete,#ADD8E6
+W12,T_stage,3.0,3,7,T stage,code,discrete,#CDC9A5
+W12,Lymph_positive,0.0,3,8,Lymph node positive,code,discrete,#FFFFFF
+W12,RFS_time,28.77,3,9,RFS time (months),months,linear color interpolation in CIELAB,
+W12,Age,71.0,3,10,Age,years,linear color interpolation in CIELAB,
+W12,TBS,2.5,3,11,TBS,score,linear color interpolation in CIELAB,
+W12,CRLM_number,2.0,3,12,CRLM number,count,linear color interpolation in CIELAB,
+W12,CRLM_size,1.5,3,13,CRLM diameter,cm,linear color interpolation in CIELAB,
+W12,CEA,46.9,3,14,CEA,ng/mL,linear color interpolation in CIELAB,
+W12,CA199,361.0,3,15,CA19-9,U/mL,linear color interpolation in CIELAB,
+W15,RFS_status,0.0,4,1,RFS status,code,discrete,#BC3C29
+W15,Gender,0.0,4,2,Gender,code,discrete,#7876B1
+W15,KRAS_mutation,1.0,4,3,KRAS mutation,code,discrete,#E18727
+W15,BRAF_mutation,0.0,4,4,BRAF mutation,code,discrete,#BEBEBE
+W15,CRC_site,3.0,4,5,CRC site,code,discrete,#006400
+W15,Differential_grade,0.0,4,6,Differentiation grade,code,discrete,#ADD8E6
+W15,T_stage,3.0,4,7,T stage,code,discrete,#CDC9A5
+W15,Lymph_positive,1.0,4,8,Lymph node positive,code,discrete,#999999
+W15,RFS_time,22.47,4,9,RFS time (months),months,linear color interpolation in CIELAB,
+W15,Age,75.0,4,10,Age,years,linear color interpolation in CIELAB,
+W15,TBS,2.83,4,11,TBS,score,linear color interpolation in CIELAB,
+W15,CRLM_number,2.0,4,12,CRLM number,count,linear color interpolation in CIELAB,
+W15,CRLM_size,2.0,4,13,CRLM diameter,cm,linear color interpolation in CIELAB,
+W15,CEA,3.4,4,14,CEA,ng/mL,linear color interpolation in CIELAB,
+W15,CA199,10.6,4,15,CA19-9,U/mL,linear color interpolation in CIELAB,
+W16,RFS_status,0.0,5,1,RFS status,code,discrete,#BC3C29
+W16,Gender,0.0,5,2,Gender,code,discrete,#7876B1
+W16,KRAS_mutation,0.0,5,3,KRAS mutation,code,discrete,#BEBEBE
+W16,BRAF_mutation,0.0,5,4,BRAF mutation,code,discrete,#BEBEBE
+W16,CRC_site,3.0,5,5,CRC site,code,discrete,#006400
+W16,Differential_grade,0.0,5,6,Differentiation grade,code,discrete,#ADD8E6
+W16,T_stage,2.0,5,7,T stage,code,discrete,#EEE9BF
+W16,Lymph_positive,1.0,5,8,Lymph node positive,code,discrete,#999999
+W16,RFS_time,42.27,5,9,RFS time (months),months,linear color interpolation in CIELAB,
+W16,Age,86.0,5,10,Age,years,linear color interpolation in CIELAB,
+W16,TBS,2.97,5,11,TBS,score,linear color interpolation in CIELAB,
+W16,CRLM_number,1.0,5,12,CRLM number,count,linear color interpolation in CIELAB,
+W16,CRLM_size,2.8,5,13,CRLM diameter,cm,linear color interpolation in CIELAB,
+W16,CEA,3.7,5,14,CEA,ng/mL,linear color interpolation in CIELAB,
+W16,CA199,23.6,5,15,CA19-9,U/mL,linear color interpolation in CIELAB,
+W17,RFS_status,0.0,6,1,RFS status,code,discrete,#BC3C29
+W17,Gender,1.0,6,2,Gender,code,discrete,#EE4C97
+W17,KRAS_mutation,1.0,6,3,KRAS mutation,code,discrete,#E18727
+W17,BRAF_mutation,0.0,6,4,BRAF mutation,code,discrete,#BEBEBE
+W17,CRC_site,1.0,6,5,CRC site,code,discrete,#90EE90
+W17,Differential_grade,1.0,6,6,Differentiation grade,code,discrete,#00008B
+W17,T_stage,3.0,6,7,T stage,code,discrete,#CDC9A5
+W17,Lymph_positive,1.0,6,8,Lymph node positive,code,discrete,#999999
+W17,RFS_time,26.3,6,9,RFS time (months),months,linear color interpolation in CIELAB,
+W17,Age,56.0,6,10,Age,years,linear color interpolation in CIELAB,
+W17,TBS,2.24,6,11,TBS,score,linear color interpolation in CIELAB,
+W17,CRLM_number,1.0,6,12,CRLM number,count,linear color interpolation in CIELAB,
+W17,CRLM_size,2.0,6,13,CRLM diameter,cm,linear color interpolation in CIELAB,
+W17,CEA,25.4,6,14,CEA,ng/mL,linear color interpolation in CIELAB,
+W17,CA199,0.6,6,15,CA19-9,U/mL,linear color interpolation in CIELAB,
+W18,RFS_status,0.0,7,1,RFS status,code,discrete,#BC3C29
+W18,Gender,0.0,7,2,Gender,code,discrete,#7876B1
+W18,KRAS_mutation,0.0,7,3,KRAS mutation,code,discrete,#BEBEBE
+W18,BRAF_mutation,0.0,7,4,BRAF mutation,code,discrete,#BEBEBE
+W18,CRC_site,3.0,7,5,CRC site,code,discrete,#006400
+W18,Differential_grade,0.0,7,6,Differentiation grade,code,discrete,#ADD8E6
+W18,T_stage,3.0,7,7,T stage,code,discrete,#CDC9A5
+W18,Lymph_positive,0.0,7,8,Lymph node positive,code,discrete,#FFFFFF
+W18,RFS_time,24.0,7,9,RFS time (months),months,linear color interpolation in CIELAB,
+W18,Age,55.0,7,10,Age,years,linear color interpolation in CIELAB,
+W18,TBS,4.12,7,11,TBS,score,linear color interpolation in CIELAB,
+W18,CRLM_number,1.0,7,12,CRLM number,count,linear color interpolation in CIELAB,
+W18,CRLM_size,4.0,7,13,CRLM diameter,cm,linear color interpolation in CIELAB,
+W18,CEA,2.2,7,14,CEA,ng/mL,linear color interpolation in CIELAB,
+W18,CA199,29.5,7,15,CA19-9,U/mL,linear color interpolation in CIELAB,
+W19,RFS_status,0.0,8,1,RFS status,code,discrete,#BC3C29
+W19,Gender,1.0,8,2,Gender,code,discrete,#EE4C97
+W19,KRAS_mutation,0.0,8,3,KRAS mutation,code,discrete,#BEBEBE
+W19,BRAF_mutation,0.0,8,4,BRAF mutation,code,discrete,#BEBEBE
+W19,CRC_site,2.0,8,5,CRC site,code,discrete,#228B22
+W19,Differential_grade,1.0,8,6,Differentiation grade,code,discrete,#00008B
+W19,T_stage,3.0,8,7,T stage,code,discrete,#CDC9A5
+W19,Lymph_positive,1.0,8,8,Lymph node positive,code,discrete,#999999
+W19,RFS_time,38.7,8,9,RFS time (months),months,linear color interpolation in CIELAB,
+W19,Age,61.0,8,10,Age,years,linear color interpolation in CIELAB,
+W19,TBS,5.83,8,11,TBS,score,linear color interpolation in CIELAB,
+W19,CRLM_number,5.0,8,12,CRLM number,count,linear color interpolation in CIELAB,
+W19,CRLM_size,3.0,8,13,CRLM diameter,cm,linear color interpolation in CIELAB,
+W19,CEA,98.6,8,14,CEA,ng/mL,linear color interpolation in CIELAB,
+W19,CA199,10.5,8,15,CA19-9,U/mL,linear color interpolation in CIELAB,
+W2,RFS_status,0.0,9,1,RFS status,code,discrete,#BC3C29
+W2,Gender,0.0,9,2,Gender,code,discrete,#7876B1
+W2,KRAS_mutation,1.0,9,3,KRAS mutation,code,discrete,#E18727
+W2,BRAF_mutation,0.0,9,4,BRAF mutation,code,discrete,#BEBEBE
+W2,CRC_site,3.0,9,5,CRC site,code,discrete,#006400
+W2,Differential_grade,0.0,9,6,Differentiation grade,code,discrete,#ADD8E6
+W2,T_stage,3.0,9,7,T stage,code,discrete,#CDC9A5
+W2,Lymph_positive,1.0,9,8,Lymph node positive,code,discrete,#999999
+W2,RFS_time,20.87,9,9,RFS time (months),months,linear color interpolation in CIELAB,
+W2,Age,66.0,9,10,Age,years,linear color interpolation in CIELAB,
+W2,TBS,12.0,9,11,TBS,score,linear color interpolation in CIELAB,
+W2,CRLM_number,7.0,9,12,CRLM number,count,linear color interpolation in CIELAB,
+W2,CRLM_size,2.0,9,13,CRLM diameter,cm,linear color interpolation in CIELAB,
+W2,CEA,9.8,9,14,CEA,ng/mL,linear color interpolation in CIELAB,
+W2,CA199,0.6,9,15,CA19-9,U/mL,linear color interpolation in CIELAB,
+W20,RFS_status,0.0,10,1,RFS status,code,discrete,#BC3C29
+W20,Gender,0.0,10,2,Gender,code,discrete,#7876B1
+W20,KRAS_mutation,0.0,10,3,KRAS mutation,code,discrete,#BEBEBE
+W20,BRAF_mutation,0.0,10,4,BRAF mutation,code,discrete,#BEBEBE
+W20,CRC_site,3.0,10,5,CRC site,code,discrete,#006400
+W20,Differential_grade,0.0,10,6,Differentiation grade,code,discrete,#ADD8E6
+W20,T_stage,4.0,10,7,T stage,code,discrete,#8B8970
+W20,Lymph_positive,1.0,10,8,Lymph node positive,code,discrete,#999999
+W20,RFS_time,22.0,10,9,RFS time (months),months,linear color interpolation in CIELAB,
+W20,Age,53.0,10,10,Age,years,linear color interpolation in CIELAB,
+W20,TBS,2.83,10,11,TBS,score,linear color interpolation in CIELAB,
+W20,CRLM_number,2.0,10,12,CRLM number,count,linear color interpolation in CIELAB,
+W20,CRLM_size,2.0,10,13,CRLM diameter,cm,linear color interpolation in CIELAB,
+W20,CEA,2.6,10,14,CEA,ng/mL,linear color interpolation in CIELAB,
+W20,CA199,5.8,10,15,CA19-9,U/mL,linear color interpolation in CIELAB,
+W22,RFS_status,0.0,11,1,RFS status,code,discrete,#BC3C29
+W22,Gender,0.0,11,2,Gender,code,discrete,#7876B1
+W22,KRAS_mutation,0.0,11,3,KRAS mutation,code,discrete,#BEBEBE
+W22,BRAF_mutation,0.0,11,4,BRAF mutation,code,discrete,#BEBEBE
+W22,CRC_site,2.0,11,5,CRC site,code,discrete,#228B22
+W22,Differential_grade,0.0,11,6,Differentiation grade,code,discrete,#ADD8E6
+W22,T_stage,4.0,11,7,T stage,code,discrete,#8B8970
+W22,Lymph_positive,1.0,11,8,Lymph node positive,code,discrete,#999999
+W22,RFS_time,38.87,11,9,RFS time (months),months,linear color interpolation in CIELAB,
+W22,Age,58.0,11,10,Age,years,linear color interpolation in CIELAB,
+W22,TBS,3.16,11,11,TBS,score,linear color interpolation in CIELAB,
+W22,CRLM_number,1.0,11,12,CRLM number,count,linear color interpolation in CIELAB,
+W22,CRLM_size,3.0,11,13,CRLM diameter,cm,linear color interpolation in CIELAB,
+W22,CEA,31.1,11,14,CEA,ng/mL,linear color interpolation in CIELAB,
+W22,CA199,106.0,11,15,CA19-9,U/mL,linear color interpolation in CIELAB,
+W23,RFS_status,0.0,12,1,RFS status,code,discrete,#BC3C29
+W23,Gender,1.0,12,2,Gender,code,discrete,#EE4C97
+W23,KRAS_mutation,1.0,12,3,KRAS mutation,code,discrete,#E18727
+W23,BRAF_mutation,0.0,12,4,BRAF mutation,code,discrete,#BEBEBE
+W23,CRC_site,1.0,12,5,CRC site,code,discrete,#90EE90
+W23,Differential_grade,1.0,12,6,Differentiation grade,code,discrete,#00008B
+W23,T_stage,3.0,12,7,T stage,code,discrete,#CDC9A5
+W23,Lymph_positive,1.0,12,8,Lymph node positive,code,discrete,#999999
+W23,RFS_time,44.17,12,9,RFS time (months),months,linear color interpolation in CIELAB,
+W23,Age,64.0,12,10,Age,years,linear color interpolation in CIELAB,
+W23,TBS,2.24,12,11,TBS,score,linear color interpolation in CIELAB,
+W23,CRLM_number,1.0,12,12,CRLM number,count,linear color interpolation in CIELAB,
+W23,CRLM_size,2.0,12,13,CRLM diameter,cm,linear color interpolation in CIELAB,
+W23,CEA,2.5,12,14,CEA,ng/mL,linear color interpolation in CIELAB,
+W23,CA199,79.8,12,15,CA19-9,U/mL,linear color interpolation in CIELAB,
+W25,RFS_status,0.0,13,1,RFS status,code,discrete,#BC3C29
+W25,Gender,0.0,13,2,Gender,code,discrete,#7876B1
+W25,KRAS_mutation,0.0,13,3,KRAS mutation,code,discrete,#BEBEBE
+W25,BRAF_mutation,0.0,13,4,BRAF mutation,code,discrete,#BEBEBE
+W25,CRC_site,2.0,13,5,CRC site,code,discrete,#228B22
+W25,Differential_grade,0.0,13,6,Differentiation grade,code,discrete,#ADD8E6
+W25,T_stage,4.0,13,7,T stage,code,discrete,#8B8970
+W25,Lymph_positive,1.0,13,8,Lymph node positive,code,discrete,#999999
+W25,RFS_time,45.07,13,9,RFS time (months),months,linear color interpolation in CIELAB,
+W25,Age,75.0,13,10,Age,years,linear color interpolation in CIELAB,
+W25,TBS,1.8,13,11,TBS,score,linear color interpolation in CIELAB,
+W25,CRLM_number,1.0,13,12,CRLM number,count,linear color interpolation in CIELAB,
+W25,CRLM_size,1.5,13,13,CRLM diameter,cm,linear color interpolation in CIELAB,
+W25,CEA,106.55,13,14,CEA,ng/mL,linear color interpolation in CIELAB,
+W25,CA199,334.44,13,15,CA19-9,U/mL,linear color interpolation in CIELAB,
+W3,RFS_status,0.0,14,1,RFS status,code,discrete,#BC3C29
+W3,Gender,0.0,14,2,Gender,code,discrete,#7876B1
+W3,KRAS_mutation,0.0,14,3,KRAS mutation,code,discrete,#BEBEBE
+W3,BRAF_mutation,0.0,14,4,BRAF mutation,code,discrete,#BEBEBE
+W3,CRC_site,2.0,14,5,CRC site,code,discrete,#228B22
+W3,Differential_grade,1.0,14,6,Differentiation grade,code,discrete,#00008B
+W3,T_stage,3.0,14,7,T stage,code,discrete,#CDC9A5
+W3,Lymph_positive,1.0,14,8,Lymph node positive,code,discrete,#999999
+W3,RFS_time,18.77,14,9,RFS time (months),months,linear color interpolation in CIELAB,
+W3,Age,65.0,14,10,Age,years,linear color interpolation in CIELAB,
+W3,TBS,4.12,14,11,TBS,score,linear color interpolation in CIELAB,
+W3,CRLM_number,2.0,14,12,CRLM number,count,linear color interpolation in CIELAB,
+W3,CRLM_size,1.5,14,13,CRLM diameter,cm,linear color interpolation in CIELAB,
+W3,CEA,5.8,14,14,CEA,ng/mL,linear color interpolation in CIELAB,
+W3,CA199,11.5,14,15,CA19-9,U/mL,linear color interpolation in CIELAB,
+W4,RFS_status,0.0,15,1,RFS status,code,discrete,#BC3C29
+W4,Gender,0.0,15,2,Gender,code,discrete,#7876B1
+W4,KRAS_mutation,0.0,15,3,KRAS mutation,code,discrete,#BEBEBE
+W4,BRAF_mutation,0.0,15,4,BRAF mutation,code,discrete,#BEBEBE
+W4,CRC_site,3.0,15,5,CRC site,code,discrete,#006400
+W4,Differential_grade,1.0,15,6,Differentiation grade,code,discrete,#00008B
+W4,T_stage,3.0,15,7,T stage,code,discrete,#CDC9A5
+W4,Lymph_positive,1.0,15,8,Lymph node positive,code,discrete,#999999
+W4,RFS_time,32.1,15,9,RFS time (months),months,linear color interpolation in CIELAB,
+W4,Age,66.0,15,10,Age,years,linear color interpolation in CIELAB,
+W4,TBS,2.24,15,11,TBS,score,linear color interpolation in CIELAB,
+W4,CRLM_number,1.0,15,12,CRLM number,count,linear color interpolation in CIELAB,
+W4,CRLM_size,2.0,15,13,CRLM diameter,cm,linear color interpolation in CIELAB,
+W4,CEA,92.6,15,14,CEA,ng/mL,linear color interpolation in CIELAB,
+W4,CA199,32.4,15,15,CA19-9,U/mL,linear color interpolation in CIELAB,
+W6,RFS_status,0.0,16,1,RFS status,code,discrete,#BC3C29
+W6,Gender,1.0,16,2,Gender,code,discrete,#EE4C97
+W6,KRAS_mutation,1.0,16,3,KRAS mutation,code,discrete,#E18727
+W6,BRAF_mutation,0.0,16,4,BRAF mutation,code,discrete,#BEBEBE
+W6,CRC_site,1.0,16,5,CRC site,code,discrete,#90EE90
+W6,Differential_grade,0.0,16,6,Differentiation grade,code,discrete,#ADD8E6
+W6,T_stage,3.0,16,7,T stage,code,discrete,#CDC9A5
+W6,Lymph_positive,1.0,16,8,Lymph node positive,code,discrete,#999999
+W6,RFS_time,35.1,16,9,RFS time (months),months,linear color interpolation in CIELAB,
+W6,Age,59.0,16,10,Age,years,linear color interpolation in CIELAB,
+W6,TBS,4.47,16,11,TBS,score,linear color interpolation in CIELAB,
+W6,CRLM_number,4.0,16,12,CRLM number,count,linear color interpolation in CIELAB,
+W6,CRLM_size,2.0,16,13,CRLM diameter,cm,linear color interpolation in CIELAB,
+W6,CEA,91.3,16,14,CEA,ng/mL,linear color interpolation in CIELAB,
+W6,CA199,202.1,16,15,CA19-9,U/mL,linear color interpolation in CIELAB,
+W7,RFS_status,0.0,17,1,RFS status,code,discrete,#BC3C29
+W7,Gender,1.0,17,2,Gender,code,discrete,#EE4C97
+W7,KRAS_mutation,1.0,17,3,KRAS mutation,code,discrete,#E18727
+W7,BRAF_mutation,0.0,17,4,BRAF mutation,code,discrete,#BEBEBE
+W7,CRC_site,2.0,17,5,CRC site,code,discrete,#228B22
+W7,Differential_grade,1.0,17,6,Differentiation grade,code,discrete,#00008B
+W7,T_stage,3.0,17,7,T stage,code,discrete,#CDC9A5
+W7,Lymph_positive,1.0,17,8,Lymph node positive,code,discrete,#999999
+W7,RFS_time,26.9,17,9,RFS time (months),months,linear color interpolation in CIELAB,
+W7,Age,72.0,17,10,Age,years,linear color interpolation in CIELAB,
+W7,TBS,6.28,17,11,TBS,score,linear color interpolation in CIELAB,
+W7,CRLM_number,1.0,17,12,CRLM number,count,linear color interpolation in CIELAB,
+W7,CRLM_size,6.2,17,13,CRLM diameter,cm,linear color interpolation in CIELAB,
+W7,CEA,212.5,17,14,CEA,ng/mL,linear color interpolation in CIELAB,
+W7,CA199,495.6,17,15,CA19-9,U/mL,linear color interpolation in CIELAB,
+B10,RFS_status,1.0,18,1,RFS status,code,discrete,#0072B5
+B10,Gender,0.0,18,2,Gender,code,discrete,#7876B1
+B10,KRAS_mutation,1.0,18,3,KRAS mutation,code,discrete,#E18727
+B10,BRAF_mutation,0.0,18,4,BRAF mutation,code,discrete,#BEBEBE
+B10,CRC_site,2.0,18,5,CRC site,code,discrete,#228B22
+B10,Differential_grade,1.0,18,6,Differentiation grade,code,discrete,#00008B
+B10,T_stage,3.0,18,7,T stage,code,discrete,#CDC9A5
+B10,Lymph_positive,1.0,18,8,Lymph node positive,code,discrete,#999999
+B10,RFS_time,6.47,18,9,RFS time (months),months,linear color interpolation in CIELAB,
+B10,Age,50.0,18,10,Age,years,linear color interpolation in CIELAB,
+B10,TBS,2.24,18,11,TBS,score,linear color interpolation in CIELAB,
+B10,CRLM_number,1.0,18,12,CRLM number,count,linear color interpolation in CIELAB,
+B10,CRLM_size,2.0,18,13,CRLM diameter,cm,linear color interpolation in CIELAB,
+B10,CEA,3.2,18,14,CEA,ng/mL,linear color interpolation in CIELAB,
+B10,CA199,36.2,18,15,CA19-9,U/mL,linear color interpolation in CIELAB,
+B11,RFS_status,1.0,19,1,RFS status,code,discrete,#0072B5
+B11,Gender,1.0,19,2,Gender,code,discrete,#EE4C97
+B11,KRAS_mutation,0.0,19,3,KRAS mutation,code,discrete,#BEBEBE
+B11,BRAF_mutation,0.0,19,4,BRAF mutation,code,discrete,#BEBEBE
+B11,CRC_site,3.0,19,5,CRC site,code,discrete,#006400
+B11,Differential_grade,0.0,19,6,Differentiation grade,code,discrete,#ADD8E6
+B11,T_stage,4.0,19,7,T stage,code,discrete,#8B8970
+B11,Lymph_positive,1.0,19,8,Lymph node positive,code,discrete,#999999
+B11,RFS_time,10.6,19,9,RFS time (months),months,linear color interpolation in CIELAB,
+B11,Age,53.0,19,10,Age,years,linear color interpolation in CIELAB,
+B11,TBS,5.1,19,11,TBS,score,linear color interpolation in CIELAB,
+B11,CRLM_number,1.0,19,12,CRLM number,count,linear color interpolation in CIELAB,
+B11,CRLM_size,5.0,19,13,CRLM diameter,cm,linear color interpolation in CIELAB,
+B11,CEA,2.9,19,14,CEA,ng/mL,linear color interpolation in CIELAB,
+B11,CA199,12.2,19,15,CA19-9,U/mL,linear color interpolation in CIELAB,
+B12,RFS_status,1.0,20,1,RFS status,code,discrete,#0072B5
+B12,Gender,0.0,20,2,Gender,code,discrete,#7876B1
+B12,KRAS_mutation,1.0,20,3,KRAS mutation,code,discrete,#E18727
+B12,BRAF_mutation,0.0,20,4,BRAF mutation,code,discrete,#BEBEBE
+B12,CRC_site,3.0,20,5,CRC site,code,discrete,#006400
+B12,Differential_grade,0.0,20,6,Differentiation grade,code,discrete,#ADD8E6
+B12,T_stage,3.0,20,7,T stage,code,discrete,#CDC9A5
+B12,Lymph_positive,1.0,20,8,Lymph node positive,code,discrete,#999999
+B12,RFS_time,6.1,20,9,RFS time (months),months,linear color interpolation in CIELAB,
+B12,Age,61.0,20,10,Age,years,linear color interpolation in CIELAB,
+B12,TBS,1.41,20,11,TBS,score,linear color interpolation in CIELAB,
+B12,CRLM_number,1.0,20,12,CRLM number,count,linear color interpolation in CIELAB,
+B12,CRLM_size,1.0,20,13,CRLM diameter,cm,linear color interpolation in CIELAB,
+B12,CEA,1.3,20,14,CEA,ng/mL,linear color interpolation in CIELAB,
+B12,CA199,8.4,20,15,CA19-9,U/mL,linear color interpolation in CIELAB,
+B13,RFS_status,1.0,21,1,RFS status,code,discrete,#0072B5
+B13,Gender,0.0,21,2,Gender,code,discrete,#7876B1
+B13,KRAS_mutation,1.0,21,3,KRAS mutation,code,discrete,#E18727
+B13,BRAF_mutation,0.0,21,4,BRAF mutation,code,discrete,#BEBEBE
+B13,CRC_site,3.0,21,5,CRC site,code,discrete,#006400
+B13,Differential_grade,0.0,21,6,Differentiation grade,code,discrete,#ADD8E6
+B13,T_stage,2.0,21,7,T stage,code,discrete,#EEE9BF
+B13,Lymph_positive,0.0,21,8,Lymph node positive,code,discrete,#FFFFFF
+B13,RFS_time,10.03,21,9,RFS time (months),months,linear color interpolation in CIELAB,
+B13,Age,54.0,21,10,Age,years,linear color interpolation in CIELAB,
+B13,TBS,1.56,21,11,TBS,score,linear color interpolation in CIELAB,
+B13,CRLM_number,1.0,21,12,CRLM number,count,linear color interpolation in CIELAB,
+B13,CRLM_size,1.2,21,13,CRLM diameter,cm,linear color interpolation in CIELAB,
+B13,CEA,4.2,21,14,CEA,ng/mL,linear color interpolation in CIELAB,
+B13,CA199,12.3,21,15,CA19-9,U/mL,linear color interpolation in CIELAB,
+B14,RFS_status,1.0,22,1,RFS status,code,discrete,#0072B5
+B14,Gender,0.0,22,2,Gender,code,discrete,#7876B1
+B14,KRAS_mutation,1.0,22,3,KRAS mutation,code,discrete,#E18727
+B14,BRAF_mutation,0.0,22,4,BRAF mutation,code,discrete,#BEBEBE
+B14,CRC_site,2.0,22,5,CRC site,code,discrete,#228B22
+B14,Differential_grade,1.0,22,6,Differentiation grade,code,discrete,#00008B
+B14,T_stage,1.0,22,7,T stage,code,discrete,#FFFACD
+B14,Lymph_positive,0.0,22,8,Lymph node positive,code,discrete,#FFFFFF
+B14,RFS_time,6.73,22,9,RFS time (months),months,linear color interpolation in CIELAB,
+B14,Age,74.0,22,10,Age,years,linear color interpolation in CIELAB,
+B14,TBS,9.61,22,11,TBS,score,linear color interpolation in CIELAB,
+B14,CRLM_number,3.0,22,12,CRLM number,count,linear color interpolation in CIELAB,
+B14,CRLM_size,5.0,22,13,CRLM diameter,cm,linear color interpolation in CIELAB,
+B14,CEA,1000.0,22,14,CEA,ng/mL,linear color interpolation in CIELAB,
+B14,CA199,94.2,22,15,CA19-9,U/mL,linear color interpolation in CIELAB,
+B15,RFS_status,1.0,23,1,RFS status,code,discrete,#0072B5
+B15,Gender,0.0,23,2,Gender,code,discrete,#7876B1
+B15,KRAS_mutation,0.0,23,3,KRAS mutation,code,discrete,#BEBEBE
+B15,BRAF_mutation,0.0,23,4,BRAF mutation,code,discrete,#BEBEBE
+B15,CRC_site,1.0,23,5,CRC site,code,discrete,#90EE90
+B15,Differential_grade,1.0,23,6,Differentiation grade,code,discrete,#00008B
+B15,T_stage,4.0,23,7,T stage,code,discrete,#8B8970
+B15,Lymph_positive,1.0,23,8,Lymph node positive,code,discrete,#999999
+B15,RFS_time,5.1,23,9,RFS time (months),months,linear color interpolation in CIELAB,
+B15,Age,66.0,23,10,Age,years,linear color interpolation in CIELAB,
+B15,TBS,51.64,23,11,TBS,score,linear color interpolation in CIELAB,
+B15,CRLM_number,30.0,23,12,CRLM number,count,linear color interpolation in CIELAB,
+B15,CRLM_size,9.0,23,13,CRLM diameter,cm,linear color interpolation in CIELAB,
+B15,CEA,17.9,23,14,CEA,ng/mL,linear color interpolation in CIELAB,
+B15,CA199,2.3,23,15,CA19-9,U/mL,linear color interpolation in CIELAB,
+B16,RFS_status,1.0,24,1,RFS status,code,discrete,#0072B5
+B16,Gender,0.0,24,2,Gender,code,discrete,#7876B1
+B16,KRAS_mutation,0.0,24,3,KRAS mutation,code,discrete,#BEBEBE
+B16,BRAF_mutation,0.0,24,4,BRAF mutation,code,discrete,#BEBEBE
+B16,CRC_site,2.0,24,5,CRC site,code,discrete,#228B22
+B16,Differential_grade,1.0,24,6,Differentiation grade,code,discrete,#00008B
+B16,T_stage,3.0,24,7,T stage,code,discrete,#CDC9A5
+B16,Lymph_positive,1.0,24,8,Lymph node positive,code,discrete,#999999
+B16,RFS_time,11.73,24,9,RFS time (months),months,linear color interpolation in CIELAB,
+B16,Age,64.0,24,10,Age,years,linear color interpolation in CIELAB,
+B16,TBS,9.61,24,11,TBS,score,linear color interpolation in CIELAB,
+B16,CRLM_number,5.0,24,12,CRLM number,count,linear color interpolation in CIELAB,
+B16,CRLM_size,3.0,24,13,CRLM diameter,cm,linear color interpolation in CIELAB,
+B16,CEA,60.3,24,14,CEA,ng/mL,linear color interpolation in CIELAB,
+B16,CA199,112.9,24,15,CA19-9,U/mL,linear color interpolation in CIELAB,
+B18,RFS_status,1.0,25,1,RFS status,code,discrete,#0072B5
+B18,Gender,1.0,25,2,Gender,code,discrete,#EE4C97
+B18,KRAS_mutation,0.0,25,3,KRAS mutation,code,discrete,#BEBEBE
+B18,BRAF_mutation,0.0,25,4,BRAF mutation,code,discrete,#BEBEBE
+B18,CRC_site,2.0,25,5,CRC site,code,discrete,#228B22
+B18,Differential_grade,1.0,25,6,Differentiation grade,code,discrete,#00008B
+B18,T_stage,3.0,25,7,T stage,code,discrete,#CDC9A5
+B18,Lymph_positive,1.0,25,8,Lymph node positive,code,discrete,#999999
+B18,RFS_time,5.6,25,9,RFS time (months),months,linear color interpolation in CIELAB,
+B18,Age,64.0,25,10,Age,years,linear color interpolation in CIELAB,
+B18,TBS,8.25,25,11,TBS,score,linear color interpolation in CIELAB,
+B18,CRLM_number,8.0,25,12,CRLM number,count,linear color interpolation in CIELAB,
+B18,CRLM_size,2.0,25,13,CRLM diameter,cm,linear color interpolation in CIELAB,
+B18,CEA,20.8,25,14,CEA,ng/mL,linear color interpolation in CIELAB,
+B18,CA199,38.0,25,15,CA19-9,U/mL,linear color interpolation in CIELAB,
+B2,RFS_status,1.0,26,1,RFS status,code,discrete,#0072B5
+B2,Gender,0.0,26,2,Gender,code,discrete,#7876B1
+B2,KRAS_mutation,0.0,26,3,KRAS mutation,code,discrete,#BEBEBE
+B2,BRAF_mutation,0.0,26,4,BRAF mutation,code,discrete,#BEBEBE
+B2,CRC_site,2.0,26,5,CRC site,code,discrete,#228B22
+B2,Differential_grade,0.0,26,6,Differentiation grade,code,discrete,#ADD8E6
+B2,T_stage,4.0,26,7,T stage,code,discrete,#8B8970
+B2,Lymph_positive,1.0,26,8,Lymph node positive,code,discrete,#999999
+B2,RFS_time,17.83,26,9,RFS time (months),months,linear color interpolation in CIELAB,
+B2,Age,51.0,26,10,Age,years,linear color interpolation in CIELAB,
+B2,TBS,8.25,26,11,TBS,score,linear color interpolation in CIELAB,
+B2,CRLM_number,2.0,26,12,CRLM number,count,linear color interpolation in CIELAB,
+B2,CRLM_size,8.0,26,13,CRLM diameter,cm,linear color interpolation in CIELAB,
+B2,CEA,955.1,26,14,CEA,ng/mL,linear color interpolation in CIELAB,
+B2,CA199,14.7,26,15,CA19-9,U/mL,linear color interpolation in CIELAB,
+B20,RFS_status,1.0,27,1,RFS status,code,discrete,#0072B5
+B20,Gender,0.0,27,2,Gender,code,discrete,#7876B1
+B20,KRAS_mutation,0.0,27,3,KRAS mutation,code,discrete,#BEBEBE
+B20,BRAF_mutation,0.0,27,4,BRAF mutation,code,discrete,#BEBEBE
+B20,CRC_site,2.0,27,5,CRC site,code,discrete,#228B22
+B20,Differential_grade,1.0,27,6,Differentiation grade,code,discrete,#00008B
+B20,T_stage,2.0,27,7,T stage,code,discrete,#EEE9BF
+B20,Lymph_positive,1.0,27,8,Lymph node positive,code,discrete,#999999
+B20,RFS_time,9.2,27,9,RFS time (months),months,linear color interpolation in CIELAB,
+B20,Age,50.0,27,10,Age,years,linear color interpolation in CIELAB,
+B20,TBS,8.06,27,11,TBS,score,linear color interpolation in CIELAB,
+B20,CRLM_number,1.0,27,12,CRLM number,count,linear color interpolation in CIELAB,
+B20,CRLM_size,8.0,27,13,CRLM diameter,cm,linear color interpolation in CIELAB,
+B20,CEA,143.6,27,14,CEA,ng/mL,linear color interpolation in CIELAB,
+B20,CA199,38.6,27,15,CA19-9,U/mL,linear color interpolation in CIELAB,
+B21,RFS_status,1.0,28,1,RFS status,code,discrete,#0072B5
+B21,Gender,1.0,28,2,Gender,code,discrete,#EE4C97
+B21,KRAS_mutation,0.0,28,3,KRAS mutation,code,discrete,#BEBEBE
+B21,BRAF_mutation,0.0,28,4,BRAF mutation,code,discrete,#BEBEBE
+B21,CRC_site,1.0,28,5,CRC site,code,discrete,#90EE90
+B21,Differential_grade,0.0,28,6,Differentiation grade,code,discrete,#ADD8E6
+B21,T_stage,4.0,28,7,T stage,code,discrete,#8B8970
+B21,Lymph_positive,1.0,28,8,Lymph node positive,code,discrete,#999999
+B21,RFS_time,9.43,28,9,RFS time (months),months,linear color interpolation in CIELAB,
+B21,Age,57.0,28,10,Age,years,linear color interpolation in CIELAB,
+B21,TBS,10.2,28,11,TBS,score,linear color interpolation in CIELAB,
+B21,CRLM_number,6.0,28,12,CRLM number,count,linear color interpolation in CIELAB,
+B21,CRLM_size,1.5,28,13,CRLM diameter,cm,linear color interpolation in CIELAB,
+B21,CEA,28.5,28,14,CEA,ng/mL,linear color interpolation in CIELAB,
+B21,CA199,77.2,28,15,CA19-9,U/mL,linear color interpolation in CIELAB,
+B22,RFS_status,1.0,29,1,RFS status,code,discrete,#0072B5
+B22,Gender,0.0,29,2,Gender,code,discrete,#7876B1
+B22,KRAS_mutation,1.0,29,3,KRAS mutation,code,discrete,#E18727
+B22,BRAF_mutation,0.0,29,4,BRAF mutation,code,discrete,#BEBEBE
+B22,CRC_site,3.0,29,5,CRC site,code,discrete,#006400
+B22,Differential_grade,1.0,29,6,Differentiation grade,code,discrete,#00008B
+B22,T_stage,3.0,29,7,T stage,code,discrete,#CDC9A5
+B22,Lymph_positive,0.0,29,8,Lymph node positive,code,discrete,#FFFFFF
+B22,RFS_time,8.13,29,9,RFS time (months),months,linear color interpolation in CIELAB,
+B22,Age,66.0,29,10,Age,years,linear color interpolation in CIELAB,
+B22,TBS,1.41,29,11,TBS,score,linear color interpolation in CIELAB,
+B22,CRLM_number,1.0,29,12,CRLM number,count,linear color interpolation in CIELAB,
+B22,CRLM_size,1.0,29,13,CRLM diameter,cm,linear color interpolation in CIELAB,
+B22,CEA,6.3,29,14,CEA,ng/mL,linear color interpolation in CIELAB,
+B22,CA199,28.3,29,15,CA19-9,U/mL,linear color interpolation in CIELAB,
+B3,RFS_status,1.0,30,1,RFS status,code,discrete,#0072B5
+B3,Gender,0.0,30,2,Gender,code,discrete,#7876B1
+B3,KRAS_mutation,0.0,30,3,KRAS mutation,code,discrete,#BEBEBE
+B3,BRAF_mutation,0.0,30,4,BRAF mutation,code,discrete,#BEBEBE
+B3,CRC_site,2.0,30,5,CRC site,code,discrete,#228B22
+B3,Differential_grade,1.0,30,6,Differentiation grade,code,discrete,#00008B
+B3,T_stage,3.0,30,7,T stage,code,discrete,#CDC9A5
+B3,Lymph_positive,1.0,30,8,Lymph node positive,code,discrete,#999999
+B3,RFS_time,6.3,30,9,RFS time (months),months,linear color interpolation in CIELAB,
+B3,Age,53.0,30,10,Age,years,linear color interpolation in CIELAB,
+B3,TBS,18.43,30,11,TBS,score,linear color interpolation in CIELAB,
+B3,CRLM_number,2.0,30,12,CRLM number,count,linear color interpolation in CIELAB,
+B3,CRLM_size,11.0,30,13,CRLM diameter,cm,linear color interpolation in CIELAB,
+B3,CEA,41.9,30,14,CEA,ng/mL,linear color interpolation in CIELAB,
+B3,CA199,13.3,30,15,CA19-9,U/mL,linear color interpolation in CIELAB,
+B4,RFS_status,1.0,31,1,RFS status,code,discrete,#0072B5
+B4,Gender,0.0,31,2,Gender,code,discrete,#7876B1
+B4,KRAS_mutation,0.0,31,3,KRAS mutation,code,discrete,#BEBEBE
+B4,BRAF_mutation,0.0,31,4,BRAF mutation,code,discrete,#BEBEBE
+B4,CRC_site,2.0,31,5,CRC site,code,discrete,#228B22
+B4,Differential_grade,1.0,31,6,Differentiation grade,code,discrete,#00008B
+B4,T_stage,3.0,31,7,T stage,code,discrete,#CDC9A5
+B4,Lymph_positive,1.0,31,8,Lymph node positive,code,discrete,#999999
+B4,RFS_time,12.67,31,9,RFS time (months),months,linear color interpolation in CIELAB,
+B4,Age,67.0,31,10,Age,years,linear color interpolation in CIELAB,
+B4,TBS,9.61,31,11,TBS,score,linear color interpolation in CIELAB,
+B4,CRLM_number,5.0,31,12,CRLM number,count,linear color interpolation in CIELAB,
+B4,CRLM_size,3.0,31,13,CRLM diameter,cm,linear color interpolation in CIELAB,
+B4,CEA,18.9,31,14,CEA,ng/mL,linear color interpolation in CIELAB,
+B4,CA199,17.3,31,15,CA19-9,U/mL,linear color interpolation in CIELAB,
+B5,RFS_status,1.0,32,1,RFS status,code,discrete,#0072B5
+B5,Gender,1.0,32,2,Gender,code,discrete,#EE4C97
+B5,KRAS_mutation,1.0,32,3,KRAS mutation,code,discrete,#E18727
+B5,BRAF_mutation,0.0,32,4,BRAF mutation,code,discrete,#BEBEBE
+B5,CRC_site,1.0,32,5,CRC site,code,discrete,#90EE90
+B5,Differential_grade,0.0,32,6,Differentiation grade,code,discrete,#ADD8E6
+B5,T_stage,3.0,32,7,T stage,code,discrete,#CDC9A5
+B5,Lymph_positive,1.0,32,8,Lymph node positive,code,discrete,#999999
+B5,RFS_time,12.9,32,9,RFS time (months),months,linear color interpolation in CIELAB,
+B5,Age,67.0,32,10,Age,years,linear color interpolation in CIELAB,
+B5,TBS,6.08,32,11,TBS,score,linear color interpolation in CIELAB,
+B5,CRLM_number,1.0,32,12,CRLM number,count,linear color interpolation in CIELAB,
+B5,CRLM_size,6.0,32,13,CRLM diameter,cm,linear color interpolation in CIELAB,
+B5,CEA,11.1,32,14,CEA,ng/mL,linear color interpolation in CIELAB,
+B5,CA199,7.4,32,15,CA19-9,U/mL,linear color interpolation in CIELAB,
+B6,RFS_status,1.0,33,1,RFS status,code,discrete,#0072B5
+B6,Gender,0.0,33,2,Gender,code,discrete,#7876B1
+B6,KRAS_mutation,1.0,33,3,KRAS mutation,code,discrete,#E18727
+B6,BRAF_mutation,0.0,33,4,BRAF mutation,code,discrete,#BEBEBE
+B6,CRC_site,2.0,33,5,CRC site,code,discrete,#228B22
+B6,Differential_grade,0.0,33,6,Differentiation grade,code,discrete,#ADD8E6
+B6,T_stage,4.0,33,7,T stage,code,discrete,#8B8970
+B6,Lymph_positive,1.0,33,8,Lymph node positive,code,discrete,#999999
+B6,RFS_time,8.97,33,9,RFS time (months),months,linear color interpolation in CIELAB,
+B6,Age,66.0,33,10,Age,years,linear color interpolation in CIELAB,
+B6,TBS,6.99,33,11,TBS,score,linear color interpolation in CIELAB,
+B6,CRLM_number,3.0,33,12,CRLM number,count,linear color interpolation in CIELAB,
+B6,CRLM_size,3.0,33,13,CRLM diameter,cm,linear color interpolation in CIELAB,
+B6,CEA,12.1,33,14,CEA,ng/mL,linear color interpolation in CIELAB,
+B6,CA199,83.1,33,15,CA19-9,U/mL,linear color interpolation in CIELAB,
+B8,RFS_status,1.0,34,1,RFS status,code,discrete,#0072B5
+B8,Gender,1.0,34,2,Gender,code,discrete,#EE4C97
+B8,KRAS_mutation,0.0,34,3,KRAS mutation,code,discrete,#BEBEBE
+B8,BRAF_mutation,1.0,34,4,BRAF mutation,code,discrete,#E18727
+B8,CRC_site,1.0,34,5,CRC site,code,discrete,#90EE90
+B8,Differential_grade,0.0,34,6,Differentiation grade,code,discrete,#ADD8E6
+B8,T_stage,3.0,34,7,T stage,code,discrete,#CDC9A5
+B8,Lymph_positive,1.0,34,8,Lymph node positive,code,discrete,#999999
+B8,RFS_time,6.4,34,9,RFS time (months),months,linear color interpolation in CIELAB,
+B8,Age,58.0,34,10,Age,years,linear color interpolation in CIELAB,
+B8,TBS,5.41,34,11,TBS,score,linear color interpolation in CIELAB,
+B8,CRLM_number,3.0,34,12,CRLM number,count,linear color interpolation in CIELAB,
+B8,CRLM_size,4.5,34,13,CRLM diameter,cm,linear color interpolation in CIELAB,
+B8,CEA,2.0,34,14,CEA,ng/mL,linear color interpolation in CIELAB,
+B8,CA199,139.4,34,15,CA19-9,U/mL,linear color interpolation in CIELAB,
+W21,RFS_status,1.0,35,1,RFS status,code,discrete,#0072B5
+W21,Gender,0.0,35,2,Gender,code,discrete,#7876B1
+W21,KRAS_mutation,0.0,35,3,KRAS mutation,code,discrete,#BEBEBE
+W21,BRAF_mutation,0.0,35,4,BRAF mutation,code,discrete,#BEBEBE
+W21,CRC_site,3.0,35,5,CRC site,code,discrete,#006400
+W21,Differential_grade,1.0,35,6,Differentiation grade,code,discrete,#00008B
+W21,T_stage,3.0,35,7,T stage,code,discrete,#CDC9A5
+W21,Lymph_positive,1.0,35,8,Lymph node positive,code,discrete,#999999
+W21,RFS_time,23.67,35,9,RFS time (months),months,linear color interpolation in CIELAB,
+W21,Age,59.0,35,10,Age,years,linear color interpolation in CIELAB,
+W21,TBS,2.24,35,11,TBS,score,linear color interpolation in CIELAB,
+W21,CRLM_number,1.0,35,12,CRLM number,count,linear color interpolation in CIELAB,
+W21,CRLM_size,2.0,35,13,CRLM diameter,cm,linear color interpolation in CIELAB,
+W21,CEA,5.9,35,14,CEA,ng/mL,linear color interpolation in CIELAB,
+W21,CA199,77.7,35,15,CA19-9,U/mL,linear color interpolation in CIELAB,

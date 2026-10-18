@@ -1,0 +1,8 @@
+layer,encoding,label,scale_or_rule,notes
+dendrogram,height,geometric normalized branch height,0=leaf tips; 1=root,Current proof has no branch-distance ticks
+heatmap,fill,current sRGB tile fill,0 to 1 per RGB channel,Exact current colors in Figure4A_cn_heatmap_tile_geometry.csv; no numeric colorbar displayed
+heatmap,source_numeric_scale,saved column z score,(fraction-column mean)/sample SD across CNs,Saved values in Figure4A_cn_composition_enrichment.csv; preserve distinction from exact proof colors
+enrichment,symbol,+,rounded log2 enrichment >1 and <=2,Historical producer threshold; current symbols retained per tile
+enrichment,symbol,++,rounded log2 enrichment >2 and <=3,Historical producer threshold
+enrichment,symbol,+++,rounded log2 enrichment >3,Historical producer threshold
+enrichment,symbol,blank,rounded log2 enrichment <=1,Historical producer threshold; CN_1/ECs current + differs from saved source

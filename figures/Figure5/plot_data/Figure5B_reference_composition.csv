@@ -1,0 +1,7 @@
+ring,display_order,category,display_label,count,denominator,fraction,fraction_basis,analysis_unit,display_color
+reference_class,1,PIR,"PIR-Niche (9,690)",9690.0,61628.0,0.15723372493022653,class_count / 61628,tile,#9ac7d9
+reference_class,2,PSM,"PSM-Niche (9,060)",9060.0,61628.0,0.14701109885117156,class_count / 61628,tile,#3e73af
+reference_class,3,OTHER_PT,"Other PT (18,984)",18984.0,61628.0,0.30804179918218993,class_count / 61628,tile,#9eda7b
+reference_class,4,TC,"TC (23,894)",23894.0,61628.0,0.387713377036412,class_count / 61628,tile,#44a03b
+reference_split,1,development,Development tiles (80%),NA,NA,0.8,published percentage label,tile,#efb7c1
+reference_split,2,holdout,Holdout tiles (20%),NA,NA,0.2,published percentage label,tile,#9ab6e4

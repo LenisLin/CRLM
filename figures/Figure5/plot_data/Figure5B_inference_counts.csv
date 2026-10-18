@@ -1,0 +1,3 @@
+display_order,cohort,patients,retained_tiles,patient_label,tile_label,inner_color,outer_color,patient_fraction_from_labels,tile_fraction_from_labels
+1,Discovery cohort,34,36324,Discovery cohort (n = 34),"36,324",#87a9be,#4d68aa,0.26356589147286824,0.2628383707552153
+2,Test cohort,95,101875,Test cohort (n = 95),"101,875",#f9c28c,#f79285,0.7364341085271318,0.7371616292447847

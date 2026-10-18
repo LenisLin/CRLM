@@ -1,0 +1,6 @@
+tick_order,tick_value,axis_label,axis_scale,reference_value,ci_clip_lower,ci_clip_upper,point_shape
+1,0.40000000000000002,HR(exp(coef)),linear,1,0.10000000000000001,10,diamond
+2,3,HR(exp(coef)),linear,1,0.10000000000000001,10,diamond
+3,5,HR(exp(coef)),linear,1,0.10000000000000001,10,diamond
+4,7,HR(exp(coef)),linear,1,0.10000000000000001,10,diamond
+5,10,HR(exp(coef)),linear,1,0.10000000000000001,10,diamond

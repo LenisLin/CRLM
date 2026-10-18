@@ -1,0 +1,9 @@
+ROI,display_row,layer,x_axis_label,y_axis_label,x_ticks_um,y_ticks_um,scale_bar_length_um,coordinate_unit,y_direction
+B11_ROI13,1,CN,X coordinate,Y coordinate,0;250;500;750;1000,0;250;500;750;1000,100,um,increasing upward
+B11_ROI13,1,subtype,X coordinate,Y coordinate,0;250;500;750;1000,0;250;500;750;1000,100,um,increasing upward
+W3_ROI6,2,CN,X coordinate,Y coordinate,0;250;500;750;1000,0;250;500;750;1000,100,um,increasing upward
+W3_ROI6,2,subtype,X coordinate,Y coordinate,0;250;500;750;1000,0;250;500;750;1000,100,um,increasing upward
+W21_ROI10,3,CN,X coordinate,Y coordinate,0;250;500;750;1000,0;250;500;750;1000,100,um,increasing upward
+W21_ROI10,3,subtype,X coordinate,Y coordinate,0;250;500;750;1000,0;250;500;750;1000,100,um,increasing upward
+B22_ROI5,4,CN,X coordinate,Y coordinate,0;250;500;750;1000,0;250;500;750;1000,100,um,increasing upward
+B22_ROI5,4,subtype,X coordinate,Y coordinate,0;250;500;750;1000,0;250;500;750;1000,100,um,increasing upward

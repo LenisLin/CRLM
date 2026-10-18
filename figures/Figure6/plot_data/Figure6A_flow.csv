@@ -1,0 +1,9 @@
+node,parent,display_label,count,display_order
+screened,NA,Patients screened,212,1
+excluded_image,screened,H&E-stained image unavailable,33,2
+excluded_rfs,screened,RFS record missing,6,3
+excluded_at,screened,Did not receive AT,78,4
+included,screened,Patients included,95,5
+received_at,included,Received AT,95,6
+chemo,received_at,Chemo,64,7
+combo,received_at,Combo,31,8

@@ -1,0 +1,4 @@
+display_order,group_1,group_2,chisq,df,p_value,method,p_label,group_1_color,group_2_color
+1,Combo_High,Chemo_High,4.3844034225492825,1,0.036269182624688812,Log-rank test,p = 0.036,#d62728,#1f77b4
+2,Chemo_High,Chemo_Low,0.18961021001417899,1,0.6632412344780847,Log-rank test,p = 0.663,#1f77b4,#aec7e8
+3,Combo_High,Combo_Low,7.8670692213700502,1,0.0050343182821233068,Log-rank test,p = 0.005,#d62728,#ff9896

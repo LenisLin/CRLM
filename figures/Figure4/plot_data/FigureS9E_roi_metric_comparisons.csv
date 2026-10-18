@@ -1,0 +1,7 @@
+metric,treatment,p_value,n_recurrence,n_no_recurrence,display_label,metric_order,facet_order,test
+n_ptmes,Overall,0.036290777347840197,55,47,p = 0.036,1,1,two-sided Wilcoxon rank-sum; original R defaults
+n_ptmes,Chemo,0.028574237446067727,40,24,p = 0.029,1,2,two-sided Wilcoxon rank-sum; original R defaults
+n_ptmes,Combo,0.64194320920131254,15,23,p = 0.642,1,3,two-sided Wilcoxon rank-sum; original R defaults
+mean_ptme_size,Overall,0.012230278072544025,47,41,p = 0.012,2,1,two-sided Wilcoxon rank-sum; original R defaults
+mean_ptme_size,Chemo,0.02539656046992219,34,21,p = 0.025,2,2,two-sided Wilcoxon rank-sum; original R defaults
+mean_ptme_size,Combo,0.75753542025244902,13,20,p = 0.758,2,3,two-sided Wilcoxon rank-sum; original R defaults

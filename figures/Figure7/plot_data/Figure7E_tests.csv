@@ -1,0 +1,6 @@
+cell_type,original_test_family,p_nominal_saved,significance_saved,p_adj_BH,facet_order,test,p_precision,p_adjustment_family_size,n_source_PIR,n_source_PSM,U_source_PIR,display_groups_reversed
+B_IGHM,Spot_Focused,8.1000000000000004e-05,***,0.0001215,1,unpaired two-sided Wilcoxon rank sum,three significant figures retained from rstatix saved output,6,377,1522,249328,False
+CD8T_GZMK,Spot_Focused,2.0100000000000001e-05,***,8.4599999999999996e-05,2,unpaired two-sided Wilcoxon rank sum,three significant figures retained from rstatix saved output,6,377,1522,246259,True
+Fibroblast,Spot_Focused,0.0043299999999999996,**,0.0051959999999999992,3,unpaired two-sided Wilcoxon rank sum,three significant figures retained from rstatix saved output,6,377,1522,314090,True
+Macro_CD163,Spot_Focused,2.8200000000000001e-05,***,8.4599999999999996e-05,4,unpaired two-sided Wilcoxon rank sum,three significant figures retained from rstatix saved output,6,377,1522,246986,False
+Macro_SPP1,Spot_Focused,0.055300000000000002,NS,0.055299999999999995,5,unpaired two-sided Wilcoxon rank sum,three significant figures retained from rstatix saved output,6,377,1522,268630,False

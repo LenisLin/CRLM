@@ -1,0 +1,3 @@
+cohort,n,unit,label,display_order
+ST,9,ST slides,ST cohort (n = 9),1
+scRNA-seq,6,scRNA-seq samples,scRNA-seq cohort (n = 6),2

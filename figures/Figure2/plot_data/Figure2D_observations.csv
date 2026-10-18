@@ -1,0 +1,141 @@
+PID,Tissue,Treatment,RFS_status,subtype,fraction,subtype_order,treatment_order,display_label,rfs_display_label,rfs_group_definition
+W1,IM,Chemo,0,CD4T,0.041077386995103535,1,1,CD4⁺ T cells,No recurrence,No recurrence during available follow-up
+W10,IM,Chemo,0,CD4T,0.025393902758587817,1,1,CD4⁺ T cells,No recurrence,No recurrence during available follow-up
+W15,IM,Chemo,0,CD4T,0.027700094408496814,1,1,CD4⁺ T cells,No recurrence,No recurrence during available follow-up
+W16,IM,Chemo,0,CD4T,0.032031899930034906,1,1,CD4⁺ T cells,No recurrence,No recurrence during available follow-up
+W17,IM,Chemo,0,CD4T,0.049882993753895009,1,1,CD4⁺ T cells,No recurrence,No recurrence during available follow-up
+W19,IM,Chemo,0,CD4T,0.018455111092167045,1,1,CD4⁺ T cells,No recurrence,No recurrence during available follow-up
+W20,IM,Chemo,0,CD4T,0.027528175511256255,1,1,CD4⁺ T cells,No recurrence,No recurrence during available follow-up
+W25,IM,Chemo,0,CD4T,0.014622254498633296,1,1,CD4⁺ T cells,No recurrence,No recurrence during available follow-up
+W3,IM,Chemo,0,CD4T,0.032932521565272793,1,1,CD4⁺ T cells,No recurrence,No recurrence during available follow-up
+B11,IM,Chemo,1,CD4T,0.029530728562137242,1,1,CD4⁺ T cells,Recurrence,Recurrence during available follow-up
+B13,IM,Chemo,1,CD4T,0.03695197906419237,1,1,CD4⁺ T cells,Recurrence,Recurrence during available follow-up
+B14,IM,Chemo,1,CD4T,0.031126181448172457,1,1,CD4⁺ T cells,Recurrence,Recurrence during available follow-up
+B15,IM,Chemo,1,CD4T,0.011779277884259831,1,1,CD4⁺ T cells,Recurrence,Recurrence during available follow-up
+B18,IM,Chemo,1,CD4T,0.023001528584903209,1,1,CD4⁺ T cells,Recurrence,Recurrence during available follow-up
+B2,IM,Chemo,1,CD4T,0.012617075633414599,1,1,CD4⁺ T cells,Recurrence,Recurrence during available follow-up
+B21,IM,Chemo,1,CD4T,0.081234527259384542,1,1,CD4⁺ T cells,Recurrence,Recurrence during available follow-up
+B22,IM,Chemo,1,CD4T,0.010536558351460173,1,1,CD4⁺ T cells,Recurrence,Recurrence during available follow-up
+B3,IM,Chemo,1,CD4T,0.011941151272906597,1,1,CD4⁺ T cells,Recurrence,Recurrence during available follow-up
+B4,IM,Chemo,1,CD4T,0.0078516324414273121,1,1,CD4⁺ T cells,Recurrence,Recurrence during available follow-up
+B5,IM,Chemo,1,CD4T,0.062197880784648052,1,1,CD4⁺ T cells,Recurrence,Recurrence during available follow-up
+B6,IM,Chemo,1,CD4T,0.023487313416586563,1,1,CD4⁺ T cells,Recurrence,Recurrence during available follow-up
+B8,IM,Chemo,1,CD4T,0.024237945936368684,1,1,CD4⁺ T cells,Recurrence,Recurrence during available follow-up
+W12,IM,Combo,0,CD4T,0.027462966054524193,1,2,CD4⁺ T cells,No recurrence,No recurrence during available follow-up
+W18,IM,Combo,0,CD4T,0.017390558316337918,1,2,CD4⁺ T cells,No recurrence,No recurrence during available follow-up
+W2,IM,Combo,0,CD4T,0.0533550825563412,1,2,CD4⁺ T cells,No recurrence,No recurrence during available follow-up
+W22,IM,Combo,0,CD4T,0.085412983442496745,1,2,CD4⁺ T cells,No recurrence,No recurrence during available follow-up
+W23,IM,Combo,0,CD4T,0.031587765251502836,1,2,CD4⁺ T cells,No recurrence,No recurrence during available follow-up
+W4,IM,Combo,0,CD4T,0.0366562304447395,1,2,CD4⁺ T cells,No recurrence,No recurrence during available follow-up
+W6,IM,Combo,0,CD4T,0.059524934967114314,1,2,CD4⁺ T cells,No recurrence,No recurrence during available follow-up
+W7,IM,Combo,0,CD4T,0.031002083732204987,1,2,CD4⁺ T cells,No recurrence,No recurrence during available follow-up
+B10,IM,Combo,1,CD4T,0.02829756112400459,1,2,CD4⁺ T cells,Recurrence,Recurrence during available follow-up
+B12,IM,Combo,1,CD4T,0.028824052636073339,1,2,CD4⁺ T cells,Recurrence,Recurrence during available follow-up
+B16,IM,Combo,1,CD4T,0.023173042831988136,1,2,CD4⁺ T cells,Recurrence,Recurrence during available follow-up
+B20,IM,Combo,1,CD4T,0.026524749567620184,1,2,CD4⁺ T cells,Recurrence,Recurrence during available follow-up
+W21,IM,Combo,1,CD4T,0.016925737075389007,1,2,CD4⁺ T cells,Recurrence,Recurrence during available follow-up
+W1,IM,Chemo,0,CD8T,0.095511524800830916,2,1,CD8⁺ T cells,No recurrence,No recurrence during available follow-up
+W10,IM,Chemo,0,CD8T,0.061325804129057838,2,1,CD8⁺ T cells,No recurrence,No recurrence during available follow-up
+W15,IM,Chemo,0,CD8T,0.023424899401384917,2,1,CD8⁺ T cells,No recurrence,No recurrence during available follow-up
+W16,IM,Chemo,0,CD8T,0.022615077101867206,2,1,CD8⁺ T cells,No recurrence,No recurrence during available follow-up
+W17,IM,Chemo,0,CD8T,0.068508525583581878,2,1,CD8⁺ T cells,No recurrence,No recurrence during available follow-up
+W19,IM,Chemo,0,CD8T,0.028884338309700049,2,1,CD8⁺ T cells,No recurrence,No recurrence during available follow-up
+W20,IM,Chemo,0,CD8T,0.052513719050388333,2,1,CD8⁺ T cells,No recurrence,No recurrence during available follow-up
+W25,IM,Chemo,0,CD8T,0.020972303706405952,2,1,CD8⁺ T cells,No recurrence,No recurrence during available follow-up
+W3,IM,Chemo,0,CD8T,0.065476725251277443,2,1,CD8⁺ T cells,No recurrence,No recurrence during available follow-up
+B11,IM,Chemo,1,CD8T,0.095500793989721722,2,1,CD8⁺ T cells,Recurrence,Recurrence during available follow-up
+B13,IM,Chemo,1,CD8T,0.029669012169430069,2,1,CD8⁺ T cells,Recurrence,Recurrence during available follow-up
+B14,IM,Chemo,1,CD8T,0.030380893890119373,2,1,CD8⁺ T cells,Recurrence,Recurrence during available follow-up
+B15,IM,Chemo,1,CD8T,0.042957614071214553,2,1,CD8⁺ T cells,Recurrence,Recurrence during available follow-up
+B18,IM,Chemo,1,CD8T,0.022424296892295456,2,1,CD8⁺ T cells,Recurrence,Recurrence during available follow-up
+B2,IM,Chemo,1,CD8T,0.047784696751488658,2,1,CD8⁺ T cells,Recurrence,Recurrence during available follow-up
+B21,IM,Chemo,1,CD8T,0.057751552965693301,2,1,CD8⁺ T cells,Recurrence,Recurrence during available follow-up
+B22,IM,Chemo,1,CD8T,0.0065307273727998761,2,1,CD8⁺ T cells,Recurrence,Recurrence during available follow-up
+B3,IM,Chemo,1,CD8T,0.026623106708225229,2,1,CD8⁺ T cells,Recurrence,Recurrence during available follow-up
+B4,IM,Chemo,1,CD8T,0.036310410358976343,2,1,CD8⁺ T cells,Recurrence,Recurrence during available follow-up
+B5,IM,Chemo,1,CD8T,0.15089663200559844,2,1,CD8⁺ T cells,Recurrence,Recurrence during available follow-up
+B6,IM,Chemo,1,CD8T,0.1101490289105093,2,1,CD8⁺ T cells,Recurrence,Recurrence during available follow-up
+B8,IM,Chemo,1,CD8T,0.072246500311922285,2,1,CD8⁺ T cells,Recurrence,Recurrence during available follow-up
+W12,IM,Combo,0,CD8T,0.049113111839555017,2,2,CD8⁺ T cells,No recurrence,No recurrence during available follow-up
+W18,IM,Combo,0,CD8T,0.035223571376847694,2,2,CD8⁺ T cells,No recurrence,No recurrence during available follow-up
+W2,IM,Combo,0,CD8T,0.11025232640332536,2,2,CD8⁺ T cells,No recurrence,No recurrence during available follow-up
+W22,IM,Combo,0,CD8T,0.086058281392062189,2,2,CD8⁺ T cells,No recurrence,No recurrence during available follow-up
+W23,IM,Combo,0,CD8T,0.03849898816899356,2,2,CD8⁺ T cells,No recurrence,No recurrence during available follow-up
+W4,IM,Combo,0,CD8T,0.054849062746083962,2,2,CD8⁺ T cells,No recurrence,No recurrence during available follow-up
+W6,IM,Combo,0,CD8T,0.067836374421032256,2,2,CD8⁺ T cells,No recurrence,No recurrence during available follow-up
+W7,IM,Combo,0,CD8T,0.11083516678032639,2,2,CD8⁺ T cells,No recurrence,No recurrence during available follow-up
+B10,IM,Combo,1,CD8T,0.088567467786099807,2,2,CD8⁺ T cells,Recurrence,Recurrence during available follow-up
+B12,IM,Combo,1,CD8T,0.037731056377483571,2,2,CD8⁺ T cells,Recurrence,Recurrence during available follow-up
+B16,IM,Combo,1,CD8T,0.016676901066166198,2,2,CD8⁺ T cells,Recurrence,Recurrence during available follow-up
+B20,IM,Combo,1,CD8T,0.037775424945440332,2,2,CD8⁺ T cells,Recurrence,Recurrence during available follow-up
+W21,IM,Combo,1,CD8T,0.02101797684943273,2,2,CD8⁺ T cells,Recurrence,Recurrence during available follow-up
+W1,IM,Chemo,0,Macro_CD169,0.023661117318568122,3,1,CD169⁺ Macs,No recurrence,No recurrence during available follow-up
+W10,IM,Chemo,0,Macro_CD169,0.023494541453089025,3,1,CD169⁺ Macs,No recurrence,No recurrence during available follow-up
+W15,IM,Chemo,0,Macro_CD169,0.026379021186629735,3,1,CD169⁺ Macs,No recurrence,No recurrence during available follow-up
+W16,IM,Chemo,0,Macro_CD169,0.040047033325835674,3,1,CD169⁺ Macs,No recurrence,No recurrence during available follow-up
+W17,IM,Chemo,0,Macro_CD169,0.035541146407556144,3,1,CD169⁺ Macs,No recurrence,No recurrence during available follow-up
+W19,IM,Chemo,0,Macro_CD169,0.032598370719435284,3,1,CD169⁺ Macs,No recurrence,No recurrence during available follow-up
+W20,IM,Chemo,0,Macro_CD169,0.032747210146935782,3,1,CD169⁺ Macs,No recurrence,No recurrence during available follow-up
+W25,IM,Chemo,0,Macro_CD169,0.04480187517699287,3,1,CD169⁺ Macs,No recurrence,No recurrence during available follow-up
+W3,IM,Chemo,0,Macro_CD169,0.018760244934160182,3,1,CD169⁺ Macs,No recurrence,No recurrence during available follow-up
+B11,IM,Chemo,1,Macro_CD169,0.01959162367087108,3,1,CD169⁺ Macs,Recurrence,Recurrence during available follow-up
+B13,IM,Chemo,1,Macro_CD169,0.026676643367051379,3,1,CD169⁺ Macs,Recurrence,Recurrence during available follow-up
+B14,IM,Chemo,1,Macro_CD169,0.020783446401356456,3,1,CD169⁺ Macs,Recurrence,Recurrence during available follow-up
+B15,IM,Chemo,1,Macro_CD169,0.029279716619058965,3,1,CD169⁺ Macs,Recurrence,Recurrence during available follow-up
+B18,IM,Chemo,1,Macro_CD169,0.040643097210640848,3,1,CD169⁺ Macs,Recurrence,Recurrence during available follow-up
+B2,IM,Chemo,1,Macro_CD169,0.013622133008169534,3,1,CD169⁺ Macs,Recurrence,Recurrence during available follow-up
+B21,IM,Chemo,1,Macro_CD169,0.025957256554500142,3,1,CD169⁺ Macs,Recurrence,Recurrence during available follow-up
+B22,IM,Chemo,1,Macro_CD169,0.023678387941841336,3,1,CD169⁺ Macs,Recurrence,Recurrence during available follow-up
+B3,IM,Chemo,1,Macro_CD169,0.016662758381577214,3,1,CD169⁺ Macs,Recurrence,Recurrence during available follow-up
+B4,IM,Chemo,1,Macro_CD169,0.020642069715590631,3,1,CD169⁺ Macs,Recurrence,Recurrence during available follow-up
+B5,IM,Chemo,1,Macro_CD169,0.013128968774181861,3,1,CD169⁺ Macs,Recurrence,Recurrence during available follow-up
+B6,IM,Chemo,1,Macro_CD169,0.023231432430861919,3,1,CD169⁺ Macs,Recurrence,Recurrence during available follow-up
+B8,IM,Chemo,1,Macro_CD169,0.028516063671274353,3,1,CD169⁺ Macs,Recurrence,Recurrence during available follow-up
+W12,IM,Combo,0,Macro_CD169,0.019099956653652665,3,2,CD169⁺ Macs,No recurrence,No recurrence during available follow-up
+W18,IM,Combo,0,Macro_CD169,0.037255983815168939,3,2,CD169⁺ Macs,No recurrence,No recurrence during available follow-up
+W2,IM,Combo,0,Macro_CD169,0.019639634774249737,3,2,CD169⁺ Macs,No recurrence,No recurrence during available follow-up
+W22,IM,Combo,0,Macro_CD169,0.033413825753728629,3,2,CD169⁺ Macs,No recurrence,No recurrence during available follow-up
+W23,IM,Combo,0,Macro_CD169,0.032572926871914473,3,2,CD169⁺ Macs,No recurrence,No recurrence during available follow-up
+W4,IM,Combo,0,Macro_CD169,0.019784629297448435,3,2,CD169⁺ Macs,No recurrence,No recurrence during available follow-up
+W6,IM,Combo,0,Macro_CD169,0.04232418561463476,3,2,CD169⁺ Macs,No recurrence,No recurrence during available follow-up
+W7,IM,Combo,0,Macro_CD169,0.012213310377421566,3,2,CD169⁺ Macs,No recurrence,No recurrence during available follow-up
+B10,IM,Combo,1,Macro_CD169,0.032084013588027392,3,2,CD169⁺ Macs,Recurrence,Recurrence during available follow-up
+B12,IM,Combo,1,Macro_CD169,0.03460680006830312,3,2,CD169⁺ Macs,Recurrence,Recurrence during available follow-up
+B16,IM,Combo,1,Macro_CD169,0.063268176052946601,3,2,CD169⁺ Macs,Recurrence,Recurrence during available follow-up
+B20,IM,Combo,1,Macro_CD169,0.058396737742515782,3,2,CD169⁺ Macs,Recurrence,Recurrence during available follow-up
+W21,IM,Combo,1,Macro_CD169,0.057167504774345942,3,2,CD169⁺ Macs,Recurrence,Recurrence during available follow-up
+W1,IM,Chemo,0,Macro_CD163,0.02226543133894868,4,1,CD163⁺ Macs,No recurrence,No recurrence during available follow-up
+W10,IM,Chemo,0,Macro_CD163,0.033988156623120283,4,1,CD163⁺ Macs,No recurrence,No recurrence during available follow-up
+W15,IM,Chemo,0,Macro_CD163,0.066282028039642255,4,1,CD163⁺ Macs,No recurrence,No recurrence during available follow-up
+W16,IM,Chemo,0,Macro_CD163,0.087007473456901477,4,1,CD163⁺ Macs,No recurrence,No recurrence during available follow-up
+W17,IM,Chemo,0,Macro_CD163,0.077438017062900377,4,1,CD163⁺ Macs,No recurrence,No recurrence during available follow-up
+W19,IM,Chemo,0,Macro_CD163,0.066013463896838612,4,1,CD163⁺ Macs,No recurrence,No recurrence during available follow-up
+W20,IM,Chemo,0,Macro_CD163,0.097534831686909032,4,1,CD163⁺ Macs,No recurrence,No recurrence during available follow-up
+W25,IM,Chemo,0,Macro_CD163,0.072155960352318416,4,1,CD163⁺ Macs,No recurrence,No recurrence during available follow-up
+W3,IM,Chemo,0,Macro_CD163,0.033178346187213846,4,1,CD163⁺ Macs,No recurrence,No recurrence during available follow-up
+B11,IM,Chemo,1,Macro_CD163,0.025252827078298037,4,1,CD163⁺ Macs,Recurrence,Recurrence during available follow-up
+B13,IM,Chemo,1,Macro_CD163,0.17050304085354534,4,1,CD163⁺ Macs,Recurrence,Recurrence during available follow-up
+B14,IM,Chemo,1,Macro_CD163,0.10643041806277519,4,1,CD163⁺ Macs,Recurrence,Recurrence during available follow-up
+B15,IM,Chemo,1,Macro_CD163,0.062153291085865682,4,1,CD163⁺ Macs,Recurrence,Recurrence during available follow-up
+B18,IM,Chemo,1,Macro_CD163,0.23119316327032069,4,1,CD163⁺ Macs,Recurrence,Recurrence during available follow-up
+B2,IM,Chemo,1,Macro_CD163,0.027612551689629537,4,1,CD163⁺ Macs,Recurrence,Recurrence during available follow-up
+B21,IM,Chemo,1,Macro_CD163,0.14714186023151202,4,1,CD163⁺ Macs,Recurrence,Recurrence during available follow-up
+B22,IM,Chemo,1,Macro_CD163,0.057572007507125246,4,1,CD163⁺ Macs,Recurrence,Recurrence during available follow-up
+B3,IM,Chemo,1,Macro_CD163,0.029074584755707386,4,1,CD163⁺ Macs,Recurrence,Recurrence during available follow-up
+B4,IM,Chemo,1,Macro_CD163,0.052445490702352666,4,1,CD163⁺ Macs,Recurrence,Recurrence during available follow-up
+B5,IM,Chemo,1,Macro_CD163,0.04565883346107328,4,1,CD163⁺ Macs,Recurrence,Recurrence during available follow-up
+B6,IM,Chemo,1,Macro_CD163,0.036070870192319707,4,1,CD163⁺ Macs,Recurrence,Recurrence during available follow-up
+B8,IM,Chemo,1,Macro_CD163,0.082804011456888704,4,1,CD163⁺ Macs,Recurrence,Recurrence during available follow-up
+W12,IM,Combo,0,Macro_CD163,0.031896620987338399,4,2,CD163⁺ Macs,No recurrence,No recurrence during available follow-up
+W18,IM,Combo,0,Macro_CD163,0.076999173890242301,4,2,CD163⁺ Macs,No recurrence,No recurrence during available follow-up
+W2,IM,Combo,0,Macro_CD163,0.031762779368013416,4,2,CD163⁺ Macs,No recurrence,No recurrence during available follow-up
+W22,IM,Combo,0,Macro_CD163,0.13537458417030182,4,2,CD163⁺ Macs,No recurrence,No recurrence during available follow-up
+W23,IM,Combo,0,Macro_CD163,0.13081511850436409,4,2,CD163⁺ Macs,No recurrence,No recurrence during available follow-up
+W4,IM,Combo,0,Macro_CD163,0.036290173656482357,4,2,CD163⁺ Macs,No recurrence,No recurrence during available follow-up
+W6,IM,Combo,0,Macro_CD163,0.07179908790175038,4,2,CD163⁺ Macs,No recurrence,No recurrence during available follow-up
+W7,IM,Combo,0,Macro_CD163,0.036253056357749898,4,2,CD163⁺ Macs,No recurrence,No recurrence during available follow-up
+B10,IM,Combo,1,Macro_CD163,0.036288501981099459,4,2,CD163⁺ Macs,Recurrence,Recurrence during available follow-up
+B12,IM,Combo,1,Macro_CD163,0.096709838225684908,4,2,CD163⁺ Macs,Recurrence,Recurrence during available follow-up
+B16,IM,Combo,1,Macro_CD163,0.23547070488084385,4,2,CD163⁺ Macs,Recurrence,Recurrence during available follow-up
+B20,IM,Combo,1,Macro_CD163,0.1209486800463575,4,2,CD163⁺ Macs,Recurrence,Recurrence during available follow-up
+W21,IM,Combo,1,Macro_CD163,0.21526785981335747,4,2,CD163⁺ Macs,Recurrence,Recurrence during available follow-up
